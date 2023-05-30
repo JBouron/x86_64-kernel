@@ -51,6 +51,18 @@ entry:
     ; We are live!
     PRINT_STRING data.bootMessage
 
+    ; Check if the BIOS enabled the A20 line.
+    ; FIXME: For now we rely on the BIOS to enable the A20 line for us because
+    ; frankly this seem a bit annoying to do this ourselves. These days
+    ; virtually all BIOSes do that so in practice this should not be a problem.
+    call    isA20LineEnabled
+    test    ax, ax
+    jnz     .a20Enabled
+    ; A20 not enabled, log message and die.
+    PRINT_STRING data.a20NotEnabledMessage
+    jmp     .dead
+.a20Enabled:
+
 .dead:
     hlt
     jmp     .dead
@@ -105,6 +117,44 @@ printString:
     leave
     ret
 
+; Check if the A20 line has been enabled.
+; @return (AX): If enabled return AX=1, else return AX=0.
+isA20LineEnabled:
+    ; The easiest way to do check if A20 is enabled is to try to read at an
+    ; address that overflows. We do this with the boot signature located at
+    ; 0000:7dfe which is aliased to ffff:7e0e (which has its bit 20 to 1). If
+    ; reading from both addresses give different values then there are good
+    ; chances the A20 is already enabled. To make sure this is not a
+    ; coincidence, read a first time, compare, modify the value and then read a
+    ; second time.
+
+    ; Use ES segment to read the overflow address.
+    push    es
+    mov     ax, 0xffff
+    mov     es, ax
+
+    mov     ax, 0x1
+
+    ; First try.
+    mov     cx, [es:0x7e0e]
+    cmp     cx, [0x7dfe]
+    jne     .out
+    ; The value matches, modify the address 0000:7dfe and re-try to make sure.
+    not     WORD [0x7dfe]
+    ; Second try.
+    mov     cx, [es:0x7e0e]
+    cmp     cx, [0x7dfe]
+    jne     .out
+    ; The value matched again, we can say with almost certainty that the BIOS
+    ; has not enabled the A20 line for us.
+    xor     ax, ax
+.out:
+    ; Restore ES.
+    pop     es
+    ; While not necessary, restore the boot signature.
+    mov     WORD [0x7dfe], 0xaa55
+    ret
+
 ; The data ""section"".
 data:
 ; The index of the drive we loaded from.
@@ -114,6 +164,8 @@ DB  0x0
 ; Some debug messages.
 .bootMessage:
 DB  `== Jumped into stage 0 entry point ==\n\r\0`
+.a20NotEnabledMessage:
+DB  `This bootloader requires the BIOS to enable the A20 line\n\r\0`
 
 ; Insert zeros until offset 510.
 TIMES 510-($-$$) DB 0
