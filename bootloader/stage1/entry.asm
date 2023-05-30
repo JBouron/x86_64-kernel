@@ -15,6 +15,8 @@ ORG 0x7e00
 
 BITS    16
 
+%include "stage1/logger.asm"
+
 ; ==============================================================================
 ; Entry point for stage 1. At this point the following guarantees hold:
 ;   * Interrupts are disabled.
@@ -23,12 +25,24 @@ BITS    16
 ;   * A stack has been set up for us.
 ;   * We are still in real mode.
 stage1Entry:
-    mov     ax, 0xdead
-    mov     bx, 0xbeef
+    ; At this point we no longer rely on the BIOS to handle the VGA framebuffer,
+    ; do this ourselves.
+    call    clearVgaBuffer
+
+    lea     ax, [stage1Entry]
+    push    ax
+    lea     ax, [data.entryMessage]
+    push    ax
+    call    printf
+    add     sp, 0x4
 
 .dead:
     hlt
     jmp     .dead
+
+data:
+.entryMessage:
+DB  `Entered stage 1 entry @$\n\0`
 
 ; Pad with zeros until next sector boundary.
 ALIGN   512, DB 0
