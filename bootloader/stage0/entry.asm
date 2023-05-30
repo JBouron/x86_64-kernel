@@ -1,5 +1,37 @@
 ; Entry-point of the bootloader once BIOS reliquishes control. We are running in
 ; good old real-mode here.
+;
+; Goals
+; ======
+; Stage 0 is responsible to carry-out the following tasks:
+;   * Setup sane segment registers, more specifically it sets all segments
+;   registers to 0x0000. This makes it easier to reason about address and also
+;   comes in handy once we switch to protected mode as the offsets remain the
+;   same.
+;   * Setup the stack.
+;   * Make sure the A20 line has been enabled.
+;   * Load and jump to stage 1.
+;
+; Assumptions
+; ===========
+;   * For now this stage only checks that A20 line has been enabled by the BIOS
+;   but does not enable it itself if that is not the case. This should be fine
+;   however as virtually all BIOSes are enabling the A20 line these days.
+;   * When loading the next stage, this stage expects to see a header on in the
+;   very first sector of the next stage starting at offset 0. This header is as
+;   follows:
+;       Offset      Size    Description
+;       ------------------------------------------------------------------------
+;       0x0         0x2     The signature 0x50f3. This is how this stage
+;                           recognizes a valid next stage.
+;       0x2         0x2     The size of the next stage in units of sectors.
+;                           This indicates how many sectors should be loaded
+;                           from disk before jumping to the entry point of the
+;                           next stage. Note: This includes the first sector
+;                           containing the header!
+;       0x4         0x2     The offset of the entry point of the next stage,
+;                           relative to the physical address 0x7e00.
+;   * This stage loads the next stage at address 0000:7e00.
 
 BITS 16
 
@@ -51,9 +83,6 @@ entry:
     ; deal with, especially once we will enable paging etc...
     lea     sp, [entry]
 
-    ; We are live!
-    PRINT_STRING data.bootMessage
-
     ; Check if the BIOS enabled the A20 line.
     ; FIXME: For now we rely on the BIOS to enable the A20 line for us because
     ; frankly this seem a bit annoying to do this ourselves. These days
@@ -67,7 +96,6 @@ entry:
 .a20Enabled:
 
     ; Load the first sector of the next stage.
-    PRINT_STRING data.startLoadNextStageFirstSectorMessage
     ; Load on the next sector boundary. We do this because the next stage is
     ; assembled at origin = 0x7e00. We are wasting a few bytes this way, but
     ; this is clearly making things easier as the next stage does not have to
@@ -87,8 +115,44 @@ entry:
     jmp     .dead
 .firstSectorRead:
     ; First sector was successfully loaded to memory.
-    ; TODO: Read the size of the next stage, load the necesary sector(s) and
-    ; then jump to the next stage entry point.
+
+    ; Check the magic number.
+    mov     bx, 0x7e00
+    cmp     WORD [bx], 0x50f3
+    je      .magicNumberOk
+    ; The magic number does not match.
+    PRINT_STRING data.invalidNextStageMagicNumberMessage
+    jmp     .dead
+.magicNumberOk:
+
+    ; Load the remaining sectors.
+    ; AX = Number of sectors to load. -1 because we already loaded the first
+    ; sector.
+    mov     ax, [bx + 0x02]
+    dec     ax
+    test    ax, ax
+    jz      .remainingSectorsLoaded
+
+    ; There are more sectors to load. Start reading from sector #2.
+    push    0x7e00 + 512
+    push    ax
+    push    2
+    xor     dh, dh
+    mov     dl, [data.bootDriveIndex]
+    push    dx
+    call    loadSectors
+    add     sp, 0x8
+    test    ax, ax
+    jnz     .remainingSectorsLoaded
+    ; Failed to load remaining sectors.
+    PRINT_STRING data.loadNextStageRemainingSectorsFailedMessage
+    jmp     .dead
+.remainingSectorsLoaded:
+
+    ; Jump to stage 1's entry.
+    mov     bx, [bx + 0x4]
+    lea     ax, [0x7e00 + bx]
+    jmp     ax
 
 .dead:
     hlt
@@ -242,14 +306,14 @@ data:
 DB  0x0
 
 ; Some debug messages.
-.bootMessage:
-DB  `== Jumped into stage 0 entry point ==\n\r\0`
 .a20NotEnabledMessage:
-DB  `This bootloader requires the BIOS to enable the A20 line\n\r\0`
-.startLoadNextStageFirstSectorMessage:
-DB  `Loading next stage's first sector\n\r\0`
+DB  `A20 line not enabled\n\r\0`
 .loadNextStageFirstSectorFailedMessage:
 DB  `Failed to load next stage's first sector from disk\n\r\0`
+.invalidNextStageMagicNumberMessage:
+DB  `Invalid magic number in next sector\n\r\0`
+.loadNextStageRemainingSectorsFailedMessage:
+DB  `Failed to load remaining sectors\n\r\0`
 
 ; Insert zeros until offset 510.
 TIMES 510-($-$$) DB 0
