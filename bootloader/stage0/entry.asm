@@ -19,6 +19,9 @@ BITS 16
 ; because it makes it easier to reason about and compare addresses.
 ORG 0x7c00
 
+; ==============================================================================
+; Entry point of stage 0. This is the first code executed when the BIOS
+; reliquishes control of the cpu.
 entry:
     ; Interrupts are usually disabled by the BIOS. Doesn't hurt to disable them
     ; ourselves here just in case.
@@ -63,11 +66,35 @@ entry:
     jmp     .dead
 .a20Enabled:
 
+    ; Load the first sector of the next stage.
+    PRINT_STRING data.startLoadNextStageFirstSectorMessage
+    ; Load on the next sector boundary. We do this because the next stage is
+    ; assembled at origin = 0x7e00. We are wasting a few bytes this way, but
+    ; this is clearly making things easier as the next stage does not have to
+    ; know exactly how big this stage is (e.g. to compute the correct origin).
+    push    0x7e00
+    push    1
+    push    1
+    xor     dh, dh
+    mov     dl, [data.bootDriveIndex]
+    push    dx
+    call    loadSectors
+    add     sp, 0x8
+    test    ax, ax
+    jnz     .firstSectorRead
+    ; Failed to read the first sector of the next stage.
+    PRINT_STRING data.loadNextStageFirstSectorFailedMessage
+    jmp     .dead
+.firstSectorRead:
+    ; First sector was successfully loaded to memory.
+    ; TODO: Read the size of the next stage, load the necesary sector(s) and
+    ; then jump to the next stage entry point.
+
 .dead:
     hlt
     jmp     .dead
 
-
+; ==============================================================================
 ; Print a NUL-terminated string into the VGA buffer.
 ; @param (WORD) stringAddr: The address of the NUL terminated string to print.
 printString:
@@ -117,6 +144,7 @@ printString:
     leave
     ret
 
+; ==============================================================================
 ; Check if the A20 line has been enabled.
 ; @return (AX): If enabled return AX=1, else return AX=0.
 isA20LineEnabled:
@@ -155,6 +183,58 @@ isA20LineEnabled:
     mov     WORD [0x7dfe], 0xaa55
     ret
 
+; ==============================================================================
+; Load sectors from the specified disk using BIOS function INT 13h AH=42h.
+; @param (WORD) driveIndex: The index of the drive to read from.
+; @param (WORD) startSectorIndex: LBA index of the first sector to read.
+; @param (WORD) numSectors: Number of sectors to read starting at
+; `startSectorIndex`.
+; @param (WORD) addr: Where to write the sectors content in memory. The actual
+; address is DS:addr.
+; @return (AX): If successful, AX=1, otherwise AX=0.
+loadSectors:
+    push    bp
+    mov     bp, sp
+
+    push    si
+
+    ; Prepare Disk Address Packet on the stack, this packet has the following
+    ; layout:
+    ;   Offset  Size    Desc
+    ;   0x0     0x1     Size of the packet (e.g. 0x10).
+    ;   0x1     0x1     Must be zero.
+    ;   0x2-0x3 0x2     Number of sectors to be read.
+    ;   0x4-0x7 0x4     Seg:Offset ptr for dest. buffer. Offset first.
+    ;   0x8-0xf 0x8     LBA index of first sector to read.
+    ; LBA index of first sector.
+    push    0x0
+    push    0x0
+    push    0x0
+    push    WORD [bp + 0x6]
+    ; Dest buffer.
+    push    0x0
+    push    WORD [bp + 0xa]
+    ; Number of sectors to be read.
+    push    WORD [bp + 0x8]
+    ; Zero + packet size
+    push    0x10
+
+    ; Do the BIOS call.
+    mov     ah, 0x42
+    mov     dl, [bp + 0x4]
+    mov     si, sp
+    int     0x13
+
+    setnc    al
+    xor     ah, ah
+
+    ; De-allocate the disk address packet from the stack.
+    add     sp, 0x10
+
+    pop     si
+    leave
+    ret
+
 ; The data ""section"".
 data:
 ; The index of the drive we loaded from.
@@ -166,6 +246,10 @@ DB  0x0
 DB  `== Jumped into stage 0 entry point ==\n\r\0`
 .a20NotEnabledMessage:
 DB  `This bootloader requires the BIOS to enable the A20 line\n\r\0`
+.startLoadNextStageFirstSectorMessage:
+DB  `Loading next stage's first sector\n\r\0`
+.loadNextStageFirstSectorFailedMessage:
+DB  `Failed to load next stage's first sector from disk\n\r\0`
 
 ; Insert zeros until offset 510.
 TIMES 510-($-$$) DB 0
