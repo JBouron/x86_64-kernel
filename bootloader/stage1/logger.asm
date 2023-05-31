@@ -17,74 +17,60 @@
     %endrep
     push    %%str
     call    printf
-    add     sp, 0x2 * %0
+    add     esp, 0x4 * %0
 %endmacro
 
-BITS    16
+BITS    32
 
 VGA_BUFFER_ROWS EQU 25
 VGA_BUFFER_COLS EQU 80
 VGA_BACKGROUND_COLOR EQU 0
 VGA_FOREGROUND_COLOR EQU 7
+VGA_BUFFER_PHY_ADDR EQU 0xb8000
 
 ; ==============================================================================
 ; Clear the VGA buffer.
 clearVgaBuffer:
-    push    bp
-    mov     bp, sp
-    push    es
-    push    di
+    push    ebp
+    mov     ebp, esp
+    push    edi
 
-    mov     ax, 0xb800
-    mov     es, ax
-    mov     cx, 80 * 25
-    xor     di, di
+    mov     ecx, 80 * 25
+    mov     edi, VGA_BUFFER_PHY_ADDR
     xor     ax, ax
     rep stosw
 
-    pop     di
-    pop     es
+    pop     edi
     leave
     ret
 
 ; ==============================================================================
 ; Scroll the VGA buffer up one line.
 scrollVgaBufferUp:
-    push    bp
-    mov     bp, sp
-    push    ds
-    push    es
-    push    di
-    push    si
+    push    ebp
+    mov     ebp, esp
+    push    edi
+    push    esi
 
-    mov     ax, 0xb800
-    mov     es, ax
-    mov     ds, ax
-    mov     cx, VGA_BUFFER_ROWS * (VGA_BUFFER_COLS - 1)
-    xor     di, di
-    mov     si, VGA_BUFFER_COLS * 2
+    mov     ecx, VGA_BUFFER_ROWS * (VGA_BUFFER_COLS - 1)
+    mov     edi, VGA_BUFFER_PHY_ADDR
+    mov     esi, VGA_BUFFER_PHY_ADDR + VGA_BUFFER_COLS * 2
     rep movsw
 
-    pop     si
-    pop     di
-    pop     es
-    pop     ds
+    pop     esi
+    pop     edi
     leave
     ret
 
 ; ==============================================================================
 ; Print a character in the VGA buffer at the current cursor position.
-; @param (WORD) c: The char to print.
+; @param (DWORD) c: The char to print.
 _putCharVga:
-    push    bp
-    mov     bp, sp
-    push    es
-    push    bx
+    push    ebp
+    mov     ebp, esp
+    push    ebx
 
-    mov     ax, 0xb800
-    mov     es, ax
-
-    mov     ax, [bp + 0x4]
+    mov     al, [ebp + 0x8]
     cmp     al, `\n`
     je      .handleNewLine
     jmp     .handleRegularChar
@@ -114,14 +100,14 @@ _putCharVga:
     ; At this point AL already contains the character to be printed, we only
     ; need to modify AH to contain the proper color attributes.
     mov     ah, (VGA_BACKGROUND_COLOR << 4) | VGA_FOREGROUND_COLOR
-    mov     bx, [.cursorPos]
-    mov     [es:bx], ax
+    movzx   ebx, WORD [.cursorPos]
+    mov     [ebx + VGA_BUFFER_PHY_ADDR], ax
     ; Advance the cursor to the next char pos in the buffer.
     add     WORD [.cursorPos], 2
     ; Fall-through to .checkIfScrollUpNeededAndOut.
 
 .checkIfScrollUpNeededAndOut:
-    ; AX = Buffer end.
+    ; AX = Index of buffer end.
     mov     ax, VGA_BUFFER_ROWS * VGA_BUFFER_COLS * 2
     cmp     [.cursorPos], ax
     jb      .out
@@ -131,14 +117,13 @@ _putCharVga:
     sub     WORD [.cursorPos], VGA_BUFFER_COLS * 2
 
 .out:
-    pop     bx
-    pop     es
+    pop     ebx
     leave
     ret
 
 ; The linear index of the cursor in the VGA buffer.
 .cursorPos:
-dw  0x0
+DW  0x0
 
 ; ==============================================================================
 ; Print a character.
@@ -148,43 +133,40 @@ _putChar:
 
 ; ==============================================================================
 ; Helper function for printf, print a value in hexadecimal format.
-; @parma (WORD) val: The value to be printed.
+; @parma (DWORD) val: The value to be printed.
 printfSubstitute:
-    push    bp
-    mov     bp, sp
-    push    si
+    push    ebp
+    mov     ebp, esp
+    push    esi
 
     ; First print the "0x" prefix.
     mov     al, `0`
-    movzx   ax, al
-    push    ax
+    push    eax
     call    _putChar
-    add     sp, 0x2
     mov     al, `x`
-    movzx   ax, al
-    push    ax
+    push    eax
     call    _putChar
-    add     sp, 0x2
+    add     esp, 0x8
 
     ; Now print the value in hex format.
     ; SI = value
-    mov     si, [bp + 0x4]
+    mov     esi, [ebp + 0x8]
 
-    ; [BP - 0x4] = Mask
+    ; [EBP - 0x8] = Mask
     ; This mask is used to extract the 4-bit hex digits from the value.
-    push    0xf000
-    ; [BP - 0x6] = Shift
+    push    0xf0000000
+    ; [EBP - 0xc] = Shift
     ; Used to right shift the bits extracted with Mask.
-    push    12
+    push    28
 .loop:
-    test    WORD [bp - 0x4], -1
-    jz      .out
+    cmp     DWORD [ebp - 0x8], 0
+    je      .out
 
-    ; AX = Next hex digits.
-    mov     ax, si
-    and     ax, [bp - 0x4]
-    mov     cx, [bp - 0x6]
-    shr     ax, cl
+    ; AL = Next hex digits.
+    mov     eax, esi
+    and     eax, [ebp - 0x8]
+    mov     ecx, [ebp - 0xc]
+    shr     eax, cl
 
     cmp     al, 0xa
     jae     .loopPrintDigitAbove10
@@ -195,21 +177,20 @@ printfSubstitute:
     sub     al, 0xa
     add     al, `a`
 .loopPrintChar:
-    movzx   ax, al
-    push    ax
+    push    eax
     call    _putChar
-    add     sp, 0x2
+    add     esp, 0x4
 
     ; Update iteration vars.
     mov     cl, 4
-    shr     WORD [bp - 0x4], cl
-    sub     WORD [bp - 0x6], 4
+    shr     DWORD [bp - 0x8], cl
+    sub     DWORD [bp - 0xc], 4
     jmp     .loop
 
 .out:
     ; De-alloc iteration variables.
-    add     sp, 0x4
-    pop     si
+    add     esp, 0x8
+    pop     esi
     leave
     ret
 
@@ -220,16 +201,16 @@ printfSubstitute:
 ; corresponding WORD in the varargs val... (e.g stack).
 ; @param (WORD) val...: The values to be printed.
 printf:
-    push    bp
-    mov     bp, sp
-    push    si
-    push    bx    
+    push    ebp
+    mov     ebp, esp
+    push    esi
+    push    ebx    
 
-    ; SI = Pointer to next char to print.
-    mov     si, [bp + 0x4]
+    ; ESI = Pointer to next char to print.
+    mov     esi, [ebp + 0x8]
 
-    ; BX = Ptr to next value to substitute.
-    lea     bx, [bp + 0x6]
+    ; EBX = Ptr to next value to substitute.
+    lea     ebx, [ebp + 0xc]
 
     ; Loop over each char of the string until we processed the whole string. For
     ; each char:
@@ -237,31 +218,30 @@ printf:
     ;   * If this is a substitution sequence, print the next value.
 .charLoop:
     ; Loop condition, check for NUL char.
-    test    BYTE [si], -1
-    jz      .out
+    cmp     BYTE [esi], 0
+    je      .out
 
     ; Check if this is a substitution char.
-    cmp     BYTE [si], `$`
+    cmp     BYTE [esi], `$`
     jne     .charLoopRegular
     ; This is a substitution char, print the value.
-    push    WORD [bx]
+    push    DWORD [ebx]
     call    printfSubstitute
-    add     bx, 0x2
+    add     ebx, 0x4
     jmp     .charLoopTail
 
 .charLoopRegular:
-    mov     al, [si]
-    movzx   ax, al
-    push    ax
+    mov     al, [esi]
+    push    eax
     call    _putChar
-    add     sp, 0x2
+    add     esp, 0x4
 
 .charLoopTail:
-    inc     si
+    inc     esi
     jmp     .charLoop
 
 .out:
-    pop     bx
-    pop     si
+    pop     ebx
+    pop     esi
     leave
     ret

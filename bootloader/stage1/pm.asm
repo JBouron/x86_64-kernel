@@ -18,8 +18,6 @@ _loadProtectedModeGdt:
     mov     ax, data.stage1GdtEnd - data.stage1Gdt - 1
     push    ax
 
-    LOG     "Loading PM GDT: limit = $, base = $", WORD [bp - 0x6], WORD [bp - 0x4]
-
     ; Load the GDT descriptor into GDTR.
     lgdt    [bp - 0x6]
     add     sp, 0x6
@@ -36,8 +34,6 @@ jumpToProtectedMode:
     ; Save the real mode IDTR so that we can re-use it in the future if we need
     ; to jump back to real-mode and execute BIOS functions.
     sidt    [data.realModeIdtr]
-    LOG     "Saved real-mode IDTR: limit = $, base = $", \
-            WORD [data.realModeIdtrLimit], WORD [data.realModeIdtrBase]
 
     ; Zero-out the IDTR before proceeding to protected-mode as it won't be
     ; compatible.
@@ -64,7 +60,18 @@ jumpToProtectedMode:
 BITS    32
 .protectedModeTarget:
     ; We are now running in 32-bit protected mode.
-    mov     eax, 0xdeadbeef
+
+    ; Set the other segment registers to use the 32-bit data segment.
+    mov     ax, SEG_SEL(2)
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
+    mov     ss, ax
+
+    call    clearVgaBuffer
+    LOG     "Successfully jumped to protected mode"
+
     hlt
     jmp     .protectedModeTarget
 

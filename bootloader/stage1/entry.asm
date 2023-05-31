@@ -28,13 +28,6 @@ BITS    16
 ;   * A stack has been set up for us.
 ;   * We are still in real mode.
 stage1Entry:
-    ; At this point we no longer rely on the BIOS to handle the VGA framebuffer,
-    ; do this ourselves.
-    call    clearVgaBuffer
-
-    LOG "Entered stage 1 entry point @$", stage1Entry
-
-    LOG "Jumping to protected mode"
     call    jumpToProtectedMode
 
 .dead:
