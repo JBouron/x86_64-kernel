@@ -14,6 +14,7 @@ DW  (stage1Entry - stage1Start)
 ORG 0x7e00
 
 %include "stage1/logger.asm"
+%include "stage1/pm.asm"
 
 ; Set the BITS _after_ including other files so that we don't accidentally use
 ; the BITS set by an included file.
@@ -32,6 +33,9 @@ stage1Entry:
     call    clearVgaBuffer
 
     LOG "Entered stage 1 entry point @$", stage1Entry
+
+    LOG "Jumping to protected mode"
+    call    jumpToProtectedMode
 
 .dead:
     hlt
