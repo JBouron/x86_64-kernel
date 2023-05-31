@@ -20,7 +20,6 @@ _loadProtectedModeGdt:
 
     ; Load the GDT descriptor into GDTR.
     lgdt    [bp - 0x6]
-    add     sp, 0x6
 
     leave
     ret
@@ -29,7 +28,12 @@ _loadProtectedModeGdt:
 %define SEG_SEL(i) (i << 3)
 
 ; ==============================================================================
-; Enable and jump into protected mode. This function DOES NOT RETURN.
+; Enable and jump into protected mode. This function DOES NOT RETURN but instead
+; jump to the address specified as parameter. Upon jumping to the target 32-bit
+; code, the state of the stack and of the callee-saved registers are the same as
+; before the call to jumpToProtectedMode.
+; @param (WORD) targetAddr: The 32-bit code to jump to after protected mode has
+; been enabled.
 jumpToProtectedMode:
     ; Save the real mode IDTR so that we can re-use it in the future if we need
     ; to jump back to real-mode and execute BIOS functions.
@@ -37,14 +41,15 @@ jumpToProtectedMode:
 
     ; Zero-out the IDTR before proceeding to protected-mode as it won't be
     ; compatible.
+    push    bx
     xor     ax, ax
     push    ax
     push    ax
     push    ax
-    ; We can clobber the BP register here since we don't use it and we won't
-    ; return to the caller anyway.
     mov     bx, sp
     lidt    [bx]
+    add     sp, 0x6
+    pop     bx
 
     ; Load the GDT to be used for protected mode operation.
     call    _loadProtectedModeGdt
@@ -69,11 +74,9 @@ BITS    32
     mov     gs, ax
     mov     ss, ax
 
-    call    clearVgaBuffer
-    LOG     "Successfully jumped to protected mode"
-
-    hlt
-    jmp     .protectedModeTarget
+    ; Jump to the target address.
+    movzx   eax, WORD [esp + 0x2]
+    jmp     eax
 
 
 ; Fake data section

@@ -28,7 +28,27 @@ BITS    16
 ;   * A stack has been set up for us.
 ;   * We are still in real mode.
 stage1Entry:
+    ; Immediately jump to 32-bit protected mode, we don't have anything else to
+    ; do in real-mode for now.
+    push    stage1Entry32
     call    jumpToProtectedMode
+    ; UNREACHABLE
+    int3
+
+BITS    32
+
+; ==============================================================================
+; Entry point for stage 1 in 32bit protected-mode. stage1Entry jumps to this
+; code.
+stage1Entry32:
+    ; Since we arrived here from a call to jumpToProtectedMode, the stack still
+    ; contains the WORD parameter for jumpToProtectedMode as well as the return
+    ; address due to the call. Remove both of them.
+    add     esp, 0x4
+
+    call    clearVgaBuffer
+    mov     ebx, esp
+    LOG     "Successfully jumped to 32-bit protected mode, esp = $", ebx
 
 .dead:
     hlt
