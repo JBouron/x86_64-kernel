@@ -1,5 +1,25 @@
 ; Utility routines to log messages from stage 1.
 
+; Log a message.
+; @param (WORD) %1: Pointer to the format string.
+; @param (WORD) %2..%n: Values for the format string, note that those tokens are
+; pushed as is on the stack when calling printf.
+%macro LOG 1-*
+    jmp     %%cont
+    ; Allocate the string in the middle of the code. This is a bit dirty but we
+    ; don't have much of a choice since we are not using section atm.
+    %%str:
+    DB  %1, `\n`, `\0`
+    %%cont:
+    %rep    (%0 - 1)
+    %rotate -1
+    push    %1
+    %endrep
+    push    %%str
+    call    printf
+    add     sp, 0x2 * %0
+%endmacro
+
 BITS    16
 
 VGA_BUFFER_ROWS EQU 25
@@ -187,8 +207,8 @@ printfSubstitute:
     jmp     .loop
 
 .out:
-    ; De-alloc iteration count.
-    add     sp, 0x2
+    ; De-alloc iteration variables.
+    add     sp, 0x4
     pop     si
     leave
     ret

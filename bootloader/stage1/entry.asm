@@ -13,9 +13,11 @@ DW  (stage1Entry - stage1Start)
 ; Stage 0 always load stage 1 starting at physical address 0x7e00.
 ORG 0x7e00
 
-BITS    16
-
 %include "stage1/logger.asm"
+
+; Set the BITS _after_ including other files so that we don't accidentally use
+; the BITS set by an included file.
+BITS    16
 
 ; ==============================================================================
 ; Entry point for stage 1. At this point the following guarantees hold:
@@ -29,20 +31,11 @@ stage1Entry:
     ; do this ourselves.
     call    clearVgaBuffer
 
-    lea     ax, [stage1Entry]
-    push    ax
-    lea     ax, [data.entryMessage]
-    push    ax
-    call    printf
-    add     sp, 0x4
+    LOG "Entered stage 1 entry point @$", stage1Entry
 
 .dead:
     hlt
     jmp     .dead
-
-data:
-.entryMessage:
-DB  `Entered stage 1 entry @$\n\0`
 
 ; Pad with zeros until next sector boundary.
 ALIGN   512, DB 0
