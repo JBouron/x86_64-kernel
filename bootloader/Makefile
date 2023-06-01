@@ -12,8 +12,10 @@ run: $(DISK_NAME)
 $(DISK_NAME): stage0/entry.o stage1/entry.o
 	cat $^ > $@
 
+stage1/entry.o: $(shell find stage1/ -type f -name "*.asm")
+
 %.o: %.asm
-	nasm -f bin -o $@ $^
+	nasm -f bin -o $@ $<
 
 .PHONY: clean
 clean:
