@@ -227,6 +227,7 @@ printf:
     ; This is a substitution char, print the value.
     push    DWORD [ebx]
     call    printfSubstitute
+    add     esp, 0x4
     add     ebx, 0x4
     jmp     .charLoopTail
 
