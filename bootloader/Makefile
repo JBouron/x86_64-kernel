@@ -1,5 +1,5 @@
 DISK_NAME:=bootloader
-QEMU_FLAGS:=-drive file=$(DISK_NAME),format=raw -s
+QEMU_FLAGS:=-drive file=$(DISK_NAME),format=raw -s -no-shutdown
 
 all: run
 
