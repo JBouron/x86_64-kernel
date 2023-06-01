@@ -15,6 +15,7 @@ ORG 0x7e00
 
 %include "stage1/logger.asm"
 %include "stage1/pm.asm"
+%include "stage1/bioscall.asm"
 
 ; Set the BITS _after_ including other files so that we don't accidentally use
 ; the BITS set by an included file.
