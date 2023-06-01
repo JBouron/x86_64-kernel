@@ -51,9 +51,31 @@ stage1Entry32:
     mov     ebx, esp
     LOG     "Successfully jumped to 32-bit protected mode, esp = $", ebx
 
+    LOG     "Running self-tests"
+    call    runSelfTests
+    LOG     "All self-tests passed"
+
 .dead:
     hlt
     jmp     .dead
+
+%include "stage1/tests/bioscallTests.asm"
+
+; ==============================================================================
+; Run stage1 self tests.
+; Note on test functions: Test functions are not taking arguments and are
+; expected to lock-up the CPU in case of failure (after hopefully printing
+; a useful error message). Naturally, test functions are expected to return
+; the CPU in a sane/consistent state.
+runSelfTests:
+    push    ebp
+    mov     ebp, esp
+
+    ; All test functions should be called from here.
+    call    callBiosFuncTest
+
+    leave
+    ret
 
 ; Pad with zeros until next sector boundary.
 ALIGN   512, DB 0
