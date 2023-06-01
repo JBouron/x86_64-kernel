@@ -103,7 +103,7 @@ DD  0x0
 ; @param %5 gran: The G bit.
 %macro GDT_ENTRY 5 ; (base, limit, type, db, gran)
     DD  (%1 & 0xffff) << 16 | (%2 & 0xffff)
-    DD  (%1 & 0xff000000) | (%5 << 23) | (%4 << 22) | ((%2 & 0xf0000) << 16) | \
+    DD  (%1 & 0xff000000) | (%5 << 23) | (%4 << 22) | (%2 & 0xf0000) | \
         (1 << 15) | (1 << 12) | (%3 << 8) | ((%1 & 0xff0000) >> 16)
 %endmacro
 
