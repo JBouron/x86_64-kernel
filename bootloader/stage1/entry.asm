@@ -1,15 +1,14 @@
 ; Entry point of stage 1. Stage 0 loads this stage and jumps to stage1Entry.
 
 %include "macros.mac"
+%include "logger.inc"
+%include "pm.inc"
 
 SECTION .text
 
 ; Set the BITS _after_ including other files so that we don't accidentally use
 ; the BITS set by an included file.
 BITS    16
-
-EXT_FUNC(jumpToProtectedMode)
-EXT_FUNC(clearVgaBuffer)
 
 ; ==============================================================================
 ; Entry point for stage 1. At this point the following guarantees hold:

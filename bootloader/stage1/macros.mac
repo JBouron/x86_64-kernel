@@ -1,3 +1,6 @@
+%ifndef MACROS_MAC
+%define MACROS_MAC
+
 ; Log a message.
 ; @param (WORD) %1: Pointer to the format string.
 ; @param (WORD) %2..%n: Values for the format string, note that those tokens are
@@ -38,3 +41,5 @@
 
 %define EXT_FUNC(name) _EXT_SYM name
 %define EXT_VAR(name) _EXT_SYM name
+
+%endif

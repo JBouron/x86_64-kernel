@@ -1,35 +1,9 @@
 ; Tests for the bioscall functionality.
 
-SECTION .text
-
-; FIXME: Deduplicate this by including file containing such values.
-BCP_IN_INT_OFF      EQU 0x00
-BCP_OUT_JC          EQU 0x01
-BCP_INOUT_EAX_OFF   EQU 0x02
-BCP_INOUT_EBX_OFF   EQU 0x06
-BCP_INOUT_ECX_OFF   EQU 0x0a
-BCP_INOUT_EDX_OFF   EQU 0x0e
-BCP_INOUT_EDI_OFF   EQU 0x12
-BCP_INOUT_ESI_OFF   EQU 0x16
-BCP_INOUT_EBP_OFF   EQU 0x1a
-BCP_SIZE            EQU 0x1e
-BCP_INOUT_AX_OFF    EQU BCP_INOUT_EAX_OFF
-BCP_INOUT_AL_OFF    EQU BCP_INOUT_AX_OFF
-BCP_INOUT_AH_OFF    EQU (BCP_INOUT_AX_OFF + 1)
-BCP_INOUT_BX_OFF    EQU BCP_INOUT_EBX_OFF
-BCP_INOUT_BL_OFF    EQU BCP_INOUT_BX_OFF
-BCP_INOUT_BH_OFF    EQU (BCP_INOUT_BX_OFF + 1)
-BCP_INOUT_CX_OFF    EQU BCP_INOUT_ECX_OFF
-BCP_INOUT_CL_OFF    EQU BCP_INOUT_CX_OFF
-BCP_INOUT_CH_OFF    EQU (BCP_INOUT_CX_OFF + 1)
-BCP_INOUT_DX_OFF    EQU BCP_INOUT_EDX_OFF
-BCP_INOUT_DL_OFF    EQU BCP_INOUT_DX_OFF
-BCP_INOUT_DH_OFF    EQU (BCP_INOUT_DX_OFF + 1)
-BCP_INOUT_DI_OFF    EQU BCP_INOUT_EDI_OFF
-BCP_INOUT_SI_OFF    EQU BCP_INOUT_ESI_OFF
-BCP_INOUT_BP_OFF    EQU BCP_INOUT_EBP_OFF
-
 %include "macros.mac"
+%include "bioscall.inc"
+
+SECTION .text
 
 ; Helper macro to lock up the CPU in case of a test failure.
 ; @param %1: Pointer to message string to be logged before the lock-up.
@@ -40,7 +14,6 @@ BCP_INOUT_BP_OFF    EQU BCP_INOUT_EBP_OFF
     jmp     %%testFailed
 %endmacro
 
-EXT_FUNC(callBiosFunc)
 EXT_VAR(realModeIdtrBase)
 
 BITS    32
