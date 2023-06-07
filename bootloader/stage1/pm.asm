@@ -1,4 +1,7 @@
 ; Helper routines related to Protected-Mode.
+%include "macros.mac"
+
+SECTION .text
 
 BITS 16
 
@@ -13,9 +16,9 @@ _loadProtectedModeGdt:
 
     ; Prepare the table descriptor on the stack.
     push    0x0
-    lea     ax, [data.stage1Gdt]
+    lea     ax, [stage1Gdt]
     push    ax
-    mov     ax, data.stage1GdtEnd - data.stage1Gdt - 1
+    mov     ax, stage1GdtEnd - stage1Gdt - 1
     push    ax
 
     ; Load the GDT descriptor into GDTR.
@@ -24,9 +27,6 @@ _loadProtectedModeGdt:
     leave
     ret
 
-; Compute the value of a segment selector for GDT entry i.
-%define SEG_SEL(i) (i << 3)
-
 ; ==============================================================================
 ; Enable and jump into protected mode. This function DOES NOT RETURN but instead
 ; jump to the address specified as parameter. Upon jumping to the target 32-bit
@@ -34,10 +34,10 @@ _loadProtectedModeGdt:
 ; before the call to jumpToProtectedMode.
 ; @param (WORD) targetAddr: The 32-bit code to jump to after protected mode has
 ; been enabled.
-jumpToProtectedMode:
+DEF_GLOBAL_FUNC(jumpToProtectedMode):
     ; Save the real mode IDTR so that we can re-use it in the future if we need
     ; to jump back to real-mode and execute BIOS functions.
-    sidt    [data.realModeIdtr]
+    sidt    [realModeIdtr]
 
     ; Zero-out the IDTR before proceeding to protected-mode as it won't be
     ; compatible.
@@ -79,16 +79,15 @@ BITS    32
     jmp     eax
 
 
-; Fake data section
-data:
+SECTION .data
 
 ; Saved content of the IDTR as it was in real-mode before jumping to protected
 ; mode. When we need to go back to real-mode to call BIOS function we can reuse
 ; its value.
-.realModeIdtr:
-.realModeIdtrLimit:
+DEF_GLOBAL_VAR(realModeIdtr):
+realModeIdtrLimit:
 DW  0x0
-.realModeIdtrBase:
+DEF_GLOBAL_VAR(realModeIdtrBase):
 ; Technically 24-bits.
 DD  0x0
 
@@ -109,7 +108,7 @@ DD  0x0
 
 ; The Global-Descriptor-Table used for stage 1. For now this only contains 32
 ; bit segments to be used in Protected Mode.
-.stage1Gdt:
+stage1Gdt:
 ; NULL entry
 DQ  0x0
 ; 32-bit code segment, readable and executable.
@@ -124,4 +123,4 @@ GDT_ENTRY 0x0, 0xffff, 10, 0, 0
 GDT_ENTRY 0x0, 0xffff, 2, 0, 0
 ; This label is used to compute the size of the GDT when loading it, it must
 ; immediately follow the last entry.
-.stage1GdtEnd:
+stage1GdtEnd:

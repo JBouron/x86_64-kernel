@@ -1,5 +1,15 @@
 ; Helper functions to call BIOS functions from 32-bit Protected-Mode.
 
+%include "macros.mac"
+
+EXT_VAR(realModeIdtr)
+EXT_FUNC(jumpToProtectedMode)
+
+; Mask of the Protected-Enable (PE) bit in cr0.
+CR0_PE_BIT_MASK EQU 1
+
+SECTION .text
+
 BITS    32
 
 ; ==============================================================================
@@ -45,7 +55,7 @@ BITS    16
     ; Step 3: Restore the real mode IDT.
     ; The real mode IDT was saved when first enabling 32-bit protected-mode
     ; upong stage 1 entry.
-    lidt    [data.realModeIdtr]
+    lidt    [realModeIdtr]
 
     ; Step 4: Disable protected mode.
     mov     eax, cr0
@@ -122,7 +132,7 @@ BCP_INOUT_BP_OFF    EQU BCP_INOUT_EBP_OFF
 ; @param (DWORD) bcpAddr: Pointer to a BCP packet. This address must be <65k
 ; since it needs to be accessed from real-mode. The struct is modified in-place,
 ; indicating the value of each register after the BIOS function returned.
-callBiosFunc:
+DEF_GLOBAL_FUNC(callBiosFunc):
     push    ebp
     mov     ebp, esp
     push    ebx

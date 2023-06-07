@@ -1,0 +1,40 @@
+; Log a message.
+; @param (WORD) %1: Pointer to the format string.
+; @param (WORD) %2..%n: Values for the format string, note that those tokens are
+; pushed as is on the stack when calling printf.
+%macro LOG 1-*
+    EXTERN  printf
+    jmp     %%cont
+    ; Allocate the string in the middle of the code. This is a bit dirty but we
+    ; don't have much of a choice since we are not using section atm.
+    %%str:
+    DB  %1, `\n`, `\0`
+    %%cont:
+    %rep    (%0 - 1)
+    %rotate -1
+    push    %1
+    %endrep
+    push    %%str
+    call    printf
+    add     esp, 0x4 * %0
+%endmacro
+
+; Compute the value of a segment selector for GDT entry i.
+%define SEG_SEL(i) (i << 3)
+
+%macro _DEF_GLOBAL_SYM 1
+    GLOBAL  %1
+    %1
+%endmacro
+
+; Define a function that will be accessible from other files.
+; @param: The name of the function to define.
+%define DEF_GLOBAL_FUNC(name) _DEF_GLOBAL_SYM name
+%define DEF_GLOBAL_VAR(name) _DEF_GLOBAL_SYM name
+
+%macro _EXT_SYM 1
+    EXTERN  %1
+%endmacro
+
+%define EXT_FUNC(name) _EXT_SYM name
+%define EXT_VAR(name) _EXT_SYM name

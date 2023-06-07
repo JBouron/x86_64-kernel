@@ -9,15 +9,21 @@ debug: $(DISK_NAME)
 run: $(DISK_NAME)
 	qemu-system-x86_64 $(QEMU_FLAGS)
 
-$(DISK_NAME): stage0/entry.o stage1/entry.o
+$(DISK_NAME): stage0/stage0 stage1/stage1
 	cat $^ > $@
 
-stage1/entry.o: $(shell find stage1/ -type f -name "*.asm")
+.PHONY: stage0/stage0
+stage0/stage0:
+	$(MAKE) -C stage0
+
+.PHONY: stage1/stage1
+stage1/stage1:
+	$(MAKE) -C stage1
 
 %.o: %.asm
 	nasm -f bin -o $@ $<
 
 .PHONY: clean
 clean:
-	find . -type f -name "*.o" -delete
-	rm -rf bootloader
+	$(MAKE) -C stage0 clean
+	$(MAKE) -C stage1 clean

@@ -1,5 +1,36 @@
 ; Tests for the bioscall functionality.
 
+SECTION .text
+
+; FIXME: Deduplicate this by including file containing such values.
+BCP_IN_INT_OFF      EQU 0x00
+BCP_OUT_JC          EQU 0x01
+BCP_INOUT_EAX_OFF   EQU 0x02
+BCP_INOUT_EBX_OFF   EQU 0x06
+BCP_INOUT_ECX_OFF   EQU 0x0a
+BCP_INOUT_EDX_OFF   EQU 0x0e
+BCP_INOUT_EDI_OFF   EQU 0x12
+BCP_INOUT_ESI_OFF   EQU 0x16
+BCP_INOUT_EBP_OFF   EQU 0x1a
+BCP_SIZE            EQU 0x1e
+BCP_INOUT_AX_OFF    EQU BCP_INOUT_EAX_OFF
+BCP_INOUT_AL_OFF    EQU BCP_INOUT_AX_OFF
+BCP_INOUT_AH_OFF    EQU (BCP_INOUT_AX_OFF + 1)
+BCP_INOUT_BX_OFF    EQU BCP_INOUT_EBX_OFF
+BCP_INOUT_BL_OFF    EQU BCP_INOUT_BX_OFF
+BCP_INOUT_BH_OFF    EQU (BCP_INOUT_BX_OFF + 1)
+BCP_INOUT_CX_OFF    EQU BCP_INOUT_ECX_OFF
+BCP_INOUT_CL_OFF    EQU BCP_INOUT_CX_OFF
+BCP_INOUT_CH_OFF    EQU (BCP_INOUT_CX_OFF + 1)
+BCP_INOUT_DX_OFF    EQU BCP_INOUT_EDX_OFF
+BCP_INOUT_DL_OFF    EQU BCP_INOUT_DX_OFF
+BCP_INOUT_DH_OFF    EQU (BCP_INOUT_DX_OFF + 1)
+BCP_INOUT_DI_OFF    EQU BCP_INOUT_EDI_OFF
+BCP_INOUT_SI_OFF    EQU BCP_INOUT_ESI_OFF
+BCP_INOUT_BP_OFF    EQU BCP_INOUT_EBP_OFF
+
+%include "macros.mac"
+
 ; Helper macro to lock up the CPU in case of a test failure.
 ; @param %1: Pointer to message string to be logged before the lock-up.
 %macro TEST_FAIL 1
@@ -9,13 +40,16 @@
     jmp     %%testFailed
 %endmacro
 
+EXT_FUNC(callBiosFunc)
+EXT_VAR(realModeIdtrBase)
+
 BITS    32
 
 ; ==============================================================================
 ; End-to-end test for callBiosFunc. This test makes sure that the right BIOS
 ; function is called with the right arguments and that the BCP struct is
 ; correctly updated to contain the output register values.
-callBiosFuncTest:
+DEF_GLOBAL_FUNC(callBiosFuncTest):
     push    ebp
     mov     ebp, esp
 
@@ -25,18 +59,18 @@ callBiosFuncTest:
     ; real-mode IDT (it might be used after the tests) make sure to backup the
     ; associated entry.
     ; Backup the entry.
-    mov     eax, [data.realModeIdtrBase]
+    mov     eax, [realModeIdtrBase]
     mov     ecx, [eax + 7 * 4]
-    mov     [.ivtEntryBackup], ecx
+    mov     [ivtEntryBackup], ecx
     ; Register the mock BIOS function. In real mode an IVT entry is simply a 4
     ; bytes far pointer CS:Offset (hence offset in lower bits).
-    mov     ecx, .mockBiosFunction
+    mov     ecx, _mockBiosFunction
     ; Double check that the address of the mockBiosFunction fits in real-mode
     ; segment 0x0000.
     test    ecx, 0xffff0000
     jz      .ok
     TEST_FAIL   "Cannot register mock BIOS function, offset too high"
-    .ok:
+.ok:
     mov     [eax + 7 * 4], ecx
 
     ; Now that the mock function is ready, prepare a BCP struct. All registers
@@ -77,8 +111,8 @@ callBiosFuncTest:
 
     ; All values are as expected. Restore the IVT entry we used for the mock
     ; function and return.
-    mov     eax, [data.realModeIdtrBase]
-    mov     ecx, [.ivtEntryBackup]
+    mov     eax, [realModeIdtrBase]
+    mov     ecx, [ivtEntryBackup]
     mov     [eax + 7 * 4], ecx
 
     xor     eax, eax
@@ -90,7 +124,7 @@ callBiosFuncTest:
     int3
 
 BITS    16
-.mockBiosFunction:
+_mockBiosFunction:
     ; The custom BIOS function used for the callBiosFuncTest test. This function
     ; simply computes the 1-complement of all registers.
     not     eax
@@ -112,6 +146,8 @@ BITS    16
     iret
 BITS    32
 
+SECTION .data
+
 ; Backup of the IVT entry used to register the custom BIOS function.
-.ivtEntryBackup:
+ivtEntryBackup:
 DD  0x0

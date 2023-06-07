@@ -1,24 +1,8 @@
 ; Utility routines to log messages from stage 1.
 
-; Log a message.
-; @param (WORD) %1: Pointer to the format string.
-; @param (WORD) %2..%n: Values for the format string, note that those tokens are
-; pushed as is on the stack when calling printf.
-%macro LOG 1-*
-    jmp     %%cont
-    ; Allocate the string in the middle of the code. This is a bit dirty but we
-    ; don't have much of a choice since we are not using section atm.
-    %%str:
-    DB  %1, `\n`, `\0`
-    %%cont:
-    %rep    (%0 - 1)
-    %rotate -1
-    push    %1
-    %endrep
-    push    %%str
-    call    printf
-    add     esp, 0x4 * %0
-%endmacro
+%include "macros.mac"
+
+SECTION .text
 
 BITS    32
 
@@ -30,7 +14,7 @@ VGA_BUFFER_PHY_ADDR EQU 0xb8000
 
 ; ==============================================================================
 ; Clear the VGA buffer.
-clearVgaBuffer:
+DEF_GLOBAL_FUNC(clearVgaBuffer):
     push    ebp
     mov     ebp, esp
     push    edi
@@ -200,7 +184,7 @@ printfSubstitute:
 ; interpreted as a substitution and replaced with the hexadecimal value of the
 ; corresponding WORD in the varargs val... (e.g stack).
 ; @param (WORD) val...: The values to be printed.
-printf:
+DEF_GLOBAL_FUNC(printf):
     push    ebp
     mov     ebp, esp
     push    esi
