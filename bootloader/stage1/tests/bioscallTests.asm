@@ -2,19 +2,10 @@
 
 %include "macros.mac"
 %include "bioscall.inc"
+%include "tests/tests.inc"
+%include "pm.inc"
 
 SECTION .text
-
-; Helper macro to lock up the CPU in case of a test failure.
-; @param %1: Pointer to message string to be logged before the lock-up.
-%macro TEST_FAIL 1
-    LOG %1
-    %%testFailed:
-    cli
-    jmp     %%testFailed
-%endmacro
-
-EXT_VAR(realModeIdtrBase)
 
 BITS    32
 
@@ -42,7 +33,7 @@ DEF_GLOBAL_FUNC(callBiosFuncTest):
     ; segment 0x0000.
     test    ecx, 0xffff0000
     jz      .ok
-    TEST_FAIL   "Cannot register mock BIOS function, offset too high"
+    TEST_FAIL    "Cannot register mock BIOS function, offset too high"
 .ok:
     mov     [eax + 7 * 4], ecx
 
@@ -88,11 +79,10 @@ DEF_GLOBAL_FUNC(callBiosFuncTest):
     mov     ecx, [ivtEntryBackup]
     mov     [eax + 7 * 4], ecx
 
-    xor     eax, eax
-    leave
-    ret
+    TEST_SUCCESS
+
 .invalidOutValue:
-    TEST_FAIL   "Invalid output value in BCP struct"
+    TEST_FAIL    "Invalid output value in BCP struct"
     ; Unreachable
     int3
 

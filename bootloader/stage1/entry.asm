@@ -3,6 +3,7 @@
 %include "macros.mac"
 %include "logger.inc"
 %include "pm.inc"
+%include "tests/tests.inc"
 
 SECTION .text
 
@@ -49,8 +50,6 @@ stage1Entry32:
     jmp     .dead
 
 
-EXT_FUNC(callBiosFuncTest)
-
 ; ==============================================================================
 ; Run stage1 self tests.
 ; Note on test functions: Test functions are not taking arguments and are
@@ -62,7 +61,7 @@ runSelfTests:
     mov     ebp, esp
 
     ; All test functions should be called from here.
-    call    callBiosFuncTest
+    RUN_TEST(callBiosFuncTest)
 
     leave
     ret
