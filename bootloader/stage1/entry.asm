@@ -4,6 +4,7 @@
 %include "logger.inc"
 %include "pm.inc"
 %include "tests/tests.inc"
+%include "memmap.inc"
 
 SECTION .text
 
@@ -44,6 +45,9 @@ stage1Entry32:
     LOG     "Running self-tests"
     call    runSelfTests
     LOG     "All self-tests passed"
+
+    LOG     "Memory map:"
+    call    printMemoryMap
 
 .dead:
     hlt
