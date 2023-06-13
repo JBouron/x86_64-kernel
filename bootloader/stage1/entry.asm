@@ -47,7 +47,7 @@ stage1Entry32:
     LOG     "All self-tests passed"
 
     LOG     "Memory map:"
-    call    printMemoryMap
+    call    parseMemoryMap
 
 .dead:
     hlt

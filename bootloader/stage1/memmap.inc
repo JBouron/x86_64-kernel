@@ -3,8 +3,8 @@
 %define MEMMAP_INC
 
 ; ==============================================================================
-; Log the content of the memory map.
-EXT_FUNC(printMemoryMap)
+; Parse the memory map as reported by the BIOS function INT=15h AX=E820h.
+EXT_FUNC(parseMemoryMap)
 
 %endif
 ; vim:syntax=asm filetype=asm
