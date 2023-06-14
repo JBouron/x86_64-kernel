@@ -66,6 +66,8 @@ runSelfTests:
 
     ; All test functions should be called from here.
     RUN_TEST(callBiosFuncTest)
+    RUN_TEST(add64Test)
+    RUN_TEST(sub64Test)
 
     leave
     ret
