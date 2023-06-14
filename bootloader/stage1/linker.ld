@@ -1,5 +1,3 @@
-OUTPUT_FORMAT(binary)
-
 SECTIONS
 {
     /* The relocation address for stage 1 which should immediately follow the
