@@ -26,5 +26,6 @@ SECTIONS
          * but only if no section follows this one! */
         . = ALIGN(512);
     }
-    STAGE_1_NUM_SECTORS = (. - STAGE_1_START) / 512;
+    STAGE_1_END = .;
+    STAGE_1_NUM_SECTORS = (STAGE_1_END - STAGE_1_START) / 512;
 }
