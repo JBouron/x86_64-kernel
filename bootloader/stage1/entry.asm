@@ -68,6 +68,7 @@ runSelfTests:
     RUN_TEST(callBiosFuncTest)
     RUN_TEST(add64Test)
     RUN_TEST(sub64Test)
+    RUN_TEST(cmp64Test)
 
     leave
     ret

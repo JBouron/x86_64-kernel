@@ -19,5 +19,14 @@ EXT_FUNC(add64)
 ; from the other operand.
 EXT_FUNC(sub64)
 
+; ==============================================================================
+; Compare two unsigned 64-bit values.
+; @param (DWORD): Pointer to the first operand.
+; @param (DWORD): Pointer to the second operand.
+; @return: EAX=-1 if the first operand is less than the second operand, EAX=0 if
+; both operands are equals, EAX=1 if the first operand is bigger than the second
+; operand.
+EXT_FUNC(cmp64)
+
 %endif
 ; vim:syntax=asm filetype=asm

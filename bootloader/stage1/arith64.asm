@@ -58,3 +58,46 @@ DEF_GLOBAL_FUNC(sub64):
 
     leave
     ret
+
+; ==============================================================================
+; Compare two unsigned 64-bit values.
+; @param (DWORD): Pointer to the first operand.
+; @param (DWORD): Pointer to the second operand.
+; @return: EAX=-1 if the first operand is less than the second operand, EAX=0 if
+; both operands are equals, EAX=1 if the first operand is bigger than the second
+; operand.
+DEF_GLOBAL_FUNC(cmp64):
+    push    ebp
+    mov     ebp, esp
+
+    mov     eax, [ebp + 0x8]
+    mov     ecx, [ebp + 0xc]
+
+    ; Start by comparing the top 32-bits.
+    ; EDX = top 32-bit of second operand.
+    mov     edx, [ecx + 0x4]
+    cmp     [eax + 0x4], edx
+    jb      .retNegOne
+    ja      .retPosOne
+
+    ; The top bits are equal, now compare the bottom 32 bits to differentiate.
+    ; EDX = bottom 32-bit of second operand.
+    mov     edx, [ecx]
+    cmp     [eax], edx
+    jb      .retNegOne
+    ja      .retPosOne
+
+    ; All bits are equals, return 0.
+    xor     eax, eax
+    jmp     .out
+
+.retNegOne:
+    mov     eax, -1
+    jmp     .out
+
+.retPosOne:
+    mov     eax, 1
+    ; Fall-through
+.out:
+    leave
+    ret

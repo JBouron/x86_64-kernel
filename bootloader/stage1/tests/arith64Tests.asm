@@ -14,6 +14,7 @@ BITS    32
 ; @param %3: The first operand.
 ; @param %4: The second operand.
 %macro ARITH64_TEST_CASE 4
+    push    ebx
     ; Dest
     sub     esp, 8
     mov     edx, esp
@@ -41,6 +42,7 @@ BITS    32
     pop     ebx
     TEST_FAIL   "Invalid result"
     %%ok:
+    pop     ebx
 %endmacro
 
 ; Test case for add64.
@@ -55,7 +57,6 @@ BITS    32
 DEF_GLOBAL_FUNC(add64Test):
     push    ebp
     mov     ebp, esp
-    push    ebx
 
     ; Trivial cases.
     ADD64_TEST_CASE 0x0, 0x0
@@ -71,7 +72,6 @@ DEF_GLOBAL_FUNC(add64Test):
     ; Overflow
     ADD64_TEST_CASE 0xffffffffffffffff, 0x1
 
-    pop     ebx
     TEST_SUCCESS
 
 ; Test case for sub64.
@@ -86,7 +86,6 @@ DEF_GLOBAL_FUNC(add64Test):
 DEF_GLOBAL_FUNC(sub64Test):
     push    ebp
     mov     ebp, esp
-    push    ebx
 
     ; Trivial cases.
     SUB64_TEST_CASE 0x0, 0x0
@@ -98,5 +97,48 @@ DEF_GLOBAL_FUNC(sub64Test):
     ; Full 64-bit values
     SUB64_TEST_CASE 0xdeadbeefcafebabe, 0xcafebeefdeadbabe
 
-    pop     ebx
+    TEST_SUCCESS
+
+; Generate a test-case for cmp64. If the test case fails, TEST_FAIL is called.
+; @param %1: The first operand.
+; @param %2: The second operand.
+; @param %3: The expected result when calling cmp64 with the first and second
+; operand.
+%macro CMP64_TEST_CASE 3
+    ; A
+    push    (%1 >> 32)
+    push    (%1 & 0xffffffff)
+    mov     eax, esp
+    ; B
+    push    (%2 >> 32)
+    push    (%2 & 0xffffffff)
+    mov     ecx, esp
+
+    push    ecx
+    push    eax
+    call    cmp64
+    add     esp, 8
+
+    cmp     eax, %3
+    je      %%ok
+    TEST_FAIL   "Incorrect comparison result"
+    %%ok:
+%endmacro
+
+; ==============================================================================
+; Test the cmp64 function.
+DEF_GLOBAL_FUNC(cmp64Test):
+    push    ebp
+    mov     ebp, esp
+
+    CMP64_TEST_CASE 0x0, 0x0, 0
+    CMP64_TEST_CASE 0x0, 0x1, -1
+    CMP64_TEST_CASE 0x1, 0x0, 1
+    CMP64_TEST_CASE 0xdeadbeef00000000, 0xcafebabe00000000, 1
+    CMP64_TEST_CASE 0x00000000deadbeef, 0x00000000cafebabe, 1
+    CMP64_TEST_CASE 0xdeadbeef00000000, 0xdeadbeef11111111, -1
+    CMP64_TEST_CASE 0xdeadbeefcafebabe, 0xdeadbeefcafebabe, 0
+    CMP64_TEST_CASE 0x0000000000000000, 0xffffffffffffffff, -1
+    CMP64_TEST_CASE 0xffffffffffffffff, 0x0000000000000000, 1
+
     TEST_SUCCESS
