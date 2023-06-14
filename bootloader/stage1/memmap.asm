@@ -6,7 +6,7 @@
 SECTION .data
 ; Number of entries in the memory map.
 memoryMapLen:
-DW  0x0
+DD  0x0
 ; The memory map, an array of `memoryMapLen` entries with the following layout:
 ;   {
 ;       u64 base;
@@ -14,7 +14,7 @@ DW  0x0
 ;       u64 type;
 ;   }
 memoryMap:
-DW  0x0
+DD  0x0
 
 SECTION .text
 
@@ -25,7 +25,6 @@ BITS    32
 DEF_GLOBAL_FUNC(parseMemoryMap):
     push    ebp
     mov     ebp, esp
-    push    ebx
 
     ; DWORD [EBP - 0x4] = Pointer to first Adress Range Descriptor Structure
     ; (ARDS) in the array of ARDS built when parsing the memory map.
@@ -35,6 +34,9 @@ DEF_GLOBAL_FUNC(parseMemoryMap):
 
     ; DWORD [EBP - 0x8] = Number of ARDS in the array.
     push    0x0
+
+    ; Callee-saved.
+    push    ebx
 
     ; Alloc a BIOS call packet on the stack to be used for every INT 15h E820h
     ; calls. This packet will be used by all call to the BIOS function.
