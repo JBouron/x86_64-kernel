@@ -150,9 +150,10 @@ BITS    64
     ; We are now running in 64-bit. Get the address where to jump to.
     ; RDX = Address to jump to.
     mov     edx, DWORD [rsp + 4]
-    
-    ; Fixup the stack to remove the return address of the caller.
-    add     rsp, 4
+
+    ; Fixup the stack to remove the parameter and the return address to the
+    ; caller.
+    add     rsp, 8
 
     ; Jump to target.
     jmp     rdx
