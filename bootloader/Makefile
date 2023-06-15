@@ -4,7 +4,9 @@ QEMU_FLAGS:=-drive file=$(DISK_NAME),format=raw -s -no-shutdown -no-reboot
 all: run
 
 debug: $(DISK_NAME)
-	qemu-system-x86_64 $(QEMU_FLAGS) -S
+	qemu-system-x86_64 $(QEMU_FLAGS) -S & echo $$! > .qemu.pid
+	gdb -ex "target remote localhost:1234" -ex "symbol-file ./stage1/stage1Syms" || true
+	kill -9 $$(cat .qemu.pid)
 
 run: $(DISK_NAME)
 	qemu-system-x86_64 $(QEMU_FLAGS)
