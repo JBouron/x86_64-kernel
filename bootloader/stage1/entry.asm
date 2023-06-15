@@ -63,7 +63,8 @@ stage1Entry32:
 stage1Entry64:
     BITS    64
 
-    LOG     "Successfully jumped to 64-bit long mode rsp = $", rsp
+    mov     rbx, rsp
+    LOG     "Successfully jumped to 64-bit long mode rsp = $", rbx
 
 .dead:
     hlt

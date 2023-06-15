@@ -1,11 +1,77 @@
 %ifndef MACROS_MAC
 %define MACROS_MAC
 
-; Log a message. Can be called in both 32 and 64 bit modes.
+; Push all registers onto the stack. Use POP_ALL_REGS to pop them back.
+; Can be used in both 32 and 64 bit modes.
+%macro PUSH_ALL_REGS 0
+    %if __?BITS?__ == 32
+    pushad
+    %elif __?BITS?__ == 64
+    push    rax
+    push    rbx
+    push    rcx
+    push    rdx
+    push    rdi
+    push    rsi
+    push    r8
+    push    r9
+    push    r10
+    push    r11
+    push    r12
+    push    r13
+    push    r14
+    push    r15
+    push    rbp
+    push    rsp
+    %else
+    %error "PUSH_ALL_REGS not available in 16 bit mode"
+    %endif
+%endmacro
+
+; Pop all registers from the stack, in reverse-order of PUSH_ALL_REGS.
+; Can be used in both 32 and 64 bit modes.
+%macro POP_ALL_REGS 0
+    %if __?BITS?__ == 32
+    popad
+    %elif __?BITS?__ == 64
+    push    rsp
+    push    rbp
+    push    r15
+    push    r14
+    push    r13
+    push    r12
+    push    r11
+    push    r10
+    push    r9
+    push    r8
+    push    rsi
+    push    rdi
+    push    rdx
+    push    rcx
+    push    rbx
+    push    rax
+    %else
+    %error "POP_CALLEE_SAVED_REGS not available in 16 bit mode"
+    %endif
+%endmacro
+
+
+; Log a message. All registers are saved prior to logging and restored after
+; logging so that a LOG call will never interfere with logic and can be safely
+; inserted between instructions. Note that this register saving can cause
+; surprises if one tries to print the current value of rsp as it will show the
+; value _after_ saving all registers onto the stack.
+; Can be called in both 32 and 64 bit modes.
 ; @param (WORD) %1: Pointer to the format string.
 ; @param (WORD) %2..%n: Values for the format string, note that those tokens are
 ; pushed as is on the stack when calling printf.
 %macro LOG 1-*
+    %if __?BITS?__ == 16
+    %error "LOG not available in 16 bit mode"
+    %endif
+
+    PUSH_ALL_REGS
+
     %if __?BITS?__ == 32
     ; 32-bit mode
     SECTION .data
@@ -38,6 +104,8 @@
     call    printf64
 
     %endif
+
+    POP_ALL_REGS
 %endmacro
 
 ; Compute the value of a segment selector for GDT entry i.
