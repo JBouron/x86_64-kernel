@@ -8,13 +8,12 @@
 %macro LOG 1-*
     %if __?BITS?__ == 32
     ; 32-bit mode
-    EXTERN  printf32
-    jmp     %%cont
-    ; Allocate the string in the middle of the code. This is a bit dirty but we
-    ; don't have much of a choice since we are not using section atm.
+    SECTION .data
     %%str:
     DB  %1, `\n`, `\0`
-    %%cont:
+    SECTION .text
+    BITS    32
+    EXTERN  printf32
     %rep    (%0 - 1)
     %rotate -1
     push    %1
@@ -25,13 +24,12 @@
 
     %else
     ; 64-bit mode.
-    EXTERN  printf64
-    jmp     %%cont
-    ; Allocate the string in the middle of the code. This is a bit dirty but we
-    ; don't have much of a choice since we are not using section atm.
+    SECTION .data
     %%str:
     DB  %1, `\n`, `\0`
-    %%cont:
+    SECTION .text
+    BITS    64
+    EXTERN  printf64
     lea     rdi, [%%str]
     %rep    (%0 - 1)
     %rotate -1
