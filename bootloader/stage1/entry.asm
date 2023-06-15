@@ -5,6 +5,7 @@
 %include "pm.inc"
 %include "tests/tests.inc"
 %include "memmap.inc"
+%include "lm.inc"
 
 SECTION .text
 
@@ -49,10 +50,24 @@ stage1Entry32:
     LOG     "Memory map:"
     call    parseMemoryMap
 
+    push    stage1Entry64
+    call    jumpToLongMode
+
 .dead:
     hlt
     jmp     .dead
 
+; ==============================================================================
+; Entry point for stage 1 in 64bit protected-mode. stage1Entry32 jumps to this
+; code.
+stage1Entry64:
+    BITS    64
+    mov     rax, 0xdeadbeefcafebabe
+.dead:
+    hlt
+    jmp     .dead
+
+BITS    32
 
 ; ==============================================================================
 ; Run stage1 self tests.

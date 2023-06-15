@@ -94,16 +94,19 @@ DD  0x0
 ; Declare a QWORD GDT entry with the given attributes. The resulting entry
 ; always P=1 (e.g. entry present), S=1 (e.g.  this is a code or data segment)
 ; DPL=0 (e.g. ring 0) and L=0 (e.g. non-64 bits).
-; @param %1 base: The base of the segment.
-; @param %2 limit: The limit of the segment in number of pages.
-; @param %3 type: The type of the segment, see Table 3-1 in chapter 3.4.5.1 in
+; @param base: The base of the segment.
+; @param limit: The limit of the segment in number of pages.
+; @param type: The type of the segment, see Table 3-1 in chapter 3.4.5.1 in
 ; Intel's manual.
-; @param %4 db: The D/B bit.
-; @param %5 gran: The G bit.
-%macro GDT_ENTRY 5 ; (base, limit, type, db, gran)
+; @param db: The D/B bit.
+; @param l: The L bit.
+; @param gran: The G bit.
+%define GDT_ENTRY(base, limit, type, db, l, gran) \
+    _GDT_ENTRY  base, limit, type, db, l, gran
+%macro _GDT_ENTRY 6
     DD  (%1 & 0xffff) << 16 | (%2 & 0xffff)
-    DD  (%1 & 0xff000000) | (%5 << 23) | (%4 << 22) | (%2 & 0xf0000) | \
-        (1 << 15) | (1 << 12) | (%3 << 8) | ((%1 & 0xff0000) >> 16)
+    DD  (%1 & 0xff000000) | (%6 << 23) | (%4 << 22) | (%5 << 21) | \
+    (%2 & 0xf0000) | (1 << 15) | (1 << 12) | (%3 << 8) | ((%1 & 0xff0000) >> 16)
 %endmacro
 
 ; The Global-Descriptor-Table used for stage 1. For now this only contains 32
@@ -112,15 +115,19 @@ stage1Gdt:
 ; NULL entry
 DQ  0x0
 ; 32-bit code segment, readable and executable.
-GDT_ENTRY 0x0, 0xfffff, 10, 1, 1
+GDT_ENTRY(0x0, 0xfffff, 10, 1, 0, 1)
 ; 32-bit data segment, readable and writable.
-GDT_ENTRY 0x0, 0xfffff, 2, 1, 1
+GDT_ENTRY(0x0, 0xfffff, 2, 1, 0, 1)
 ; 16-bit code segment, readable and executable. Used when jumping back to
 ; real-mode from 32-bit protected-mode.
-GDT_ENTRY 0x0, 0xffff, 10, 0, 0
+GDT_ENTRY(0x0, 0xffff, 10, 0, 0, 0)
 ; 16-bit data segment, readable and writable. Used when jumping back to
 ; real-mode from 32-bit protected-mode.
-GDT_ENTRY 0x0, 0xffff, 2, 0, 0
+GDT_ENTRY(0x0, 0xffff, 2, 0, 0, 0)
+; 64-bit code segment.
+GDT_ENTRY(0x0, 0xffff, 10, 0, 1, 1)
+; 64-bit data segment.
+GDT_ENTRY(0x0, 0xffff, 2, 0, 1, 1)
 ; This label is used to compute the size of the GDT when loading it, it must
 ; immediately follow the last entry.
 stage1GdtEnd:
