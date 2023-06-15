@@ -1,12 +1,14 @@
 %ifndef MACROS_MAC
 %define MACROS_MAC
 
-; Log a message.
+; Log a message. Can be called in both 32 and 64 bit modes.
 ; @param (WORD) %1: Pointer to the format string.
 ; @param (WORD) %2..%n: Values for the format string, note that those tokens are
 ; pushed as is on the stack when calling printf.
 %macro LOG 1-*
-    EXTERN  printf
+    %if __?BITS?__ == 32
+    ; 32-bit mode
+    EXTERN  printf32
     jmp     %%cont
     ; Allocate the string in the middle of the code. This is a bit dirty but we
     ; don't have much of a choice since we are not using section atm.
@@ -18,8 +20,26 @@
     push    %1
     %endrep
     push    %%str
-    call    printf
+    call    printf32
     add     esp, 0x4 * %0
+
+    %else
+    ; 64-bit mode.
+    EXTERN  printf64
+    jmp     %%cont
+    ; Allocate the string in the middle of the code. This is a bit dirty but we
+    ; don't have much of a choice since we are not using section atm.
+    %%str:
+    DB  %1, `\n`, `\0`
+    %%cont:
+    lea     rdi, [%%str]
+    %rep    (%0 - 1)
+    %rotate -1
+    push    %1
+    %endrep
+    call    printf64
+
+    %endif
 %endmacro
 
 ; Compute the value of a segment selector for GDT entry i.

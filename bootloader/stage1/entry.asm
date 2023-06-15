@@ -62,7 +62,9 @@ stage1Entry32:
 ; code.
 stage1Entry64:
     BITS    64
-    mov     rax, 0xdeadbeefcafebabe
+
+    LOG     "Successfully jumped to 64-bit long mode rsp = $", rsp
+
 .dead:
     hlt
     jmp     .dead
