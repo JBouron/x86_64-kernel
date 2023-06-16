@@ -63,6 +63,9 @@ stage1Entry64:
 
     INFO    "Running self-tests"
     call    runSelfTests
+
+    INFO    "Memory map:"
+    call    parseMemoryMap
 .dead:
     hlt
     jmp     .dead

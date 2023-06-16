@@ -1,7 +1,7 @@
 ; Memory allocation routines.
 %include "macros.mac"
 
-BITS    32
+BITS    64
 
 ; ==============================================================================
 ; Allocate memory.
@@ -9,27 +9,27 @@ BITS    32
 ; @return (EAX): The address of the freshly allocated memory. This memory is
 ; zeroed upon allocation.
 DEF_GLOBAL_FUNC(malloc):
-    push    ebp
-    mov     ebp, esp
+    push    rbp
+    mov     rbp, rsp
 
-    ; ECX = Size of allocation in bytes.
-    mov     ecx, [ebp + 0x8]
+    ; RCX = Size of allocation in bytes.
+    mov     rcx, rdi
 
-    ; EDX = Address of allocated memory.
-    mov     edx, [heapTop]
-    add     edx, ecx
+    ; RDX = Address of allocated memory.
+    mov     rdx, [heapTop]
+    add     rdx, rcx
 
     ; Save the new heapTop.
-    mov     [heapTop], edx
+    mov     [heapTop], rdx
 
-    ; Zero the allocated mem. ECX already contains the number of bytes to zero
+    ; Zero the allocated mem. RCX already contains the number of bytes to zero
     ; at this point.
-    mov     edi, edx
+    mov     rdi, rdx
     xor     al, al
     cld
     rep stosb
 
-    mov     eax, edx
+    mov     rax, rdx
 
     leave
     ret
@@ -40,4 +40,4 @@ SECTION .data
 ; stack has been setup to start at 0x7c00 and grow down towards 0x500. The heap
 ; therefore naturally starts at offset 0x500 and grow up-wards.
 heapTop:
-DW  0x500
+DQ  0x500
