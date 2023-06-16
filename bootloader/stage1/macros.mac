@@ -103,6 +103,7 @@
     push    %1
     %endrep
     call    printf64
+    add     rsp, 0x8 * (%0 - 1)
 
     %endif
 
