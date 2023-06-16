@@ -3,6 +3,7 @@
 %include "macros.mac"
 %include "bioscallconsts.inc"
 %include "pm.inc"
+%include "lm.inc"
 
 ; Mask of the Protected-Enable (PE) bit in cr0.
 CR0_PE_BIT_MASK EQU 1
@@ -80,43 +81,91 @@ BITS    16
     ; the function.
     jmp     dx
 
-; Make sure to revert to 32-bit code here so that a function below this one does
-; not un-expectedly get assembled in 16-bit.
+CR0_PG_BIT_MASK         EQU (1 << 31)
+IA32_EFER_MSR           EQU 0xC0000080
+IA32_EFER_LME_BIT_MASK  EQU (1 << 8)
+
+BITS    64
+; ==============================================================================
+; Jump back to 32-bit protected mode from 64-bit long-mode.
+; @param %RDI: Address to jump to after enabling back 32-bit protected mode.
+; THIS FUNCTION DOES NOT RETURN.
+_jumpToProtectedMode:
+    ; Jumping back to protected mode consists of 5 steps.
+    ; Step 1: Switch to compatibility mode in CPL=0.
+    sub     rsp, 6
+    mov     WORD [rsp + 0x4], SEG_SEL(1)
+    mov     DWORD [rsp], .compatMode
+    jmp     FAR DWORD [rsp]
+
 BITS    32
+.compatMode:
+    ; Clean-up the far pointer created on the stack.
+    add     esp, 6
+
+    ; Step 2: Deactivate long-mode by disabling paging.
+    mov     eax, cr0
+    and     eax, ~(1 << 31)
+    mov     cr0, eax
+
+    ; Step 3: Load CR3 with a legacy page-table.
+    ; This is skipped in our case as we are not using paging in 32-bit mode.
+
+    ; Step 4: Disable long mode by clearing EFER.LME.
+    mov     ecx, IA32_EFER_MSR
+    rdmsr
+    and     eax, ~IA32_EFER_LME_BIT_MASK
+    wrmsr
+
+    ; Step 5: Enable legacy paging by setting CR0.PG.
+    ; Again skipped in our case, no paging in 32-bit for us.
+
+    ; We are now back in 32-bit protected mode, jump to the given address.
+    jmp     edi
 
 ; ==============================================================================
-; Call a BIOS function from 32-bit protected-mode. This function takes care of
-; jumping back to real-mode, execute the BIOS function, re-enable 32-bit
-; protected-mode and return the result of the call.
-; Caller to this function are passing a pointer to a BIOSCallPacket structure
+; Call a BIOS function from 64-bit long-mode. This function takes care of
+; jumping all the way back to real-mode, execute the BIOS function, return to
+; 64-bit long-mode and return the result of the call. All mode switching is
+; transparent to the caller.
+; Caller to this function is passing a pointer to a BIOSCallPacket structure
 ; which is used to both pass the arguments for the BIOS call and the results
 ; (arguments and results here being the values of the GP registers before and
-; after the call respectively). The constants above this command indicate the
-; offset and size of each field in a BIOSCallPacket (BCP) structure.
-; From the point of view of the caller, this is a regular function call, the
-; fact that this function goes to real-mode and back to 32-bit protected-mode is
-; invisible to the caller.
-; @param (DWORD) bcpAddr: Pointer to a BCP packet. This address must be <65k
-; since it needs to be accessed from real-mode. The struct is modified in-place,
-; indicating the value of each register after the BIOS function returned.
+; after the call respectively). See bioscallconst.inc for the offset and size of
+; each field in a BIOSCallPacket (BCP) structure.
+; @param %RDI bcpAddr: Pointer to a BCP packet. This address must be <65k since
+; it needs to be accessed from real-mode (real-mode uses 0x0000 data segment).
+; The struct is modified in-place, indicating the value of each register after
+; the BIOS function returned.
+BITS    64
 DEF_GLOBAL_FUNC(callBiosFunc):
-    push    ebp
-    mov     ebp, esp
-    push    ebx
+    push    rbp
+    mov     rbp, rsp
+    push    rbx
 
-    ; EBX = BCP packet addr.
-    mov     ebx, [ebp + 0x8]
+    ; RBX = BCP packet addr.
+    mov     rbx, rdi
 
     ; Check that the BCP packet will be accessible from real-mode.
-    test    ebx, 0xffff0000
+    test    rbx, 0xffffffffffff0000
     jz      .bcpPacketAccessible
     ; BCP packet is above the 65k limit.
-    CRIT    "ERROR: BCP packet is above the 65k limit ($)", ebx
+    CRIT    "ERROR: BCP packet is above the 65k limit ($)", rbx
 .dead:
     ; FIXME: Add a PANIC macro, function.
     hlt
     jmp     .dead
 .bcpPacketAccessible:
+
+    ; Jump to protected-mode. The BX value will not changed during this
+    ; operation and thus will still point to the BCP packet once in real-mode.
+    mov     rdi, .protectedModeTarget
+    jmp     _jumpToProtectedMode
+
+BITS    32
+.protectedModeTarget:
+    ; Since we used a jmp and not a call for _jumpToProtectedMode, we don't need
+    ; to fix-up the stack.
 
     ; Jump to real-mode, the BX value will not changed during this operation and
     ; thus will still point to the BCP packet once in real-mode.
@@ -212,7 +261,16 @@ BITS    32
     ; _jumpToRealMode.
     add     esp, 0xc
 
+    push    .retToLongMode
+    call     jumpToLongMode
+
+BITS    64
+.retToLongMode:
+    ; Fixup the stack again to remote the param of jumpToLongMode. Since we jmp
+    ; and not call'ed jumpToLongMode there is no return address to clean-up from
+    ; the stack.
+
     ; We can now safely return.
-    pop     ebx
+    pop     rbx
     leave
     ret

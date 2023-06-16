@@ -44,13 +44,6 @@ stage1Entry32:
     mov     ebx, esp
     DEBUG   "esp = $", ebx
 
-    INFO    "Running self-tests"
-    call    runSelfTests
-    INFO    "All self-tests passed"
-
-    INFO    "Memory map:"
-    call    parseMemoryMap
-
     push    stage1Entry64
     call    jumpToLongMode
 
@@ -68,11 +61,13 @@ stage1Entry64:
     mov     rbx, rsp
     DEBUG   "rsp = $", rbx
 
+    INFO    "Running self-tests"
+    call    runSelfTests
 .dead:
     hlt
     jmp     .dead
 
-BITS    32
+BITS    64
 
 ; ==============================================================================
 ; Run stage1 self tests.
@@ -81,14 +76,13 @@ BITS    32
 ; a useful error message). Naturally, test functions are expected to return
 ; the CPU in a sane/consistent state.
 runSelfTests:
-    push    ebp
-    mov     ebp, esp
-
     ; All test functions should be called from here.
     RUN_TEST(callBiosFuncTest)
-    RUN_TEST(add64Test)
-    RUN_TEST(sub64Test)
-    RUN_TEST(cmp64Test)
 
-    leave
+    ; FIXME: 64-bit arithmetic functions are not tested anymore as they will
+    ; most likely disappear due to not having a use for them anymore.
+    ;RUN_TEST(add64Test)
+    ;RUN_TEST(sub64Test)
+    ;RUN_TEST(cmp64Test)
+
     ret

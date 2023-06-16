@@ -7,15 +7,15 @@
 
 SECTION .text
 
-BITS    32
+BITS    64
 
 ; ==============================================================================
 ; End-to-end test for callBiosFunc. This test makes sure that the right BIOS
 ; function is called with the right arguments and that the BCP struct is
 ; correctly updated to contain the output register values.
 DEF_GLOBAL_FUNC(callBiosFuncTest):
-    push    ebp
-    mov     ebp, esp
+    push    rbp
+    mov     rbp, rsp
 
     ; Prepare a mock BIOS function to be used by the test. This function
     ; computes the 1 complement of each register and set CF to 1. This function
@@ -39,7 +39,7 @@ DEF_GLOBAL_FUNC(callBiosFuncTest):
 
     ; Now that the mock function is ready, prepare a BCP struct. All registers
     ; get a peculiar value.
-    sub     esp, BCP_SIZE
+    sub     rsp, BCP_SIZE
     mov     DWORD [esp + BCP_IN_INT_OFF], 0x7
     mov     DWORD [esp + BCP_INOUT_EAX_OFF], 0xABCDEF01
     mov     DWORD [esp + BCP_INOUT_EBX_OFF], 0xBCDEF012
@@ -50,9 +50,8 @@ DEF_GLOBAL_FUNC(callBiosFuncTest):
     mov     DWORD [esp + BCP_INOUT_EBP_OFF], 0x01234567
 
     ; Call the bios function.
-    push    esp
+    mov     rdi, rsp
     call    callBiosFunc
-    add     esp, 0x4
 
     ; Now check that the value of each register in the BCP struct as been
     ; updated as expected.
@@ -107,7 +106,6 @@ _mockBiosFunction:
     pop     bx
     ; Now return to the INT instruction.
     iret
-BITS    32
 
 SECTION .data
 
