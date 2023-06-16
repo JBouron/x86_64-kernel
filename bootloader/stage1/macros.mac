@@ -97,11 +97,11 @@
     SECTION .text
     BITS    64
     EXTERN  printf64
-    lea     rdi, [%%str]
     %rep    (%0 - 1)
     %rotate -1
     push    %1
     %endrep
+    lea     rdi, [%%str]
     call    printf64
     add     rsp, 0x8 * (%0 - 1)
 
