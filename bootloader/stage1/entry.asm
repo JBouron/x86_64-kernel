@@ -40,14 +40,15 @@ stage1Entry32:
     add     esp, 0x4
 
     call    clearVgaBuffer
+    INFO    "Successfully jumped to 32-bit protected mode"
     mov     ebx, esp
-    LOG     "Successfully jumped to 32-bit protected mode, esp = $", ebx
+    DEBUG   "esp = $", ebx
 
-    LOG     "Running self-tests"
+    INFO    "Running self-tests"
     call    runSelfTests
-    LOG     "All self-tests passed"
+    INFO    "All self-tests passed"
 
-    LOG     "Memory map:"
+    INFO    "Memory map:"
     call    parseMemoryMap
 
     push    stage1Entry64
@@ -63,8 +64,9 @@ stage1Entry32:
 stage1Entry64:
     BITS    64
 
+    INFO    "Successfully jumped to 64-bit long mode"
     mov     rbx, rsp
-    LOG     "Successfully jumped to 64-bit long mode rsp = $", rbx
+    DEBUG   "rsp = $", rbx
 
 .dead:
     hlt

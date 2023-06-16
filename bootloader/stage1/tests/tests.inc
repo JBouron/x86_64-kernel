@@ -13,10 +13,10 @@
     call    %1
     test    eax, eax
     jnz     %%success
-    LOG     %strcat("[FAIL] ", %1)
+    CRIT    %strcat("[FAIL] ", %1)
     jmp     %%out
     %%success:
-    LOG     %strcat("[ OK ] ", %1)
+    INFO    %strcat("[ OK ] ", %1)
     %%out:
 %endmacro
 
@@ -24,7 +24,7 @@
 ; error message and exit the current function with EAX = 0.
 ; @param %1: A string litteral containing the error message
 %macro TEST_FAIL 1
-    LOG     %1
+    CRIT    %1
     xor     eax, eax
     leave
     ret

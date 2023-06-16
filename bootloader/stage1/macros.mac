@@ -56,6 +56,7 @@
 %endmacro
 
 
+; DO NOT CALL THIS MACRO, USE DEBUG, INFO, WARN AND CRIT INSTEAD
 ; Log a message. All registers are saved prior to logging and restored after
 ; logging so that a LOG call will never interfere with logic and can be safely
 ; inserted between instructions. Note that this register saving can cause
@@ -65,9 +66,9 @@
 ; @param (WORD) %1: Pointer to the format string.
 ; @param (WORD) %2..%n: Values for the format string, note that those tokens are
 ; pushed as is on the stack when calling printf.
-%macro LOG 1-*
+%macro _LOG 1-*
     %if __?BITS?__ == 16
-    %error "LOG not available in 16 bit mode"
+    %error "_LOG not available in 16 bit mode"
     %endif
 
     PUSH_ALL_REGS
@@ -106,6 +107,32 @@
     %endif
 
     POP_ALL_REGS
+%endmacro
+
+; Call _LOG with a prefix. Not to be used as-is.
+%macro _LOG_WITH_PREFIX 2-*
+    %if %0 == 2
+    _LOG    %strcat(%1, " ", %2)
+    %else
+    _LOG    %strcat(%1, " ", %2), %{3:-1}
+    %endif
+%endmacro
+
+; Various level of logging.
+%macro DEBUG 1-*
+    _LOG_WITH_PREFIX "[DEBG]", %{1:-1}
+%endmacro
+
+%macro INFO 1-*
+    _LOG_WITH_PREFIX "[INFO]", %{1:-1}
+%endmacro
+
+%macro WARN 1-*
+    _LOG_WITH_PREFIX "[WARN]", %{1:-1}
+%endmacro
+
+%macro CRIT 1-*
+    _LOG_WITH_PREFIX "[CRIT]", %{1:-1}
 %endmacro
 
 ; Compute the value of a segment selector for GDT entry i.

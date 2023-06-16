@@ -135,7 +135,7 @@ DEF_GLOBAL_FUNC(jumpToLongMode):
     test    eax, IA32_EFER_LMA_BIT_MASK
     jnz     .jumpToIa32eOk
     ; Failed.
-    LOG     "Failed to enable IA-32e mode"
+    CRIT    "Failed to enable IA-32e mode"
 .dead:
     ; FIXME: We need a PANIC macro.
     hlt

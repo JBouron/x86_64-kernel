@@ -111,7 +111,7 @@ DEF_GLOBAL_FUNC(callBiosFunc):
     test    ebx, 0xffff0000
     jz      .bcpPacketAccessible
     ; BCP packet is above the 65k limit.
-    LOG     "ERROR: BCP packet is above the 65k limit ($)", ebx
+    CRIT    "ERROR: BCP packet is above the 65k limit ($)", ebx
 .dead:
     ; FIXME: Add a PANIC macro, function.
     hlt

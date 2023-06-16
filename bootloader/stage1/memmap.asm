@@ -78,7 +78,7 @@ DEF_GLOBAL_FUNC(parseMemoryMap):
     mov     al, [esp + BCP_OUT_JC]
     test    al, al
     jz      .callOk
-    LOG     "INT 15h,AXX=E280h: Failed to call BIOS function"
+    CRIT    "INT 15h,AXX=E280h: Failed to call BIOS function"
     jmp     .done
 .callOk:
 
@@ -86,11 +86,11 @@ DEF_GLOBAL_FUNC(parseMemoryMap):
     mov     eax, [esp + BCP_INOUT_EAX_OFF]
     cmp     eax, 0x534D4150
     je      .sigOk
-    LOG     "INT 15h,AXX=E280h: Invalid signature in output EAX value"
+    CRIT    "INT 15h,AXX=E280h: Invalid signature in output EAX value"
     jmp     .done
 
 .sigOk:
-    LOG     "  Base = $_$ Len = $_$ Type = $", \
+    INFO    "  Base = $_$ Len = $_$ Type = $", \
         DWORD [ebx + 0x4], DWORD [ebx + 0x0], \
         DWORD [ebx + 0xc], DWORD [ebx + 0x8], \
         DWORD [ebx + 0x10]
@@ -108,7 +108,7 @@ DEF_GLOBAL_FUNC(parseMemoryMap):
 
     jmp     .loopEntries
 .done:
-    LOG     "Mem map @$ len = $ entries", DWORD [ebp - 0x4], DWORD [ebp - 0x8]
+    INFO    "Mem map @$ len = $ entries", DWORD [ebp - 0x4], DWORD [ebp - 0x8]
 
     ; Save the memory map for later use.
     mov     eax, [ebp - 0x4]
@@ -131,7 +131,7 @@ DEF_GLOBAL_FUNC(parseMemoryMap):
     test    eax, eax
     jnz     .invariantsOk
     ; Assumptions did not hold.
-    LOG     "Memory map is either not sorted or has overlapping ranges"
+    CRIT    "Memory map is either not sorted or has overlapping ranges"
 .dead:
     hlt
     jmp     .dead
@@ -189,7 +189,7 @@ checkMemoryMapInvariants:
     je      .expectedRes
     ; The base address of map[i+1] is not > map[i].base. This is a violation of
     ; our assumption. Return false.
-    LOG     "map[i].base >= map[i+1].base for i = $", esi
+    CRIT    "map[i].base >= map[i+1].base for i = $", esi
     xor     eax, eax
     jmp     .out
 .expectedRes:
@@ -240,7 +240,7 @@ checkMemoryMapInvariants:
     cmp     eax, -1
     jne     .expectedRes2
     ; We have map[i+1].base < map[i].base + map[i].len. Invariant violated.
-    LOG     "map[i+1].base < map[i].base + map[i].len for i = $", esi
+    CRIT    "map[i+1].base < map[i].base + map[i].len for i = $", esi
     xor     eax, eax
     jmp     .out
 .expectedRes2:
