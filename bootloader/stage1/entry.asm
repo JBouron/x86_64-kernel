@@ -81,11 +81,4 @@ BITS    64
 runSelfTests:
     ; All test functions should be called from here.
     RUN_TEST(callBiosFuncTest)
-
-    ; FIXME: 64-bit arithmetic functions are not tested anymore as they will
-    ; most likely disappear due to not having a use for them anymore.
-    ;RUN_TEST(add64Test)
-    ;RUN_TEST(sub64Test)
-    ;RUN_TEST(cmp64Test)
-
     ret

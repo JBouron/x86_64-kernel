@@ -2,7 +2,6 @@
 
 %include "malloc.inc"
 %include "bioscall.inc"
-%include "arith64.inc"
 
 SECTION .data
 ; Number of entries in the memory map.
