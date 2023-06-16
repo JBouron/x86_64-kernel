@@ -150,11 +150,7 @@ DEF_GLOBAL_FUNC(callBiosFunc):
     test    rbx, 0xffffffffffff0000
     jz      .bcpPacketAccessible
     ; BCP packet is above the 65k limit.
-    CRIT    "ERROR: BCP packet is above the 65k limit ($)", rbx
-.dead:
-    ; FIXME: Add a PANIC macro, function.
-    hlt
-    jmp     .dead
+    PANIC   "ERROR: BCP packet is above the 65k limit ($)", rbx
 .bcpPacketAccessible:
 
     ; Jump to protected-mode. The BX value will not changed during this

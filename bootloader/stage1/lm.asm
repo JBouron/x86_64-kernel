@@ -135,11 +135,7 @@ DEF_GLOBAL_FUNC(jumpToLongMode):
     test    eax, IA32_EFER_LMA_BIT_MASK
     jnz     .jumpToIa32eOk
     ; Failed.
-    CRIT    "Failed to enable IA-32e mode"
-.dead:
-    ; FIXME: We need a PANIC macro.
-    hlt
-    jmp     .dead
+    PANIC   "Failed to enable IA-32e mode"
 
 .jumpToIa32eOk:
     ; Switch to IA-32e mode was successful now jump to actual long mode.

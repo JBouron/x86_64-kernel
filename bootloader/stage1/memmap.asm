@@ -72,11 +72,7 @@ _handleMemoryMapEntry:
     cmp     r8, rax
     je      .assertOk
     ; The allocated entry does not immediately follow the last entry.
-    CRIT    "_handleMemoryMapEntry: malloc does not follow last entry."
-.dead:
-    ; Guess what time it is? That's right! It's time to write a PANIC macro.
-    hlt
-    jmp     .dead
+    PANIC   "_handleMemoryMapEntry: malloc does not follow last entry."
 .assertOk:
     ; Copy the the ARDS to the allocated elem in the array.
     mov     rsi, rdi
@@ -170,10 +166,7 @@ DEF_GLOBAL_FUNC(parseMemoryMap):
     test    rax, rax
     jnz     .invariantsOk
     ; Assumptions did not hold.
-    CRIT    "Memory map is either not sorted or has overlapping ranges"
-.dead:
-    hlt
-    jmp     .dead
+    PANIC   "Memory map is either not sorted or has overlapping ranges"
 .invariantsOk:
     DEBUG   "Memory map invariant ok, mem map size = $ entries", \
         QWORD [memoryMapLen]

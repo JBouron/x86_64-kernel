@@ -47,10 +47,7 @@ DEF_GLOBAL_FUNC(allocFrameLowMem):
     ja      .allocOk
     ; The allocation is overlapping stage1. Panic now, nothing good can come out
     ; of this.
-    CRIT    "No physical frame available"
-.dead:
-    hlt
-    jmp     .dead
+    PANIC   "No physical frame available"
 
 .allocOk:
     ; Zero the frame.

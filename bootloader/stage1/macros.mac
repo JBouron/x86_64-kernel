@@ -136,6 +136,34 @@
     _LOG_WITH_PREFIX "[CRIT]", %{1:-1}
 %endmacro
 
+; Print a panic message and lock up the cpu. Used the same way as other logging
+; macros.
+; @param varags...: Same parameters as logging, e.g. formatted string formatted
+; with zero or more values to be substitued. Can also be called with no
+; arguments
+%define PANIC _PANIC __?FILE?__, __?LINE?__,
+
+; Only used by PANIC. DO NOT CALL THIS DIRECTLY.
+; The only reason this exists is because of a bug in NASM where putting
+; __?FILE?__ and __?LINE?__ in the body of multi-line macros does not report the
+; correct file/line if the macro is included by another file and used there.
+; Somehow single-line macros are not affected by this bug, hence the single-line
+; macro PANIC acts as a "frontend" for _PANIC and passes it the correct file and
+; line number as param (think of it at currying).
+%macro _PANIC 2-*
+    _LOG "==================== PANIC ===================="
+    _LOG %strcat("  Location: ", %1, ":", %2)
+    %if %0 > 2
+    _LOG_WITH_PREFIX "  Reason:", %{3:-1}
+    %endif
+    _LOG "==============================================="
+    ; The following gets assembled in the current BITS mode.
+    %%dead:
+    cli
+    hlt
+    jmp     %%dead
+%endmacro
+
 ; Compute the value of a segment selector for GDT entry i.
 %define SEG_SEL(i) (i << 3)
 

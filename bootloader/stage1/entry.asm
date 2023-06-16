@@ -46,10 +46,8 @@ stage1Entry32:
 
     push    stage1Entry64
     call    jumpToLongMode
-
-.dead:
-    hlt
-    jmp     .dead
+    ; UNREACHABLE
+    int3
 
 ; ==============================================================================
 ; Entry point for stage 1 in 64bit protected-mode. stage1Entry32 jumps to this
