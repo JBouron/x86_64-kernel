@@ -79,4 +79,7 @@ BITS    64
 runSelfTests:
     ; All test functions should be called from here.
     RUN_TEST(callBiosFuncTest)
+    RUN_TEST(memmapFindNextBoundaryTest)
+    RUN_TEST(memmapTypeFromBitmapTest)
+    RUN_TEST(memmapSanitizeMemMapTest)
     ret
