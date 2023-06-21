@@ -7,6 +7,12 @@
 %include "memmap.inc"
 %include "lm.inc"
 
+SECTION .data
+; The index of the drive we have booted from, this information is coming from
+; stage 0 in the DL register when jumping to stage1Entry.
+bootDriveIndex:
+DB  0x0
+
 SECTION .text
 
 ; Set the BITS _after_ including other files so that we don't accidentally use
@@ -21,8 +27,10 @@ BITS    16
 ;   * A stack has been set up for us.
 ;   * We are still in real mode.
 DEF_GLOBAL_FUNC(stage1Entry):
-    ; Immediately jump to 32-bit protected mode, we don't have anything else to
-    ; do in real-mode for now.
+    ; Save the boot drive index.
+    mov     [bootDriveIndex], dl
+    ; Jump to 32-bit protected mode, we don't have anything else to do in
+    ; real-mode for now.
     push    stage1Entry32
     call    jumpToProtectedMode
     ; UNREACHABLE
@@ -40,7 +48,8 @@ stage1Entry32:
     add     esp, 0x4
 
     call    clearVgaBuffer
-    INFO    "Successfully jumped to 32-bit protected mode"
+    movzx   edx, BYTE [bootDriveIndex]
+    INFO    "Successfully jumped to 32-bit protected mode, boot drive = $", edx
     mov     ebx, esp
     DEBUG   "esp = $", ebx
 

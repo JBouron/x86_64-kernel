@@ -10,7 +10,8 @@
 ;   same.
 ;   * Setup the stack.
 ;   * Make sure the A20 line has been enabled.
-;   * Load and jump to stage 1.
+;   * Load and jump to stage 1. At the time of the jump, DL contains the index
+;   of the boot drive.
 ;
 ; Assumptions
 ; ===========
@@ -150,6 +151,8 @@ entry:
 .remainingSectorsLoaded:
 
     ; Jump to stage 1's entry.
+    ; Set DL to boot drive index.
+    mov     dl, [data.bootDriveIndex]
     mov     bx, [bx + 0x4]
     lea     ax, [0x7e00 + bx]
     jmp     ax
