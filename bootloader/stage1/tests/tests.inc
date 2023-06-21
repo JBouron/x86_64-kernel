@@ -38,5 +38,20 @@
     ret
 %endmacro
 
+; Assert that the two parameters are equal. The parameters are passed as is to
+; the CMP instruction hence some addressing restriction might apply (e.g. cannot
+; pass two memory references for instance). This macro does not clobber any
+; registers except RFLAGS. If the condition is not met, e.g. %1 != %2, then this
+; macro calls TEST_FAIL with an appropriate error message.
+; @param %1: First operand for CMP instruction.
+; @param %2: Second operand for CMP instruction.
+%macro TEST_ASSERT_EQ 2
+    cmp     %1, %2
+    je      %%ok
+    CRIT    "$ != $", %1, %2
+    TEST_FAIL   %strcat("Condition ", %1, " == ", %2, " failed!")
+    %%ok:
+%endmacro
+
 %endif
 ; vim:syntax=asm filetype=asm
