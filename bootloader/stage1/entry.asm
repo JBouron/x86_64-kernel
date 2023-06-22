@@ -10,7 +10,7 @@
 SECTION .data
 ; The index of the drive we have booted from, this information is coming from
 ; stage 0 in the DL register when jumping to stage1Entry.
-bootDriveIndex:
+DEF_GLOBAL_VAR(bootDriveIndex):
 DB  0x0
 
 SECTION .text
@@ -91,4 +91,5 @@ runSelfTests:
     RUN_TEST(memmapFindNextBoundaryTest)
     RUN_TEST(memmapTypeFromBitmapTest)
     RUN_TEST(memmapSanitizeMemMapTest)
+    RUN_TEST(readDiskSectorsTest)
     ret

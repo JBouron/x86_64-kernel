@@ -8,6 +8,7 @@
 ; output are named BCP_OUT_* and those which are used for both are named
 ; BCP_INOUT_*.
 BCP_IN_INT_OFF      EQU 0x00 ; Size: 1 Desc: Interrupt number.
+; FIXME: Weird name? JC? Should be CF.
 BCP_OUT_JC          EQU 0x01 ; Size: 1 Desc: Output value of CF in FLAGS reg.
 BCP_INOUT_EAX_OFF   EQU 0x02 ; Size: 4 Desc: Input/output value for EAX.
 BCP_INOUT_EBX_OFF   EQU 0x06 ; Size: 4 Desc: Input/output value for EBX.
