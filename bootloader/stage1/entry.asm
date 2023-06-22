@@ -6,6 +6,7 @@
 %include "tests/tests.inc"
 %include "memmap.inc"
 %include "lm.inc"
+%include "loader.inc"
 
 SECTION .data
 ; The index of the drive we have booted from, this information is coming from
@@ -73,6 +74,9 @@ stage1Entry64:
 
     INFO    "Memory map:"
     call    parseMemoryMap
+
+    INFO    "Loading kernel from memory"
+    call    loadKernel
 .dead:
     hlt
     jmp     .dead

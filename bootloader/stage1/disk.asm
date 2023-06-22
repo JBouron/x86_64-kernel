@@ -40,6 +40,11 @@ DEF_GLOBAL_FUNC(readDiskSectors):
     push    rbp
     mov     rbp, rsp
 
+    DEBUG   "Read from disk $:", rdi
+    DEBUG   "  First sector  = $", rsi
+    DEBUG   "  Num sector(s) = $", rdx
+    DEBUG   "  Dest buffer   = $", rcx
+
     ; In order to read sectors, we use the BIOS function INT 13h AH=42h:
     ; Extended Read Sectors From Drive
     ; The drawback of this function is that the destination memory buffer where
