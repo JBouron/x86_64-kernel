@@ -36,10 +36,15 @@ scrollVgaBufferUp32:
     push    edi
     push    esi
 
-    mov     ecx, VGA_BUFFER_ROWS * (VGA_BUFFER_COLS - 1)
+    mov     ecx, (VGA_BUFFER_ROWS - 1) * VGA_BUFFER_COLS
     mov     edi, VGA_BUFFER_PHY_ADDR
     mov     esi, VGA_BUFFER_PHY_ADDR + VGA_BUFFER_COLS * 2
     rep movsw
+    ; Clear the last line
+    mov     ecx, VGA_BUFFER_COLS
+    mov     edi, VGA_BUFFER_PHY_ADDR + ((VGA_BUFFER_ROWS-1)*VGA_BUFFER_COLS)*2
+    xor     ax, ax
+    rep stosw
 
     pop     esi
     pop     edi
@@ -237,10 +242,15 @@ BITS    64
 ; ==============================================================================
 ; Scroll the VGA buffer up one line.
 scrollVgaBufferUp64:
-    mov     rcx, VGA_BUFFER_ROWS * (VGA_BUFFER_COLS - 1)
+    mov     rcx, (VGA_BUFFER_ROWS - 1) * VGA_BUFFER_COLS
     mov     rdi, VGA_BUFFER_PHY_ADDR
     mov     rsi, VGA_BUFFER_PHY_ADDR + VGA_BUFFER_COLS * 2
     rep movsw
+    ; Clear the last line
+    mov     rcx, VGA_BUFFER_COLS
+    mov     rdi, VGA_BUFFER_PHY_ADDR + ((VGA_BUFFER_ROWS-1)*VGA_BUFFER_COLS)*2
+    xor     ax, ax
+    rep stosw
     ret
 
 ; ==============================================================================
