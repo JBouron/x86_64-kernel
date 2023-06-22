@@ -5,15 +5,9 @@
 
 SECTION .data
 ; Number of entries in the memory map.
-memoryMapLen:
+DEF_GLOBAL_VAR(memoryMapLen):
 DQ  0x0
-; The memory map, an array of `memoryMapLen` entries with the following layout:
-;   {
-;       u64 base;
-;       u64 length; // in bytes.
-;       u64 type;
-;   }
-memoryMap:
+DEF_GLOBAL_VAR(memoryMap):
 DQ  0x0
 
 SECTION .text
