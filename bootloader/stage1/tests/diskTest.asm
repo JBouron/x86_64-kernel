@@ -41,6 +41,85 @@ DEF_GLOBAL_FUNC(readDiskSectorsTest):
 .ok:
     TEST_SUCCESS
 
+; ==============================================================================
+; Compare two buffers.
+; @param %RDI: Address of the first buffer.
+; @param %RSI: Address of the second buffer.
+; @param %RDX: Length of both buffers in bytes.
+; @return %RAX: 1 if both buffers have the same content, 0 otherwise.
+memcmp:
+    push    rbp
+    mov     rbp, rsp
+
+    mov     rcx, rdx
+    cld
+    repe cmpsb
+
+    ; The ZF from the last comparison indicate the final result:
+    ;   ZF == 1 => There was a difference and the REPE CMPSB was cut short.
+    ;   ZF == 0 => We reached the end of both buffers without finding a diff.
+    setz    al
+    movzx   rax, al
+
+    leave
+    ret
+
+; Generate a test case for the test of readBuffer.
+; @param %1: The offset relative to mockSectors to read from.
+; @param %2: The number of bytes to read.
+%macro READ_BUFFER_TEST_CASE 2
+    DEBUG   %strcat("readBuffer test case offset = ", %1, " bytes = ", %2)
+    ; Allocate destination buffer on stack.
+    sub     rsp, %2
+
+    ; Call readBuffer.
+    movzx   rdi, BYTE [bootDriveIndex]
+    ; RSI = read offset on disk = offset of mockSectors on disk + rela offset.
+    lea     rsi, [mockSectors - 0x7c00 + %1]
+    mov     rdx, %2
+    mov     rcx, rsp
+    call    readBuffer
+
+    ; Now compare what was just read against what we expect.
+    mov     rdi, rsp
+    lea     rsi, [mockSectors + %1]
+    mov     rdx, %2
+    call    memcmp
+    test    rax, rax
+    jnz     %%ok
+    PANIC   %strcat("Failed test case offset = ", %1, " bytes = ", %2)
+    %%ok:
+    ; De-alloc buffer on stack.
+    add     rsp, %2
+%endmacro
+
+; ==============================================================================
+; Test for readBuffer
+DEF_GLOBAL_FUNC(readBufferTest):
+    push    rbp
+    mov     rbp, rsp
+
+    ; Test case 1: Small read, sector aligned.
+    READ_BUFFER_TEST_CASE 0, 8
+
+    ; Test case 2: Small read, not sector aligned.
+    READ_BUFFER_TEST_CASE 8, 8
+
+    ; Test case 3: Small read, crossing sector boundary.
+    READ_BUFFER_TEST_CASE 508, 8
+
+    ; Test case 4: Read entire sector.
+    READ_BUFFER_TEST_CASE 0, 512
+
+    ; Test case 5: Read two entire sectors.
+    READ_BUFFER_TEST_CASE 0, 1024
+
+    ; Test case 6: Read crosses two sector boundaries, only the middle sector is
+    ; fully read.
+    READ_BUFFER_TEST_CASE 256, 1024
+
+    TEST_SUCCESS
+
 SECTION .data
 ; Create a few mock sectors to be read by readDiskSectorsTest. This is possible
 ; because stage1 has its ORIG set to 0x7e00 which is 512-byte aligned, hence

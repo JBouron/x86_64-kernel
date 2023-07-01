@@ -163,3 +163,138 @@ DEF_GLOBAL_FUNC(readDiskSectors):
     pop     r15
     leave
     ret
+
+
+; ==============================================================================
+; Read an arbitrary number of bytes from an arbitrary offset from disk. Neither
+; the number of bytes to be read nor the offset to read from have have to be
+; multiples of sector size. This function takes care of figuring out which
+; sectors need to be read to satisfy the read operation.
+; This function does not return and insteads PANICs if an error occurs FIXME.
+; @param (BYTE) %RDI: Index of the drive to read from.
+; @param %RSI: Offset to read from on disk. Byte granularity.
+; @param %RDX: Number of bytes to read from disk.
+; @param %RCX: Destination buffer to read into. Must be of size >= %RSI.
+DEF_GLOBAL_FUNC(readBuffer):
+    push    rbp
+    mov     rbp, rsp
+
+    push    r15
+    push    r14
+    push    r13
+    push    r12
+
+    ; R15 = Number of bytes left to read.
+    mov     r15, rdx
+    ; R13 = read pointer, e.g. offset to read from disk. Updated at every
+    ; iteration.
+    mov     r13, rsi
+    ; R12B = disk id.
+    movzx   r12, dil
+    ; RBX = write pointer in the destination buffer. Updated at every iteration.
+    mov     rbx, rcx
+
+    ; While number of bytes left to read > 0.
+.loopCond:
+    test    r15, r15
+    jz      .loopOut
+.loopTop:
+    ; Check if we can read the sector data directly into the destination buffer,
+    ; e.g. without any additional copy. This is only possible if the following
+    ; holds:
+    ;   1. The read pointer is on a sector boundary.
+    ;   2. There are at least 512 bytes left to read.
+    ; In case any of the above is false, we need to first read the sector into a
+    ; temporary buffer and then copy the data of interest to the destination
+    ; buffer.
+    test    r13, ((1 << 9) - 1)
+    jnz     .slowPath
+    cmp     r15, 512
+    jb      .slowPath
+
+    ; We are in the "fast case" where the sector is read directly into the
+    ; destination buffer without additional copy.
+    ; FIXME: Instead of always reading a single sector we can read multiple
+    ; sectors at a time if there is enough bytes left to read.
+    mov     rdi, r12
+    mov     rsi, r13
+    shr     rsi, 9
+    mov     rdx, 1
+    mov     rcx, rbx
+    call    readDiskSectors
+    cmp     rax, 1
+    jne     .fail
+
+    ; Update loop vars and go to next iteration.
+    mov     rax, 512
+    ; Advance read and write pointers.
+    add     r13, rax
+    add     rbx, rax
+    ; Account for the read bytes.
+    sub     r15, rax
+    jmp     .loopNextIte
+
+.slowPath:
+    ; We cannot read the sector directly into the buffer, either because the
+    ; read offset is not aligned on a sector or because there is less than 512
+    ; bytes left to read (or both!).
+    ; Read the sector into a temporary buffer and then copy the data of interest
+    ; into the destination buffer.
+
+    ; Sector is read on stack.
+    sub     rsp, 512
+
+    ; Read the sector and store it on the stack.
+    mov     rdi, r12
+    mov     rsi, r13
+    shr     rsi, 9
+    mov     rdx, 1
+    mov     rcx, rsp
+    call    readDiskSectors
+    cmp     rax, 1
+    jne     .fail
+
+    ; Copy into destination buffer.
+    ; The offset within the sector at which the copy starts is:
+    ;   readPtr % 512
+    ; Hence source addr = RSP + (readPtr % 512)
+    ;                   = RSP + (readPtr & (512 - 1))
+    ; RAX = readPtr % 512
+    mov     rax, r13
+    and     rax, ((1 << 9) - 1)
+    lea     rsi, [rsp + rax]
+    mov     rdi, rbx
+    ; Number of bytes to copy = min(512 - RAX, R15)
+    mov     rcx, 512
+    sub     rcx, rax
+    cmp     rcx, r15
+    cmova   rcx, r15
+    ; Do the copy using REP MOVSB. Save the RCX because it contains the number
+    ; of bytes that were copied/read which will be used to update the iteration
+    ; variables.
+    push    rcx
+    cld
+    rep movsb
+    pop     rcx
+
+    ; De-alloc buffer on stack.
+    add     rsp, 512
+
+    ; Update iteration vars.
+    add     r13, rcx
+    add     rbx, rcx
+    sub     r15, rcx
+    jmp     .loopNextIte
+
+.loopNextIte:
+    jmp     .loopCond
+.loopOut:
+
+    pop     r12
+    pop     r13
+    pop     r14
+    pop     r15
+    leave
+    ret
+.fail:
+    PANIC   "Failed to read sector"

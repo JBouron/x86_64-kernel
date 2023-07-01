@@ -96,4 +96,5 @@ runSelfTests:
     RUN_TEST(memmapTypeFromBitmapTest)
     RUN_TEST(memmapSanitizeMemMapTest)
     RUN_TEST(readDiskSectorsTest)
+    RUN_TEST(readBufferTest)
     ret
