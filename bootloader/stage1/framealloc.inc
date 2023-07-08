@@ -13,5 +13,12 @@
 ; @return: The physical offset of the allocated frame.
 EXT_FUNC(allocFrameLowMem)
 
+; ==============================================================================
+; Allocate a frame in available memory. This function uses the memory map to
+; find available frames and as such cannot be called prior to calling
+; parseMemoryMap.
+; @return (RAX): The physical address of the allocated frame.
+EXT_FUNC(allocFrame)
+
 %endif
 ; vim:syntax=asm filetype=asm

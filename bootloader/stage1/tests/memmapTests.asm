@@ -312,3 +312,65 @@ DEF_GLOBAL_FUNC(memmapSanitizeMemMapTest):
     _ASSERT_MAP_ENTRY_EQ    rax, 9000, 2000, 1
 
     TEST_SUCCESS
+
+; ==============================================================================
+; Test for the findFirstAvailFrameTest function.
+DEF_GLOBAL_FUNC(findFirstAvailFrameTest):
+    push    rbp
+    mov     rbp, rsp
+    push    r15
+    push    r14
+
+    ; Create a mock memmap on the stack.
+    ; A couple of available frames with a non-available frame in the middle. All
+    ; bases and page-aligned and lengths are multiple of page size.
+    CREATE_MEMMAP_ENTRY 0x0, 0x1000, 1
+    CREATE_MEMMAP_ENTRY 0x1000, 0x1000, 2
+    CREATE_MEMMAP_ENTRY 0x2000, 0x2000, 1
+
+    ; Some entries with non-page-aligned bases or lengths that are not multiple
+    ; of page-size.
+    CREATE_MEMMAP_ENTRY 0x10001, 0xfff, 1
+    CREATE_MEMMAP_ENTRY 0x11000, 0x1000, 2
+    CREATE_MEMMAP_ENTRY 0x12000, 0x1000, 1
+
+    CREATE_MEMMAP_ENTRY 0x20fff, 0x1001, 1
+
+    ; Sanitize the mock memory map, mostly because it needs to be sorted.
+    ; R15 = New memory map.
+    ; R14 = New memory map size (num entries).
+    mov     rdi, rsp
+    mov     rsi, 7
+    call    sanitizeMemMap
+    mov     r15, rax
+    mov     r14, rdx
+
+    ; Run the test cases.
+; Run a test case. Triggers an assert failure if the return value of
+; findFirstAvailFrame does not match the expected value.
+; @param %1: The start offset for the findFirstAvailFrame call
+; @param %2: The expected return value of findFirstAvailFrame.
+%macro FIND_FIRST_AVAIL_FRAME_TEST_CASE 2
+    mov     rdi, r15
+    mov     rsi, r14
+    mov     rdx, %1
+    call    findFirstAvailFrame
+    mov     rcx, %2
+    TEST_ASSERT_EQ  rax, rcx
+%endmacro
+
+    FIND_FIRST_AVAIL_FRAME_TEST_CASE 0x0, 0x0
+    FIND_FIRST_AVAIL_FRAME_TEST_CASE 0x200, 0x2000
+    FIND_FIRST_AVAIL_FRAME_TEST_CASE 0x1000, 0x2000
+    FIND_FIRST_AVAIL_FRAME_TEST_CASE 0x2000, 0x2000
+    FIND_FIRST_AVAIL_FRAME_TEST_CASE 0x3000, 0x3000
+
+    FIND_FIRST_AVAIL_FRAME_TEST_CASE 0x4000, 0x12000
+
+    FIND_FIRST_AVAIL_FRAME_TEST_CASE 0x13000, 0x21000
+
+    FIND_FIRST_AVAIL_FRAME_TEST_CASE 0x30000, -1
+
+    pop     r14
+    pop     r15
+    TEST_SUCCESS

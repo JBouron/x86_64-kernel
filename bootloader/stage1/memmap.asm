@@ -563,3 +563,88 @@ DEF_GLOBAL_FUNC(typeFromBitmap):
     mov     eax, r10d
     leave
     ret
+
+
+PAGE_SIZE       EQU 0x1000
+NO_SUCH_FRAME   EQU -1
+
+; ==============================================================================
+; Find the first available physical page frame above a particular offset.
+; @param %RDI: Address of the memory map.
+; @param %RSI: Number of entries in the memory map.
+; @param %RDX: Start offset of the search.
+; @return (RAX): The physical offset of the first available frame above %RDX,
+; the returned offset is always page-aligned even if RDX is not. If no such
+; frame exists then NO_SUCH_FRAME is returned.
+DEF_GLOBAL_FUNC(findFirstAvailFrame):
+    push    rbp
+    mov     rbp, rsp
+
+    ; Sanitize RDX to be page aligned.
+    test    rdx, (PAGE_SIZE - 1)
+    jz      .rdxIsPageAligned
+    add     rdx, PAGE_SIZE
+    and     rdx, ~(PAGE_SIZE - 1)
+.rdxIsPageAligned:
+
+    ; Since the entries in the memory maps are sorted we just need to look for
+    ; the first entry for which the base address is >= RDX and contains at
+    ; least 1 entire physical frame.
+    ; RDI = Pointer to current entry.
+    ; RSI = Number of entries left to check.
+.loopCond:
+    test    rsi, rsi
+    jz      .loopOutNotFound
+.loopTop:
+    ; First check if the entry refers to available memory.
+    mov     rax, [rdi + 0x10]
+    cmp     rax, 1
+    jne     .loopNextIte
+
+    ; Compute the frame-aligned start offset of this entry. This is because E820
+    ; entries may not always start on a page boundary.
+    ; RAX = page aligned base address.
+    mov     rax, [rdi]
+    test    rax, (PAGE_SIZE - 1)
+    jz      .baseIsPageAligned
+    ; Base is not page-aligned, move it up the next page boundary.
+    add     rax, PAGE_SIZE
+    and     rax, ~(PAGE_SIZE - 1)
+.baseIsPageAligned:
+
+    ; Entry contains available memory. Compute max(base, RDX).
+    ; RAX = max(base, RDX).
+    cmp     rax, rdx
+    cmovb   rax, rdx
+
+    ; Check if the frame starting at offset RAX is fully contained in the
+    ; current entry.
+    ; RCX = End offset of frame starting @RAX.
+    lea     rcx, [rax + PAGE_SIZE]
+    ; R8 = End offset of entry.
+    mov     r8, [rdi]
+    add     r8, [rdi + 0x8]
+    cmp     rcx, r8
+    jbe     .frameContained
+    ; The frame is not fully contained, this entry won't work, try with the next
+    ; one.
+    jmp     .loopNextIte
+
+.frameContained:
+    ; The frame starting at offset RAX is fully contained in the current entry.
+    ; We have found our first available frame above RDX, return.
+    jmp     .loopOutFound
+
+.loopNextIte:
+    ; Advance curr entry pointer.
+    add     rdi, 24
+    dec     rsi
+    jmp     .loopCond
+
+.loopOutNotFound:
+    ; We could not find an available frame above RDX, return error.
+    mov     rax, NO_SUCH_FRAME
+.loopOutFound:
+
+    leave
+    ret

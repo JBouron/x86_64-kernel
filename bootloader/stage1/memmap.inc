@@ -18,5 +18,15 @@ EXT_VAR(memoryMapLen)
 ; This initializes memoryMap and memoryMapLen.
 EXT_FUNC(parseMemoryMap)
 
+NO_SUCH_FRAME   EQU -1
+; ==============================================================================
+; Find the first available physical page frame above a particular offset.
+; @param %RDI: Address of the memory map.
+; @param %RSI: Number of entries in the memory map.
+; @param %RDX: Start offset of the search.
+; @return (RAX): The physical offset of the first available frame above %RDX. If
+; no such frame exists then NO_SUCH_FRAME is returned.
+EXT_FUNC(findFirstAvailFrame)
+
 %endif
 ; vim:syntax=asm filetype=asm

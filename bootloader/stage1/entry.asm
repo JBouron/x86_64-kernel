@@ -97,4 +97,5 @@ runSelfTests:
     RUN_TEST(memmapSanitizeMemMapTest)
     RUN_TEST(readDiskSectorsTest)
     RUN_TEST(readBufferTest)
+    RUN_TEST(findFirstAvailFrameTest)
     ret

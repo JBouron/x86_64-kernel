@@ -12,9 +12,9 @@ IA32_EFER_LMA_BIT_MASK  EQU (1 << 10)
 
 
 SECTION .data
-; The physical of the top level table of the paging structure to use when
-; enabling long mode. Initilialized upon calling jumpToLongMode for the first
-; time then re-used for every call to jumpToLongMode.
+; The physical address of the top level table of the paging structure to use
+; when enabling long mode. Initilialized upon calling jumpToLongMode for the
+; first time then re-used for every call to jumpToLongMode.
 ; This paging structure only ID maps the first 1MiB of physical memory.
 longModePageTables:
 DD  0x0
