@@ -11,8 +11,13 @@ debug: $(DISK_NAME)
 run: $(DISK_NAME)
 	qemu-system-x86_64 $(QEMU_FLAGS)
 
-$(DISK_NAME): stage0/stage0 stage1/stage1
-	cat $^ > $@
+# FIXME: For now the kernel is a dead simple executable in order to exercise the
+# loading code. Eventually this should be replaced.
+kernel: kernel.asm
+	nasm -f elf64 $^ -o $@
+
+$(DISK_NAME): stage0/stage0 stage1/stage1 kernel
+	./createDiskImage.py $^ $@
 
 .PHONY: stage0/stage0
 stage0/stage0:
@@ -27,5 +32,6 @@ stage1/stage1:
 
 .PHONY: clean
 clean:
+	rm -rf kernel.o kernel
 	$(MAKE) -C stage0 clean
 	$(MAKE) -C stage1 clean
