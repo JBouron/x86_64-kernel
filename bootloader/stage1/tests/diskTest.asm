@@ -1,12 +1,9 @@
 %include "tests/tests.inc"
 %include "disk.inc"
 
-SECTION .text
-BITS    64
-
 ; ==============================================================================
 ; Test for readDiskSectors.
-DEF_GLOBAL_FUNC(readDiskSectorsTest):
+DEF_GLOBAL_FUNC64(readDiskSectorsTest):
     push    rbp
     mov     rbp, rsp
 
@@ -47,7 +44,7 @@ DEF_GLOBAL_FUNC(readDiskSectorsTest):
 ; @param %RSI: Address of the second buffer.
 ; @param %RDX: Length of both buffers in bytes.
 ; @return %RAX: 1 if both buffers have the same content, 0 otherwise.
-memcmp:
+DEF_LOCAL_FUNC64(memcmp):
     push    rbp
     mov     rbp, rsp
 
@@ -95,7 +92,7 @@ memcmp:
 
 ; ==============================================================================
 ; Test for readBuffer
-DEF_GLOBAL_FUNC(readBufferTest):
+DEF_GLOBAL_FUNC64(readBufferTest):
     push    rbp
     mov     rbp, rsp
 

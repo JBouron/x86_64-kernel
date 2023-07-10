@@ -5,15 +5,11 @@
 %include "tests/tests.inc"
 %include "pm.inc"
 
-SECTION .text
-
-BITS    64
-
 ; ==============================================================================
 ; End-to-end test for callBiosFunc. This test makes sure that the right BIOS
 ; function is called with the right arguments and that the BCP struct is
 ; correctly updated to contain the output register values.
-DEF_GLOBAL_FUNC(callBiosFuncTest):
+DEF_GLOBAL_FUNC64(callBiosFuncTest):
     push    rbp
     mov     rbp, rsp
 
@@ -28,7 +24,7 @@ DEF_GLOBAL_FUNC(callBiosFuncTest):
     mov     [ivtEntryBackup], ecx
     ; Register the mock BIOS function. In real mode an IVT entry is simply a 4
     ; bytes far pointer CS:Offset (hence offset in lower bits).
-    mov     ecx, _mockBiosFunction
+    mov     ecx, mockBiosFunction
     ; Double check that the address of the mockBiosFunction fits in real-mode
     ; segment 0x0000.
     test    ecx, 0xffff0000
@@ -85,8 +81,7 @@ DEF_GLOBAL_FUNC(callBiosFuncTest):
     ; Unreachable
     int3
 
-BITS    16
-_mockBiosFunction:
+DEF_LOCAL_FUNC16(mockBiosFunction):
     ; The custom BIOS function used for the callBiosFuncTest test. This function
     ; simply computes the 1-complement of all registers.
     not     eax
@@ -107,8 +102,6 @@ _mockBiosFunction:
     ; Now return to the INT instruction.
     iret
 
-SECTION .data
-
 ; Backup of the IVT entry used to register the custom BIOS function.
-ivtEntryBackup:
+DEF_LOCAL_VAR(ivtEntryBackup):
 DD  0x0

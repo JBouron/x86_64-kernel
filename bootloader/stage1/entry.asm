@@ -8,17 +8,10 @@
 %include "lm.inc"
 %include "loader.inc"
 
-SECTION .data
 ; The index of the drive we have booted from, this information is coming from
 ; stage 0 in the DL register when jumping to stage1Entry.
 DEF_GLOBAL_VAR(bootDriveIndex):
 DB  0x0
-
-SECTION .text
-
-; Set the BITS _after_ including other files so that we don't accidentally use
-; the BITS set by an included file.
-BITS    16
 
 ; ==============================================================================
 ; Entry point for stage 1. At this point the following guarantees hold:
@@ -27,7 +20,7 @@ BITS    16
 ;   * All segment registers are 0x0000.
 ;   * A stack has been set up for us.
 ;   * We are still in real mode.
-DEF_GLOBAL_FUNC(stage1Entry):
+DEF_GLOBAL_FUNC16(stage1Entry):
     ; Save the boot drive index.
     mov     [bootDriveIndex], dl
     ; Jump to 32-bit protected mode, we don't have anything else to do in
@@ -37,12 +30,10 @@ DEF_GLOBAL_FUNC(stage1Entry):
     ; UNREACHABLE
     int3
 
-BITS    32
-
 ; ==============================================================================
 ; Entry point for stage 1 in 32bit protected-mode. stage1Entry jumps to this
 ; code.
-stage1Entry32:
+DEF_LOCAL_FUNC32(stage1Entry32):
     ; Since we arrived here from a call to jumpToProtectedMode, the stack still
     ; contains the WORD parameter for jumpToProtectedMode as well as the return
     ; address due to the call. Remove both of them.
@@ -62,9 +53,7 @@ stage1Entry32:
 ; ==============================================================================
 ; Entry point for stage 1 in 64bit protected-mode. stage1Entry32 jumps to this
 ; code.
-stage1Entry64:
-    BITS    64
-
+DEF_LOCAL_FUNC64(stage1Entry64):
     INFO    "Successfully jumped to 64-bit long mode"
     mov     rbx, rsp
     DEBUG   "rsp = $", rbx
@@ -81,15 +70,13 @@ stage1Entry64:
     hlt
     jmp     .dead
 
-BITS    64
-
 ; ==============================================================================
 ; Run stage1 self tests.
 ; Note on test functions: Test functions are not taking arguments and are
 ; expected to lock-up the CPU in case of failure (after hopefully printing
 ; a useful error message). Naturally, test functions are expected to return
 ; the CPU in a sane/consistent state.
-runSelfTests:
+DEF_LOCAL_FUNC64(runSelfTests):
     ; All test functions should be called from here.
     RUN_TEST(callBiosFuncTest)
     RUN_TEST(memmapFindNextBoundaryTest)

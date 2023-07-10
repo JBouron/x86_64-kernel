@@ -8,18 +8,13 @@ VGA_BACKGROUND_COLOR EQU 0
 VGA_FOREGROUND_COLOR EQU 7
 VGA_BUFFER_PHY_ADDR EQU 0xb8000
 
-SECTION .data
 ; The linear index of the cursor in the VGA buffer.
-cursorPos:
+DEF_LOCAL_VAR(cursorPos):
 DW  0x0
-
-SECTION .text
-
-BITS    32
 
 ; ==============================================================================
 ; Clear the VGA buffer.
-DEF_GLOBAL_FUNC(clearVgaBuffer):
+DEF_GLOBAL_FUNC32(clearVgaBuffer):
     push    edi
 
     mov     ecx, 80 * 25
@@ -32,7 +27,7 @@ DEF_GLOBAL_FUNC(clearVgaBuffer):
 
 ; ==============================================================================
 ; Scroll the VGA buffer up one line.
-scrollVgaBufferUp32:
+DEF_LOCAL_FUNC32(scrollVgaBufferUp32):
     push    edi
     push    esi
 
@@ -53,7 +48,7 @@ scrollVgaBufferUp32:
 ; ==============================================================================
 ; Print a character in the VGA buffer at the current cursor position.
 ; @param (DWORD) c: The char to print.
-_putCharVga32:
+DEF_LOCAL_FUNC32(putCharVga32):
     push    ebp
     mov     ebp, esp
     push    ebx
@@ -112,13 +107,13 @@ _putCharVga32:
 ; ==============================================================================
 ; Print a character.
 ; @param (WORD) c: The char to print.
-_putChar32:
-    jmp     _putCharVga32
+DEF_LOCAL_FUNC32(putChar32):
+    jmp     putCharVga32
 
 ; ==============================================================================
 ; Helper function for printf, print a value in hexadecimal format.
 ; @parma (DWORD) val: The value to be printed.
-printfSubstitute32:
+DEF_LOCAL_FUNC32(printfSubstitute32):
     push    ebp
     mov     ebp, esp
     push    esi
@@ -126,10 +121,10 @@ printfSubstitute32:
     ; First print the "0x" prefix.
     mov     al, `0`
     push    eax
-    call    _putChar32
+    call    putChar32
     mov     al, `x`
     push    eax
-    call    _putChar32
+    call    putChar32
     add     esp, 0x8
 
     ; Now print the value in hex format.
@@ -162,7 +157,7 @@ printfSubstitute32:
     add     al, `a`
 .loopPrintChar:
     push    eax
-    call    _putChar32
+    call    putChar32
     add     esp, 0x4
 
     ; Update iteration vars.
@@ -185,7 +180,7 @@ printfSubstitute32:
 ; interpreted as a substitution and replaced with the hexadecimal value of the
 ; corresponding WORD in the varargs val... (e.g stack).
 ; @param (WORD) val...: The values to be printed.
-DEF_GLOBAL_FUNC(printf32):
+DEF_GLOBAL_FUNC32(printf32):
     push    ebp
     mov     ebp, esp
     push    esi
@@ -219,7 +214,7 @@ DEF_GLOBAL_FUNC(printf32):
 .charLoopRegular:
     mov     al, [esi]
     push    eax
-    call    _putChar32
+    call    putChar32
     add     esp, 0x4
 
 .charLoopTail:
@@ -241,7 +236,7 @@ BITS    64
 
 ; ==============================================================================
 ; Scroll the VGA buffer up one line.
-scrollVgaBufferUp64:
+DEF_LOCAL_FUNC64(scrollVgaBufferUp64):
     mov     rcx, (VGA_BUFFER_ROWS - 1) * VGA_BUFFER_COLS
     mov     rdi, VGA_BUFFER_PHY_ADDR
     mov     rsi, VGA_BUFFER_PHY_ADDR + VGA_BUFFER_COLS * 2
@@ -256,7 +251,7 @@ scrollVgaBufferUp64:
 ; ==============================================================================
 ; Print a character in the VGA buffer at the current cursor position.
 ; @param %dil: The char to print.
-_putCharVga64:
+DEF_LOCAL_FUNC64(putCharVga64):
     push    rbp
     mov     rbp, rsp
 
@@ -311,13 +306,13 @@ _putCharVga64:
 ; ==============================================================================
 ; Print a character.
 ; @param (WORD) c: The char to print.
-_putChar64:
-    jmp     _putCharVga64
+DEF_LOCAL_FUNC64(putChar64):
+    jmp     putCharVga64
 
 ; ==============================================================================
 ; Helper function for printf, print a value in hexadecimal format.
 ; @parma %rdi: The value to be printed.
-printfSubstitute64:
+DEF_LOCAL_FUNC64(printfSubstitute64):
     push    rbp
     mov     rbp, rsp
 
@@ -330,9 +325,9 @@ printfSubstitute64:
 
     ; First print the "0x" prefix.
     mov     dil, `0`
-    call    _putChar64
+    call    putChar64
     mov     dil, `x`
-    call    _putChar64
+    call    putChar64
 
     ; Now print the value in hex format.
     ; R12 = Mask
@@ -361,7 +356,7 @@ printfSubstitute64:
     add     al, `a`
 .loopPrintChar:
     mov     dil, al
-    call    _putChar64
+    call    putChar64
 
     ; Update iteration vars.
     mov     cl, 4
@@ -384,7 +379,7 @@ printfSubstitute64:
 ; character is interpreted as a substitution and replaced with the hexadecimal
 ; value of the corresponding DWORD in the varargs val... (e.g stack).
 ; @param (PUSHED ON STACK) val...: The values to be printed.
-DEF_GLOBAL_FUNC(printf64):
+DEF_GLOBAL_FUNC64(printf64):
     push    rbp
     mov     rbp, rsp
     push    rbx
@@ -417,7 +412,7 @@ DEF_GLOBAL_FUNC(printf64):
 
 .charLoopRegular:
     mov     dil, [r12]
-    call    _putChar64
+    call    putChar64
 
 .charLoopTail:
     inc     r12

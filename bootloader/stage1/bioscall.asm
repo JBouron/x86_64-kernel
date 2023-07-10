@@ -8,10 +8,6 @@
 ; Mask of the Protected-Enable (PE) bit in cr0.
 CR0_PE_BIT_MASK EQU 1
 
-SECTION .text
-
-BITS    32
-
 ; ==============================================================================
 ; Jump back to real-mode from 32-bit protected-mode. After re-enabling real-mode
 ; and jumping to the real-mode target the state of the the callee-saved
@@ -21,7 +17,7 @@ BITS    32
 ; @param (WORD) jumpTarget: The address the execution should branch to after
 ; enabling real-mode. The 
 ; Note: THIS FUNCTION DOES NOT RETURN!
-_jumpToRealMode:
+DEF_LOCAL_FUNC32(jumpToRealMode):
     ; DX = jump target.
     mov     dx, [esp + 0x4]
 
@@ -85,12 +81,11 @@ CR0_PG_BIT_MASK         EQU (1 << 31)
 IA32_EFER_MSR           EQU 0xC0000080
 IA32_EFER_LME_BIT_MASK  EQU (1 << 8)
 
-BITS    64
 ; ==============================================================================
 ; Jump back to 32-bit protected mode from 64-bit long-mode.
 ; @param %RDI: Address to jump to after enabling back 32-bit protected mode.
 ; THIS FUNCTION DOES NOT RETURN.
-_jumpToProtectedMode:
+DEF_LOCAL_FUNC64(_jumpToProtectedMode):
     ; Jumping back to protected mode consists of 5 steps.
     ; Step 1: Switch to compatibility mode in CPL=0.
     sub     rsp, 6
@@ -137,8 +132,7 @@ BITS    32
 ; it needs to be accessed from real-mode (real-mode uses 0x0000 data segment).
 ; The struct is modified in-place, indicating the value of each register after
 ; the BIOS function returned.
-BITS    64
-DEF_GLOBAL_FUNC(callBiosFunc):
+DEF_GLOBAL_FUNC64(callBiosFunc):
     push    rbp
     mov     rbp, rsp
     push    rbx
@@ -166,7 +160,7 @@ BITS    32
     ; Jump to real-mode, the BX value will not changed during this operation and
     ; thus will still point to the BCP packet once in real-mode.
     push    .realModeTarget
-    call    _jumpToRealMode
+    call    jumpToRealMode
 
 BITS    16
 .realModeTarget:
@@ -247,14 +241,14 @@ BITS    32
     ; Now back to protected mode. We still need to fix-up the stack which at
     ; this point contains:
     ;   |                       .......                            |   ...
-    ;   | param of _jumpToRealMode call                            | ESP + 8
-    ;   | ret addr for _jumpToRealMode call                        | ESP + 4
+    ;   | param of jumpToRealMode call                             | ESP + 8
+    ;   | ret addr for jumpToRealMode call                         | ESP + 4
     ;   | param jumpToProtectedMode | ret addr jumpToProtectedMode | <- ESP
-    ; Notice that because the call to jumpToProtectedMode was executed in
+    ; Notice that because the call to _jumpToProtectedMode was executed in
     ; real-mode, the parameter and return address for this call are 2 bytes each
     ; instead of 4.
     ; By adding 0xc back to ESP we get the ESP we had right before calling
-    ; _jumpToRealMode.
+    ; jumpToRealMode.
     add     esp, 0xc
 
     push    .retToLongMode

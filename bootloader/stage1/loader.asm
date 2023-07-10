@@ -4,9 +4,6 @@
 %include "disk.inc"
 %include "malloc.inc"
 
-SECTION .text
-BITS    64
-
 ; The Metadata Sector
 ; ===================
 ; The stage 1 needs information on the kernel image stored on disk before being
@@ -33,7 +30,7 @@ METADATA_SECTOR_BYTES               EQU 3 * 8
 ; ==============================================================================
 ; Load Metadata Sector from disk.
 ; @return %RAX: A buffer containing the contents of the metadata sector.
-loadMetadataSector:
+DEF_LOCAL_FUNC64(loadMetadataSector):
     push    rbp
     mov     rbp, rsp
 
@@ -88,7 +85,7 @@ loadMetadataSector:
 ; ==============================================================================
 ; Load the kernel from disk
 ; TODO: Implement this.
-DEF_GLOBAL_FUNC(loadKernel):
+DEF_GLOBAL_FUNC64(loadKernel):
     push    rbp
     mov     rbp, rsp
 

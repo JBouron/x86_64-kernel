@@ -14,7 +14,7 @@
 
 ; ==============================================================================
 ; Test for the findNextBoundary function.
-DEF_GLOBAL_FUNC(memmapFindNextBoundaryTest):
+DEF_GLOBAL_FUNC64(memmapFindNextBoundaryTest):
     push    rbp
     mov     rbp, rsp
     push    rbx
@@ -151,7 +151,7 @@ DEF_GLOBAL_FUNC(memmapFindNextBoundaryTest):
 
 ; ==============================================================================
 ; Test for the typeFromBitmap function.
-DEF_GLOBAL_FUNC(memmapTypeFromBitmapTest):
+DEF_GLOBAL_FUNC64(memmapTypeFromBitmapTest):
     push    rbp
     mov     rbp, rsp
 
@@ -220,7 +220,7 @@ DEF_GLOBAL_FUNC(memmapTypeFromBitmapTest):
 
 ; ==============================================================================
 ; Test for the sanitizeMemMap function.
-DEF_GLOBAL_FUNC(memmapSanitizeMemMapTest):
+DEF_GLOBAL_FUNC64(memmapSanitizeMemMapTest):
     push    rbp
     mov     rbp, rsp
 
@@ -315,7 +315,7 @@ DEF_GLOBAL_FUNC(memmapSanitizeMemMapTest):
 
 ; ==============================================================================
 ; Test for the findFirstAvailFrameTest function.
-DEF_GLOBAL_FUNC(findFirstAvailFrameTest):
+DEF_GLOBAL_FUNC64(findFirstAvailFrameTest):
     push    rbp
     mov     rbp, rsp
     push    r15

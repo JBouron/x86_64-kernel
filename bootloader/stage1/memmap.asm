@@ -3,16 +3,11 @@
 %include "malloc.inc"
 %include "bioscall.inc"
 
-SECTION .data
 ; Number of entries in the memory map.
 DEF_GLOBAL_VAR(memoryMapLen):
 DQ  0x0
 DEF_GLOBAL_VAR(memoryMap):
 DQ  0x0
-
-SECTION .text
-
-BITS    64
 
 ; Size in bytes of an Adress Range Descriptor Structure returned by the BIOS
 ; function parsing the memory map.
@@ -27,7 +22,7 @@ ARDS_SIZE   EQU 24
 ; stored under [memoryMap], its length (number of entries) under [memoryMapLen].
 ; @param %RDI: Pointer to Adress Range Descriptor Structure last read from
 ; memory map.
-_handleMemoryMapEntry:
+DEF_LOCAL_FUNC64(handleMemoryMapEntry):
     push    rbp
     mov     rbp, rsp
 
@@ -72,7 +67,7 @@ _handleMemoryMapEntry:
 
 ; ==============================================================================
 ; Parse the memory map as reported by the BIOS function INT=15h AX=E820h.
-DEF_GLOBAL_FUNC(parseMemoryMap):
+DEF_GLOBAL_FUNC64(parseMemoryMap):
     push    rbp
     mov     rbp, rsp
 
@@ -122,7 +117,7 @@ DEF_GLOBAL_FUNC(parseMemoryMap):
 .sigOk:
     mov     rdi, rsp
     add     rdi, BCP_SIZE
-    call    _handleMemoryMapEntry
+    call    handleMemoryMapEntry
 
     ; The output EBX contains the value of the next signature for the next call
     ; to the BIOS function, hence we don't need to write it ourselves to the BCP
@@ -187,7 +182,7 @@ MAX_MEMMAP_ENTRIES  EQU 64
 ; @return %rax: Pointer to a _new_ array containing the sanitized memory map.
 ; Note that the array passed as argument is unchanged.
 ; @return %rdx: Number of elements in the new array.
-DEF_GLOBAL_FUNC(sanitizeMemMap):
+DEF_GLOBAL_FUNC64(sanitizeMemMap):
     ; The algorithm
     ; -------------
     ;
@@ -444,7 +439,7 @@ DEF_GLOBAL_FUNC(sanitizeMemMap):
 ; @return %rax: The offset of the next boundary.
 ; @return %rdx: The bitmap in which bit i is set if the map[i] starts or ends on
 ; the offset in %rax. If no boundary was found this is 0.
-DEF_GLOBAL_FUNC(findNextBoundary):
+DEF_GLOBAL_FUNC64(findNextBoundary):
     push    rbp
     mov     rbp, rsp
     ; R11 = known min boundary offset.
@@ -470,7 +465,7 @@ DEF_GLOBAL_FUNC(findNextBoundary):
     ; obviously be bigger than the start boundary.
     jmp     .updateMinBitmapAndGoToNextIte
 
-.checkEndOffset
+.checkEndOffset:
     ; No luck with the base, note that we can only get here if the base was
     ; smaller than the requested minimum offset (RDX).
     ; RAX = end boundary. RAX already contains the base here so we only need to
@@ -526,7 +521,7 @@ DEF_GLOBAL_FUNC(findNextBoundary):
 ; @param %RSI: Number of entries in the map.
 ; @param %RDX: Bitmap value.
 ; @return %RAX: The most restrictive type.
-DEF_GLOBAL_FUNC(typeFromBitmap):
+DEF_GLOBAL_FUNC64(typeFromBitmap):
     push    rbp
     mov     rbp, rsp
     ; R11 = loop iteration / mask of current entry.
@@ -576,7 +571,7 @@ NO_SUCH_FRAME   EQU -1
 ; @return (RAX): The physical offset of the first available frame above %RDX,
 ; the returned offset is always page-aligned even if RDX is not. If no such
 ; frame exists then NO_SUCH_FRAME is returned.
-DEF_GLOBAL_FUNC(findFirstAvailFrame):
+DEF_GLOBAL_FUNC64(findFirstAvailFrame):
     push    rbp
     mov     rbp, rsp
 

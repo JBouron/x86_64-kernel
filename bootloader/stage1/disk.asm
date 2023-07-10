@@ -36,7 +36,7 @@ DAP_SIZE            EQU 0x10
 ; @param %RCX: Destination address where to write the sectors in memory.
 ; @return %RAX: The number of sectors successfully read and written to memory.
 ; This function stops and returns at the first error encountered.
-DEF_GLOBAL_FUNC(readDiskSectors):
+DEF_GLOBAL_FUNC64(readDiskSectors):
     push    rbp
     mov     rbp, rsp
 
@@ -175,7 +175,7 @@ DEF_GLOBAL_FUNC(readDiskSectors):
 ; @param %RSI: Offset to read from on disk. Byte granularity.
 ; @param %RDX: Number of bytes to read from disk.
 ; @param %RCX: Destination buffer to read into. Must be of size >= %RSI.
-DEF_GLOBAL_FUNC(readBuffer):
+DEF_GLOBAL_FUNC64(readBuffer):
     push    rbp
     mov     rbp, rsp
 

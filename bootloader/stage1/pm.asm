@@ -1,16 +1,12 @@
 ; Helper routines related to Protected-Mode.
 %include "macros.mac"
 
-SECTION .text
-
-BITS 16
-
 ; Mask of the Protected-Enable (PE) bit in cr0.
 CR0_PE_BIT_MASK EQU 1
 
 ; ==============================================================================
 ; Load the required GDT for protected mode.
-_loadProtectedModeGdt:
+DEF_LOCAL_FUNC16(loadProtectedModeGdt):
     push    bp
     mov     bp, sp
 
@@ -34,7 +30,7 @@ _loadProtectedModeGdt:
 ; before the call to jumpToProtectedMode.
 ; @param (WORD) targetAddr: The 32-bit code to jump to after protected mode has
 ; been enabled.
-DEF_GLOBAL_FUNC(jumpToProtectedMode):
+DEF_GLOBAL_FUNC16(jumpToProtectedMode):
     ; Save the real mode IDTR so that we can re-use it in the future if we need
     ; to jump back to real-mode and execute BIOS functions.
     sidt    [realModeIdtr]
@@ -52,7 +48,7 @@ DEF_GLOBAL_FUNC(jumpToProtectedMode):
     pop     bx
 
     ; Load the GDT to be used for protected mode operation.
-    call    _loadProtectedModeGdt
+    call    loadProtectedModeGdt
 
     ; Enable protection enable (PE) bit in CR0
     mov     eax, cr0
@@ -77,9 +73,6 @@ BITS    32
     ; Jump to the target address.
     movzx   eax, WORD [esp + 0x2]
     jmp     eax
-
-
-SECTION .data
 
 ; Saved content of the IDTR as it was in real-mode before jumping to protected
 ; mode. When we need to go back to real-mode to call BIOS function we can reuse
@@ -111,7 +104,7 @@ DD  0x0
 
 ; The Global-Descriptor-Table used for stage 1. For now this only contains 32
 ; bit segments to be used in Protected Mode.
-stage1Gdt:
+DEF_LOCAL_VAR(stage1Gdt):
 ; NULL entry
 DQ  0x0
 ; 32-bit code segment, readable and executable.
@@ -130,4 +123,4 @@ GDT_ENTRY(0x0, 0xffff, 10, 0, 1, 1)
 GDT_ENTRY(0x0, 0xffff, 2, 0, 1, 1)
 ; This label is used to compute the size of the GDT when loading it, it must
 ; immediately follow the last entry.
-stage1GdtEnd:
+DEF_LOCAL_VAR(stage1GdtEnd):

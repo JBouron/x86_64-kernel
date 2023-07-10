@@ -75,10 +75,10 @@
 
     %if __?BITS?__ == 32
     ; 32-bit mode
-    SECTION .data
+    SECTION .data.str
     %%str:
     DB  %1, `\n`, `\0`
-    SECTION .text
+    SECTION .text.32
     BITS    32
     EXTERN  printf32
     %rep    (%0 - 1)
@@ -91,10 +91,10 @@
 
     %else
     ; 64-bit mode.
-    SECTION .data
+    SECTION .data.str
     %%str:
     DB  %1, `\n`, `\0`
-    SECTION .text
+    SECTION .text.64
     BITS    64
     EXTERN  printf64
     %rep    (%0 - 1)
@@ -167,15 +167,51 @@
 ; Compute the value of a segment selector for GDT entry i.
 %define SEG_SEL(i) (i << 3)
 
-%macro _DEF_GLOBAL_SYM 1
+; Define a function that will be accessible from other files. The 16/32/64
+; indicates the type of code this function holds and sets the BITS accordingly.
+; @param: The name of the function to define.
+%define DEF_GLOBAL_FUNC16(name) _DEF_GLOBAL_FUNC 16, name
+%define DEF_GLOBAL_FUNC32(name) _DEF_GLOBAL_FUNC 32, name
+%define DEF_GLOBAL_FUNC64(name) _DEF_GLOBAL_FUNC 64, name
+; Helper macro for DEF_GLOBAL_FUNCXX. Do not use directly.
+%macro _DEF_GLOBAL_FUNC 2
+    SECTION %tok(%strcat(".text.", %1))
+    BITS    %1
+    GLOBAL  %2
+    %2
+%endmacro
+
+; Define a function that will only be accessible from the current file, e.g.
+; static linkage. The 16/32/64 indicates the type of code this function holds
+; and sets the BITS accordingly.
+; @param: The name of the function to define.
+%define DEF_LOCAL_FUNC16(name) _DEF_LOCAL_FUNC 16, name
+%define DEF_LOCAL_FUNC32(name) _DEF_LOCAL_FUNC 32, name
+%define DEF_LOCAL_FUNC64(name) _DEF_LOCAL_FUNC 64, name
+; Helper macro for DEF_LOCAL_FUNCXX. Do not use directly.
+%macro _DEF_LOCAL_FUNC 2
+    SECTION %tok(%strcat(".text.", %1))
+    BITS    %1
+    %2
+%endmacro
+
+; Define a variable accessible from all files.
+; @param name: The name of the global variable.
+%define DEF_GLOBAL_VAR(name) _DEF_GLOBAL_VAR name
+%macro _DEF_GLOBAL_VAR 1
+    SECTION .data
     GLOBAL  %1
     %1
 %endmacro
 
-; Define a function that will be accessible from other files.
-; @param: The name of the function to define.
-%define DEF_GLOBAL_FUNC(name) _DEF_GLOBAL_SYM name
-%define DEF_GLOBAL_VAR(name) _DEF_GLOBAL_SYM name
+; Define a variable only accessible from the current file, e.g. static var.
+; @param name: The name of the global variable.
+%define DEF_LOCAL_VAR(name) _DEF_LOCAL_VAR name
+%macro _DEF_LOCAL_VAR 1
+    SECTION .data
+    GLOBAL  %1
+    %1
+%endmacro
 
 %macro _EXT_SYM 1
     EXTERN  %1

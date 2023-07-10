@@ -12,16 +12,11 @@ EBDA_START  EQU 0x00080000
 ; Size of physical frame in x86.
 FRAME_SIZE  EQU 0x1000
 
-SECTION .data
 ; The next free frame to be allocated by allocFrameLowMem. On boot this starts
 ; at the frame immediately preceeding the EBDA. Each new allocation allocates
 ; the frame preceeding the last allocated frame.
-nextFrameLowMem:
+DEF_LOCAL_VAR(nextFrameLowMem):
 DD  (EBDA_START - FRAME_SIZE)
-
-SECTION .text
-
-BITS    32
 
 ; ==============================================================================
 ; Allocate a physical frame in low memory (<1MiB). Frames are allocated in the
@@ -31,7 +26,7 @@ BITS    32
 ; this function panics.
 ; Note: The frame is zero'ed upon allocation.
 ; @return: The physical offset of the allocated frame.
-DEF_GLOBAL_FUNC(allocFrameLowMem):
+DEF_GLOBAL_FUNC32(allocFrameLowMem):
     push    ebp
     mov     ebp, esp
 
@@ -67,8 +62,6 @@ DEF_GLOBAL_FUNC(allocFrameLowMem):
     leave
     ret
 
-SECTION .data
-
 ; Controls the minimum offset to be returned by allocFrame. We try to avoid
 ; touching anything under 1MiB as the granularity of the E820 memory map under
 ; 1MiB is not that great and we run the risk of corrupting BIOS memory.
@@ -77,18 +70,15 @@ NEXT_FRAME_MIN_OFFSET   EQU 0x100000
 
 ; Physical pointer to the next physical frame that is available for allocation.
 ; Initialized to the first available frame above NEXT_FRAME_MIN_OFFSET.
-nextFrame:
+DEF_LOCAL_VAR(nextFrame):
 DQ  0x0
-
-SECTION .text
-BITS    64
 
 ; ==============================================================================
 ; Allocate a frame in available memory. This function uses the memory map to
 ; find available frames and as such cannot be called prior to calling
 ; parseMemoryMap.
 ; @return (RAX): The physical address of the allocated frame.
-DEF_GLOBAL_FUNC(allocFrame):
+DEF_GLOBAL_FUNC64(allocFrame):
     push    rbp
     mov     rbp, rsp
 

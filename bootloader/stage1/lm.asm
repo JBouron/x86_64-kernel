@@ -10,24 +10,18 @@ IA32_EFER_MSR           EQU 0xC0000080
 IA32_EFER_LME_BIT_MASK  EQU (1 << 8)
 IA32_EFER_LMA_BIT_MASK  EQU (1 << 10)
 
-
-SECTION .data
 ; The physical address of the top level table of the paging structure to use
 ; when enabling long mode. Initilialized upon calling jumpToLongMode for the
 ; first time then re-used for every call to jumpToLongMode.
 ; This paging structure only ID maps the first 1MiB of physical memory.
-longModePageTables:
+DEF_LOCAL_VAR(longModePageTables):
 DD  0x0
-
-SECTION .text
-
-BITS    32
 
 ; ==============================================================================
 ; Create the 64-bit paging structures to identity-map the first 1MiB of physical
 ; memory.
 ; @return: The physical address of the PML4, ready to be loaded in CR3.
-createIdentityMapLowMem:
+DEF_LOCAL_FUNC32(createIdentityMapLowMem):
     push    ebp
     mov     ebp, esp
     push    ebx
@@ -96,7 +90,7 @@ createIdentityMapLowMem:
 ; stack on the target 64-bit code is as it was before pushing the parameter of
 ; this function.
 ; @param (DWORD): Target address. This is expected to point to 64-bit code.
-DEF_GLOBAL_FUNC(jumpToLongMode):
+DEF_GLOBAL_FUNC32(jumpToLongMode):
     mov     eax, [longModePageTables]
     test    eax, eax
     jnz     .doJump
