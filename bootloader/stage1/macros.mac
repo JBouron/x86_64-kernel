@@ -94,12 +94,34 @@
 ; macro PANIC acts as a "frontend" for _PANIC and passes it the correct file and
 ; line number as param (think of it at currying).
 %macro _PANIC 2-*
-    _LOG "==================== PANIC ===================="
+    %if __?BITS?__ == 16
+    %error  "PANIC() macro not available in 16-bit mode"
+    %endif
+
+    ; Print the panic banner. Calling a function here instead of calling LOG ...
+    ; leads to a smaller image as the strings don't get duplicated everywhere.
+    %if __?BITS?__ == 32
+    EXTERN  _printPanicHeader32
+    call    _printPanicHeader32
+    %elif __?BITS?__ == 64
+    EXTERN  _printPanicHeader64
+    call    _printPanicHeader64
+    %endif
+
     _LOG %strcat("  Location: ", %1, ":", %2)
     %if %0 > 2
     _LOG_WITH_PREFIX "  Reason:", %{3:-1}
     %endif
-    _LOG "==============================================="
+
+    ; Print the bottom separator.
+    %if __?BITS?__ == 32
+    EXTERN  _printPanicBottom32
+    call    _printPanicBottom32
+    %elif __?BITS?__ == 64
+    EXTERN  _printPanicBottom64
+    call    _printPanicBottom64
+    %endif
+
     ; The following gets assembled in the current BITS mode.
     %%dead:
     cli
