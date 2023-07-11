@@ -14,7 +14,7 @@
     test    eax, eax
     jnz     %%success
     CRIT    %strcat("[FAIL] ", %1)
-    jmp     %%out
+    PANIC   "Failed test"
     %%success:
     INFO    %strcat("[ OK ] ", %1)
     %%out:

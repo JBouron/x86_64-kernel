@@ -40,11 +40,13 @@ DEF_GLOBAL_FUNC64(readDiskSectorsTest):
 
 ; ==============================================================================
 ; Compare two buffers.
+; FIXME: Declare this function in a *.inc file, as it is used by paging test
+; code.
 ; @param %RDI: Address of the first buffer.
 ; @param %RSI: Address of the second buffer.
 ; @param %RDX: Length of both buffers in bytes.
 ; @return %RAX: 1 if both buffers have the same content, 0 otherwise.
-DEF_LOCAL_FUNC64(memcmp):
+DEF_GLOBAL_FUNC64(memcmp):
     push    rbp
     mov     rbp, rsp
 
