@@ -75,10 +75,10 @@
 
     %if __?BITS?__ == 32
     ; 32-bit mode
-    SECTION .data.str
+    SECTION .data.str progbits alloc noexec nowrite
     %%str:
     DB  %1, `\n`, `\0`
-    SECTION .text.32
+    SECTION .text
     BITS    32
     EXTERN  printf32
     %rep    (%0 - 1)
@@ -91,10 +91,10 @@
 
     %else
     ; 64-bit mode.
-    SECTION .data.str
+    SECTION .data.str progbits alloc noexec nowrite
     %%str:
     DB  %1, `\n`, `\0`
-    SECTION .text.64
+    SECTION .text
     BITS    64
     EXTERN  printf64
     %rep    (%0 - 1)
@@ -175,7 +175,7 @@
 %define DEF_GLOBAL_FUNC64(name) _DEF_GLOBAL_FUNC 64, name
 ; Helper macro for DEF_GLOBAL_FUNCXX. Do not use directly.
 %macro _DEF_GLOBAL_FUNC 2
-    SECTION %tok(%strcat(".text.", %1))
+    SECTION .text
     BITS    %1
     GLOBAL  %2
     %2
@@ -190,7 +190,7 @@
 %define DEF_LOCAL_FUNC64(name) _DEF_LOCAL_FUNC 64, name
 ; Helper macro for DEF_LOCAL_FUNCXX. Do not use directly.
 %macro _DEF_LOCAL_FUNC 2
-    SECTION %tok(%strcat(".text.", %1))
+    SECTION .text
     BITS    %1
     %2
 %endmacro
