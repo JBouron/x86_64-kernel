@@ -14,7 +14,8 @@ run: $(DISK_NAME)
 # FIXME: For now the kernel is a dead simple executable in order to exercise the
 # loading code. Eventually this should be replaced.
 kernel: kernel.asm
-	nasm -f elf64 $^ -o $@
+	nasm -f elf64 $^ -o kernel.o
+	ld kernel.o -o $@
 
 $(DISK_NAME): stage0/stage0 stage1/stage1 kernel
 	./createDiskImage.py $^ $@
@@ -26,9 +27,6 @@ stage0/stage0:
 .PHONY: stage1/stage1
 stage1/stage1:
 	$(MAKE) -C stage1
-
-%.o: %.asm
-	nasm -f bin -o $@ $<
 
 .PHONY: clean
 clean:
