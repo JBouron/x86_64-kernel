@@ -1,61 +1,6 @@
 %ifndef MACROS_MAC
 %define MACROS_MAC
 
-; Push all registers onto the stack. Use POP_ALL_REGS to pop them back.
-; Can be used in both 32 and 64 bit modes.
-%macro PUSH_ALL_REGS 0
-    %if __?BITS?__ == 32
-    pushad
-    %elif __?BITS?__ == 64
-    push    rax
-    push    rbx
-    push    rcx
-    push    rdx
-    push    rdi
-    push    rsi
-    push    r8
-    push    r9
-    push    r10
-    push    r11
-    push    r12
-    push    r13
-    push    r14
-    push    r15
-    push    rbp
-    push    rsp
-    %else
-    %error "PUSH_ALL_REGS not available in 16 bit mode"
-    %endif
-%endmacro
-
-; Pop all registers from the stack, in reverse-order of PUSH_ALL_REGS.
-; Can be used in both 32 and 64 bit modes.
-%macro POP_ALL_REGS 0
-    %if __?BITS?__ == 32
-    popad
-    %elif __?BITS?__ == 64
-    pop     rsp
-    pop     rbp
-    pop     r15
-    pop     r14
-    pop     r13
-    pop     r12
-    pop     r11
-    pop     r10
-    pop     r9
-    pop     r8
-    pop     rsi
-    pop     rdi
-    pop     rdx
-    pop     rcx
-    pop     rbx
-    pop     rax
-    %else
-    %error "POP_CALLEE_SAVED_REGS not available in 16 bit mode"
-    %endif
-%endmacro
-
-
 ; DO NOT CALL THIS MACRO, USE DEBUG, INFO, WARN AND CRIT INSTEAD
 ; Log a message. All registers are saved prior to logging and restored after
 ; logging so that a LOG call will never interfere with logic and can be safely
@@ -70,8 +15,6 @@
     %if __?BITS?__ == 16
     %error "_LOG not available in 16 bit mode"
     %endif
-
-    PUSH_ALL_REGS
 
     %if __?BITS?__ == 32
     ; 32-bit mode
@@ -97,6 +40,8 @@
     SECTION .text
     BITS    64
     EXTERN  printf64
+    ; We clobber rdi for the str arg below, save it here.
+    push    rdi
     %rep    (%0 - 1)
     %rotate -1
     push    %1
@@ -104,10 +49,8 @@
     lea     rdi, [%%str]
     call    printf64
     add     rsp, 0x8 * (%0 - 1)
-
+    pop     rdi
     %endif
-
-    POP_ALL_REGS
 %endmacro
 
 ; Call _LOG with a prefix. Not to be used as-is.

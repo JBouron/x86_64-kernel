@@ -183,6 +183,11 @@ DEF_LOCAL_FUNC32(printfSubstitute32):
 DEF_GLOBAL_FUNC32(printf32):
     push    ebp
     mov     ebp, esp
+
+    ; Saved caller-saved regs to avoid clobbering them during logging.
+    ; Note: Its more space efficient code-wise to use pushad here.
+    pushad
+
     push    esi
     push    ebx    
 
@@ -224,6 +229,10 @@ DEF_GLOBAL_FUNC32(printf32):
 .out:
     pop     ebx
     pop     esi
+
+    ; Restore caller-saved regs.
+    popad
+
     leave
     ret
 
@@ -382,6 +391,18 @@ DEF_LOCAL_FUNC64(printfSubstitute64):
 DEF_GLOBAL_FUNC64(printf64):
     push    rbp
     mov     rbp, rsp
+
+    ; Save all caller-saved registers to avoid clobbering those when logging.
+    push    rax
+    push    rcx
+    push    rdx
+    push    rdi
+    push    rsi
+    push    r8
+    push    r9
+    push    r10
+    push    r11
+
     push    rbx
     push    r12
 
@@ -421,5 +442,17 @@ DEF_GLOBAL_FUNC64(printf64):
 .out:
     pop     r12
     pop     rbx
+
+    ; Restore caller-saved registers.
+    pop     r11
+    pop     r10
+    pop     r9
+    pop     r8
+    pop     rsi
+    pop     rdi
+    pop     rdx
+    pop     rcx
+    pop     rax
+
     leave
     ret
