@@ -93,11 +93,64 @@ DEF_GLOBAL_FUNC64(mapPage):
     push    rbp
     mov     rbp, rsp
 
+    ; Check that the addresses are page aligned.
+    test    rdi, (PAGE_SIZE - 1)
+    jz      .rdiOk
+    PANIC   "First arg to mapPage is not a page-aligned vaddr: $", rdi
+.rdiOk:
+    test    rsi, (PAGE_SIZE - 1)
+    jz      .rsiOk
+    PANIC   "Second arg to mapPage is not a page-aligned vaddr: $", rsi
+.rsiOk:
+
     ; RCX = Phy address of PML4.
     mov     rcx, cr3
     and     rcx, ~(PAGE_SIZE - 1)
     mov     rdx, 3
     call    doMapPage
 
+    leave
+    ret
+
+
+; ==============================================================================
+; Allocate virtual memory mapping to newly allocated physical memory.
+; @param %RDI: Start of the virtual memory range to allocate. Must be
+; page-aligned.
+; @parma %RSI: Number of virtual pages to allocate.
+DEF_GLOBAL_FUNC64(allocVirtMem):
+    push    rbp
+    mov     rbp, rsp
+    push    r15
+    push    r14
+
+    ; Check that the vaddr is page aligned.
+    test    rdi, (PAGE_SIZE - 1)
+    jz      .rdiOk
+    PANIC   "First arg to allocVirtMem is not a page-aligned vaddr: $", rdi
+.rdiOk:
+
+    ; R15 = Next vaddr to map.
+    mov     r15, rdi
+    ; R14 = Number of pages left to map.
+    mov     r14, rsi
+.loopCond:
+    test    r14, r14
+    jz      .loopOut
+.loopTop:
+    ; Allocate a physical page frame for this new virtual page.
+    ; RAX = physical page frame offset.
+    call    allocFrame
+    ; Map the current vaddr to this new physical frame.
+    mov     rdi, r15
+    mov     rsi, rax
+    call    mapPage
+.loopNextIte:
+    add     r15, PAGE_SIZE
+    dec     r14
+.loopOut:
+
+    pop     r14
+    pop     r15
     leave
     ret
