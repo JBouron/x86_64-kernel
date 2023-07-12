@@ -1,7 +1,7 @@
 DISK_NAME:=bootloader
 QEMU_FLAGS:=-drive file=$(DISK_NAME),format=raw -s -no-shutdown -no-reboot
 
-all: run
+all: stage0/stage0 stage1/stage1
 
 debug: $(DISK_NAME)
 	qemu-system-x86_64 $(QEMU_FLAGS) -S & echo $$! > .qemu.pid
