@@ -1,10 +1,10 @@
-FROM ubuntu:latest
+FROM ubuntu:23.04
 
 RUN apt-get -y update && apt-get -y upgrade
 
 # Install build dependencies.
 RUN apt install -y build-essential bison flex libgmp3-dev libmpc-dev \
-    libmpfr-dev texinfo curl
+    libmpfr-dev texinfo curl nasm vim
 
 # Download GCC and Binutils sources.
 RUN mkdir /build
