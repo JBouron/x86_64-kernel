@@ -3,6 +3,7 @@
 %include "macros.mac"
 %include "disk.inc"
 %include "malloc.inc"
+%include "paging.inc"
 
 ; The Metadata Sector
 ; ===================
@@ -149,6 +150,11 @@ DEF_GLOBAL_FUNC64(loadKernel):
     mov     rdi, rsp
     call    parseProgramHeaderTable
 
+    ; Jump to entry point.
+    mov     rax, [rsp + ELF_HDR_ENTRY]
+    DEBUG   "Jumping to entry point @$", rax
+    jmp     rax
+
     leave
     ret
 
@@ -181,7 +187,7 @@ DEF_LOCAL_FUNC64(readKernelImage):
     shl     rsi, 9
     add     rsi, rdi
     movzx   rdi, BYTE [bootDriveIndex]
-    DEBUG   "Read from offset $", rsi
+    ;DEBUG   "Read from offset $", rsi
     call    readBuffer
 
     ; FIXME: Handle errors once returned by readBuffer.
@@ -280,11 +286,15 @@ ELF_PHT_ALIGN   EQU 0x30    ; QWORD
 DEF_LOCAL_FUNC64(handleProgramHeaderTableEntry):
     push    rbp
     mov     rbp, rsp
+    push    r15
+
+    ; R15 = Pointer to program header table entry.
+    mov     r15, rdi
 
     ; Check type, a type of 0x0 indicates that the entry in un-used hence we can
     ; skip. Otherwise we expect to only see PT_LOAD entries, e.g. loadable
     ; segments.
-    mov     eax, [rdi + ELF_PHT_TYPE]
+    mov     eax, [r15 + ELF_PHT_TYPE]
     test    eax, eax
     jz      .out
     cmp     eax, 0x1
@@ -293,18 +303,53 @@ DEF_LOCAL_FUNC64(handleProgramHeaderTableEntry):
 .loadableSegment:
 
     DEBUG   "Program Header Table Entry:"
-    mov     eax, [rdi + ELF_PHT_FLAGS]
-    DEBUG   "  .flags  = $  .offset = $", rax, QWORD [rdi + ELF_PHT_OFF]
+    mov     eax, [r15 + ELF_PHT_FLAGS]
+    DEBUG   "  .flags  = $  .offset = $", rax, QWORD [r15 + ELF_PHT_OFF]
     DEBUG   "  .vaddr  = $  .paddr  = $", \
-        QWORD [rdi + ELF_PHT_VADDR], QWORD [rdi + ELF_PHT_PADDR]
+        QWORD [r15 + ELF_PHT_VADDR], QWORD [r15 + ELF_PHT_PADDR]
     DEBUG   "  .filesz = $  .memsz  = $", \
-        QWORD [rdi + ELF_PHT_FILESZ], QWORD [rdi + ELF_PHT_MEMSZ]
-    DEBUG   "  .align  = $", QWORD [rdi + ELF_PHT_ALIGN]
+        QWORD [r15 + ELF_PHT_FILESZ], QWORD [r15 + ELF_PHT_MEMSZ]
+    DEBUG   "  .align  = $", QWORD [r15 + ELF_PHT_ALIGN]
 
-    ; TODO: Load the section/segment to virtual memory and update the page table
-    ; accordingly.
+    ; For now we don't support having specific physical address requirement.
+    ; There is probably no need to support this for the kernel. Hence we expect
+    ; to have vaddr == paddr.
+    mov     rax, [r15 + ELF_PHT_VADDR]
+    cmp     rax, [r15 + ELF_PHT_PADDR]
+    je      .vaddrEqPaddr
+    PANIC   "ELF segment with explicit paddr is not yet supported"
+.vaddrEqPaddr:
+
+    ; Compute the number of pages for this segment.
+    ; RSI = Number of pages to allocate = ceil(memsz / PAGE_SIZE)
+    xor     rsi, rsi
+    mov     rax, [r15 + ELF_PHT_MEMSZ]
+    test    rax, (0x1000 - 1)
+    setnz   sil
+    shr     rax, 12
+    add     rsi, rax
+
+    DEBUG   "Allocating $ virtual frame for this segment", rsi
+
+    ; Allocate virtual memory for this segment. The size of the virtual memory
+    ; is memsz rounded-up to a multiple of page size.
+    mov     rdi, [r15 + ELF_PHT_VADDR]
+    ; RSI already contains the number of pages to allocate.
+    call    allocVirtMem
+
+    ; Now copy the content of the segment from the kernel image to the allocated
+    ; virtual memory.
+    mov     rdi, [r15 + ELF_PHT_OFF]
+    mov     rsi, [r15 + ELF_PHT_FILESZ]
+    mov     rdx, [r15 + ELF_PHT_VADDR]
+    call    readKernelImage
+    test    rax, rax
+    jz      .readOk
+    PANIC   "Failed to read segment data from kernel image"
+.readOk:
 
 .out:
+    pop     r15
     leave
     ret
 

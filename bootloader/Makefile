@@ -15,7 +15,8 @@ run: $(DISK_NAME)
 # loading code. Eventually this should be replaced.
 kernel: kernel.asm
 	nasm -f elf64 $^ -o kernel.o
-	ld kernel.o -o $@
+	ld kernel.o -Ttext=0x100000 -Tdata=0x101000 -Tbss=0x102000 \
+		-Trodata-segment=0x103000 -o $@
 
 $(DISK_NAME): stage0/stage0 stage1/stage1 kernel
 	./createDiskImage.py $^ $@
