@@ -50,8 +50,7 @@ build: $(KERNEL_IMG_NAME)
 # FIXME: The bootloader does not create an ID map of the entire RAM yet, hence
 # the kernel must be loaded at vaddr < 4MiB.
 $(KERNEL_IMG_NAME): $(OBJ_FILES)
-	$(LD) --entry=kernelEntry -Ttext=0x101000 -Tdata=0x102000 -Tbss=0x103000 \
-		-Trodata-segment=0x104000 $^ -o $@
+	$(LD) --script=linker.ld $^ -o $@
 
 %.o: %.asm
 	nasm -o $@ $^
