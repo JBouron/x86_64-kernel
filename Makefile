@@ -16,9 +16,16 @@ AS := x86_64-elf-as
 LD := x86_64-elf-ld
 
 CXXFLAGS := -ffreestanding -Wall -Wextra -fno-exceptions -fno-rtti \
-	-mno-red-zone -nostdlib
+	-mno-red-zone -nostdlib -I./include -g
 
-QEMU_FLAGS:=-drive file=disk.img,format=raw -s -no-shutdown -no-reboot
+KERNEL_IMG_NAME := kernel.img
+DISK_IMG_NAME := disk.img
+
+QEMU_FLAGS := -drive file=$(DISK_IMG_NAME),format=raw -s -no-shutdown -no-reboot
+
+CPP_SOURCES := $(shell find ./kernel/ -name "*.cpp")
+ASM_SOURCES := $(shell find ./kernel/ -name "*.asm")
+OBJ_FILES := $(CPP_SOURCES:.cpp=.o) $(ASM_SOURCES:.asm=.o)
 
 # Build and run the kernel.
 all:
@@ -29,23 +36,26 @@ all:
 # Build the bootloader and the kernel, must be executed within the kernelbuilder
 # docker container since this require using the cross-compiler.
 .PHONY: build
-build: kernel
+build: $(KERNEL_IMG_NAME)
 	$(MAKE) -C bootloader
 	bootloader/createDiskImage.py \
 		bootloader/stage0/stage0 \
 		bootloader/stage1/stage1 \
-		kernel \
-		disk.img
+		$(KERNEL_IMG_NAME) \
+		$(DISK_IMG_NAME)
 
 # FIXME: For now manually compile the kernel stub, eventually we should have
 # nicer rules here.
 # FIXME: The bootloader does not create an ID map of the entire RAM yet, hence
 # the kernel must be loaded at vaddr < 4MiB.
-kernel: kernel.o
-	$(LD) --entry=kernelEntry -Ttext=0x100000 -Tdata=0x101000 -Tbss=0x102000 \
-		-Trodata-segment=0x103000 $^ -o $@	
+$(KERNEL_IMG_NAME): $(OBJ_FILES)
+	$(LD) --entry=kernelEntry -Ttext=0x101000 -Tdata=0x102000 -Tbss=0x103000 \
+		-Trodata-segment=0x104000 $^ -o $@
+
+%.o: %.asm
+	nasm -o $@ $^
 
 .PHONY: clean
 clean:
 	$(MAKE) -C bootloader clean
-	rm -rf kernel kernel.o disk.img
+	rm -rf $(OBJ_FILES) $(KERNEL_IMG_NAME) $(DISK_IMG_NAME)
