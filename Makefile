@@ -23,8 +23,9 @@ DISK_IMG_NAME := disk.img
 
 QEMU_FLAGS := -drive file=$(DISK_IMG_NAME),format=raw -s -no-shutdown -no-reboot
 
-CPP_SOURCES := $(shell find ./kernel/ -name "*.cpp")
-ASM_SOURCES := $(shell find ./kernel/ -name "*.asm")
+SOURCE_DIRS := ./kernel ./misc
+CPP_SOURCES := $(shell find $(SOURCE_DIRS) -name "*.cpp")
+ASM_SOURCES := $(shell find $(SOURCE_DIRS) -name "*.asm")
 OBJ_FILES := $(CPP_SOURCES:.cpp=.o) $(ASM_SOURCES:.asm=.o)
 
 # Build and run the kernel.
