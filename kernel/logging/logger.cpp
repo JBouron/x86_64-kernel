@@ -11,13 +11,20 @@ void Logger::clear() {
     m_dev.clear();
 }
 
+// Print a string into the log but do not append a new line at the end of
+// it. This is useful when prefixing log messages.
+// @param str: The string to print into the log.
+void Logger::printNoNewLine(char const * const str) {
+    for (char const * ptr(str); *ptr; ++ptr) {
+        m_dev.printChar(*ptr);
+    }
+}
+
 // Print a string into the log. This is the base case of the variadic printf
 // method.
 // @param str: The string to print into the log.
 void Logger::printf(char const * const str) {
-    for (char const * ptr(str); *ptr; ++ptr) {
-        m_dev.printChar(*ptr);
-    }
+    printNoNewLine(str);
     m_dev.newLine();
 }
 

@@ -33,8 +33,13 @@ public:
     // Clear the underlying output device.
     void clear();
 
+    // Print a string into the log but do not append a new line at the end of
+    // it. This is useful when prefixing log messages.
+    // @param str: The string to print into the log.
+    void printNoNewLine(char const * const str);
+
     // Print a string into the log. This is the base case of the variadic printf
-    // method.
+    // method. A new line character is appended after the string.
     // @param str: The string to print into the log.
     void printf(char const * const str);
 
