@@ -9,11 +9,15 @@
 # but the other alternative is to have special docker permission which are
 # pretty much root permissions. This should be reworked.
 
+# Flags
+# =====
+
 # Make sure to use the cross-compiler toolchain. 
 CC := x86_64-elf-gcc
 CXX := x86_64-elf-g++
 AS := x86_64-elf-as
 LD := x86_64-elf-ld
+NASM := nasm
 
 CXXFLAGS := -ffreestanding -Wall -Wextra -fno-exceptions -fno-rtti \
 	-mno-red-zone -nostdlib -I./include -g
@@ -23,10 +27,37 @@ DISK_IMG_NAME := disk.img
 
 QEMU_FLAGS := -drive file=$(DISK_IMG_NAME),format=raw -s -no-shutdown -no-reboot
 
+# Source files
+# ============
+
+# All directories that contain kernel cpp files.
 SOURCE_DIRS := ./kernel ./misc
+
+# All CPP files that should be part of the kernel image.
 CPP_SOURCES := $(shell find $(SOURCE_DIRS) -name "*.cpp")
-ASM_SOURCES := $(shell find $(SOURCE_DIRS) -name "*.asm")
-OBJ_FILES := $(CPP_SOURCES:.cpp=.o) $(ASM_SOURCES:.asm=.o)
+
+# All ASM files that should be part of the kernel image. Note that we exclude
+# the crt*.asm files (e.g. crt0.asm, crti.asm and crtn.asm) as those need to be
+# linked in a specific order.
+ASM_SOURCES := $(shell find $(SOURCE_DIRS) -name "*.asm" -not -name "crt*.asm")
+
+# CRT*.o files coming from the compiler:
+CRTI := $(shell find $(SOURCE_DIRS) -name "crti.asm")
+CRTI_O := $(CRTI:.asm=.o)
+CRTBEGIN_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtbegin.o)
+CRTEND_O := $(shell $(CXX) $(CXXFLAGS) -print-file-name=crtend.o)
+CRTN := $(shell find $(SOURCE_DIRS) -name "crtn.asm")
+CRTN_O := $(CRTN:.asm=.o)
+
+# All the object files making up the kernel image. The order of the object files
+# is extremely important: crti.o and crtbegin.o followed by all object files
+# followed by crtend.o and crtn.o.
+OBJ_FILES := $(CRTI_O) $(CRTBEGIN_O) \
+	$(CPP_SOURCES:.cpp=.o) $(ASM_SOURCES:.asm=.o) \
+	$(CRTEND_O) $(CRTN_O)
+
+# Rules
+# =====
 
 # Build and run the kernel.
 all:
@@ -53,7 +84,7 @@ $(KERNEL_IMG_NAME): $(OBJ_FILES)
 	$(LD) --script=linker.ld $^ -o $@
 
 %.o: %.asm
-	nasm -o $@ $^
+	$(NASM) -felf64 -o $@ $^
 
 .PHONY: clean
 clean:

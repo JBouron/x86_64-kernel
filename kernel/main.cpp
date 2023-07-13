@@ -5,7 +5,7 @@
 
 static char const * const str = "Hello world from 64-bit kernel.cpp!!";
 
-extern "C" void kernelEntry(void) {
+extern "C" void kernelMain(void) {
     // Directly write into the VGA buffer. Append a line at the very bottom of
     // the buffer.
     u16 * const vgaBufferStart(reinterpret_cast<u16*>(0xB8000));
