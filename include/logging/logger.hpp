@@ -3,6 +3,7 @@
 #pragma once
 
 #include <util/util.hpp>
+#include <util/cstring.hpp>
 
 namespace Logging {
 
@@ -49,14 +50,24 @@ public:
     // @param val...: Arguments for the formatted string.
     template<typename T, typename... Others>
     void printf(char const * const fmt, T const& val, Others const&... o) {
-        for (char const * ptr(fmt); *ptr; ++ptr) {
-            char const curr(*ptr);
-            char const next(*(ptr + 1));
-            if (curr == '{' && next == '}') {
-                printValue(val);
-                // Recurse to print the next value. Note the +2 to skip the
-                // closing bracket.
-                printf(ptr + 2, o...);
+        u64 const len(Util::strlen(fmt));
+        for (u64 i(0); i < len; ++i) {
+            // Check if this is the start of a substitution, we are looking for
+            // either "{}" or "{X}" where X is any char.
+            char const curr(fmt[i]);
+            bool const isSubst(fmt[i] == '{' && (
+                ((i+1) < len && fmt[i+1] == '}') ||
+                ((i+2) < len && fmt[i+2] == '}')));
+
+            if (isSubst) {
+                // There is a valid substitution, get the formatting option.
+                char const next(fmt[i+1]);
+                char const opt((next != '}') ? next : '\0');
+                printValue(val, opt);
+                u64 const offset(!!opt ? 3 : 2);
+                // Recurse to print the next value. Note the +offset to skip the
+                // formatting option and the closing bracket.
+                printf(fmt + i + offset, o...);
                 return;
             } else {
                 m_dev.printChar(curr);
@@ -68,10 +79,14 @@ private:
     // The underlying output device.
     OutputDev& m_dev;
 
+    // Formatting option when printing a value. Such options are passed in
+    // formatted strings within "{}".
+    using FmtOption = char;
+
     // Print a value of type T in the output device.
     // @param val: the value to output to the device.
     template<typename T>
-    void printValue(T const& val);
+    void printValue(T const& val, FmtOption const& fmtOption);
 };
 
 }
