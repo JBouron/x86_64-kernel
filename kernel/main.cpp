@@ -10,6 +10,9 @@ extern "C" void kernelMain(void) {
 
     Log::info("=== Kernel C++ Entry point ===");
     Log::info("Hello Kernel World!");
+    Log::warn("This is a warning");
+    Log::crit("This is a critical error");
+    Log::debug("This is a debug message");
 
     while (true) {
         asm("cli");

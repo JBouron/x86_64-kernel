@@ -15,17 +15,20 @@ namespace Log {
 
 // Print a formatted string into the log. This is mostly used as a helper
 // function for the helper functions below.
+// @param color: The color to use for this string.
 // @param prefix: The prefix to prepend to the log message.
 // @param fmt: The formatted string.
 // @param args: Arguments for the formatted string.
 template<typename... T>
-void fmtWithPrefix(char const * const prefix,
-                   char const * const fmt,
-                   T const&... args) {
+void fmtWithPrefixAndColor(Logging::Logger::Color const color,
+                           char const * const prefix,
+                           char const * const fmt,
+                           T const&... args) {
     // Declared extern here so that code including this file don't have access
     // to loggerInstance().
     extern Logging::Logger& loggerInstance();
     Logging::Logger& logger(loggerInstance());
+    logger.setColor(color);
     logger.printNoNewLine(prefix);
     logger.printf(fmt, args...);
 }
@@ -35,7 +38,10 @@ void fmtWithPrefix(char const * const prefix,
 // @param args: Arguments for the formatted string.
 template<typename... T>
 void info(char const * const fmt, T const&... args) {
-    fmtWithPrefix("[INFO] ", fmt, args...);
+    fmtWithPrefixAndColor(Logging::Logger::Color::Info,
+                          "[INFO] ",
+                          fmt,
+                          args...);
 }
 
 // Output a warning level log message.
@@ -43,7 +49,10 @@ void info(char const * const fmt, T const&... args) {
 // @param args: Arguments for the formatted string.
 template<typename... T>
 void warn(char const * const fmt, T const&... args) {
-    fmtWithPrefix("[WARN] ", fmt, args...);
+    fmtWithPrefixAndColor(Logging::Logger::Color::Warn,
+                          "[WARN] ",
+                          fmt,
+                          args...);
 }
 
 // Output a critical level log message.
@@ -51,7 +60,10 @@ void warn(char const * const fmt, T const&... args) {
 // @param args: Arguments for the formatted string.
 template<typename... T>
 void crit(char const * const fmt, T const&... args) {
-    fmtWithPrefix("[CRIT] ", fmt, args...);
+    fmtWithPrefixAndColor(Logging::Logger::Color::Crit,
+                          "[CRIT] ",
+                          fmt,
+                          args...);
 }
 
 // Output a debug level log message.
@@ -59,7 +71,10 @@ void crit(char const * const fmt, T const&... args) {
 // @param args: Arguments for the formatted string.
 template<typename... T>
 void debug(char const * const fmt, T const&... args) {
-    fmtWithPrefix("[DEBG] ", fmt, args...);
+    fmtWithPrefixAndColor(Logging::Logger::Color::Debug,
+                          "[DEBG] ",
+                          fmt,
+                          args...);
 }
 
 }

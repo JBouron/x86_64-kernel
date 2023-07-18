@@ -8,7 +8,7 @@ namespace Logging {
 // There is not much to do here, the bootloader already ID mapped the VGA buffer
 // so we can just use the physical address, no mapping required. Clear the
 // buffer for good measure.
-VgaOutputDev::VgaOutputDev() : m_fgColor(15), m_cursorPos(0) {
+VgaOutputDev::VgaOutputDev() : m_fgColor(Color::White), m_cursorPos(0) {
     clear();
 }
 
@@ -17,7 +17,7 @@ VgaOutputDev::VgaOutputDev() : m_fgColor(15), m_cursorPos(0) {
 void VgaOutputDev::printChar(char const c) {
     u16 * const vgaBuffer(reinterpret_cast<u16*>(VgaBufferOffset));
     u16 * const writePtr(vgaBuffer + m_cursorPos);
-    u16 const colorAttr(m_fgColor << 8);
+    u16 const colorAttr(static_cast<u16>(m_fgColor) << 8);
     *writePtr = colorAttr | (u16)c;
 
     m_cursorPos ++;
@@ -39,6 +39,18 @@ void VgaOutputDev::clear() {
     }
     // Reset the cursor to top-left of the buffer.
     m_cursorPos = 0;
+}
+
+// Set the output color of the output dev.
+// @param color: The color.
+void VgaOutputDev::setColor(Logger::Color const color) {
+    switch (color) {
+        case Logger::Color::Info:   m_fgColor = Color::White; break;
+        case Logger::Color::Warn:   m_fgColor = Color::Yellow; break;
+        case Logger::Color::Crit:   m_fgColor = Color::LightRed; break;
+        case Logger::Color::Debug:  m_fgColor = Color::Gray; break;
+        default:                    m_fgColor = Color::White; break;
+    }
 }
 
 void VgaOutputDev::maybeScrollUpOneLine() {

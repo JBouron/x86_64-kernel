@@ -23,6 +23,10 @@ public:
     // Clear the output device.
     virtual void clear();
 
+    // Set the output color of the output dev.
+    // @param color: The color.
+    virtual void setColor(Logger::Color const color);
+
 private:
     // The VGA text buffer is ID-mapped by the bootloader hence safe to use
     // here.
@@ -30,9 +34,28 @@ private:
     static constexpr u64 VgaBufferCols = 80;
     static constexpr u64 VgaBufferRows = 25;
 
-    // Current foreground color, will eventually be updated to support multiple
-    // colors.
-    u16 m_fgColor;
+    // The VGA color table.
+    enum class Color : u16  {
+        Black       = 0,
+        Blue        = 1,
+        Green       = 2,
+        Cyan        = 3,
+        Red         = 4,
+        Purple      = 5,
+        Brown       = 6,
+        Gray        = 7,
+        DarkGray    = 8,
+        LightBlue   = 9,
+        LightGreen  = 10,
+        LightCyan   = 11,
+        LightRed    = 12,
+        LightPurple = 13,
+        Yellow      = 14,
+        White       = 15,
+    };
+
+    // Current foreground color.
+    Color m_fgColor;
 
     // Linear index of the cursor in the VGA buffer.
     u64 m_cursorPos;

@@ -132,4 +132,8 @@ template<>
 void Logger::printValue<i8>(i8 const& val, FmtOption const& fmtOption) {
     printValue<i64>(val, fmtOption);
 }
+
+void Logger::setColor(Color const color) {
+    m_dev.setColor(color);
+}
 }

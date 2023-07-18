@@ -11,6 +11,16 @@ namespace Logging {
 // instance for the entire kernel.
 class Logger {
 public:
+    // Color value for the output of the logger. There are only 4 colors, one
+    // for each level of logging. OutputDev implementation are free to choose
+    // what actual colors those values are mapping to.
+    enum class Color {
+        Info,
+        Warn,
+        Crit,
+        Debug,
+    };
+
     // The underlying device of a Logger instance, e.g. VGA, serial, ...
     // This class is meant to be derived by the class implementing the actual
     // output device.
@@ -25,6 +35,11 @@ public:
 
         // Clear the output device.
         virtual void clear() = 0;
+
+        // Set the output color of the output dev. Some devices may choose to
+        // ignore such calls.
+        // @param color: The color.
+        virtual void setColor(Color const color) = 0;
     };
 
     // Create a new Logger instance using the given OutputDev as backend.
@@ -74,6 +89,10 @@ public:
             }
         }
     }
+
+    // Set the color of the logger's output.
+    // @param color: The color to set.
+    void setColor(Color const color);
 
 private:
     // The underlying output device.
