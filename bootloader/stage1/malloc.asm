@@ -3,8 +3,8 @@
 
 ; ==============================================================================
 ; Allocate memory.
-; @param (DWORD) size: The number of bytes to allocate.
-; @return (EAX): The address of the freshly allocated memory. This memory is
+; @param %RDI The number of bytes to allocate.
+; @return %RAX: The address of the freshly allocated memory. This memory is
 ; zeroed upon allocation.
 DEF_GLOBAL_FUNC64(malloc):
     push    rbp

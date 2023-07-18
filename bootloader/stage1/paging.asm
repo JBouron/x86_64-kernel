@@ -124,6 +124,8 @@ DEF_GLOBAL_FUNC64(allocVirtMem):
     push    r15
     push    r14
 
+    DEBUG   "Alloc virt mem: start = $ num_pages = $", rdi, rsi
+
     ; Check that the vaddr is page aligned.
     test    rdi, (PAGE_SIZE - 1)
     jz      .rdiOk
