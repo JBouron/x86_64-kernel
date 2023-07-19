@@ -26,11 +26,14 @@ public:
     // Create a Descriptor instance.
     // @param type: The type of the segment.
     // @param dpl: The descriptor's privilege level. Ignored for data segments.
-    constexpr Descriptor(__attribute__((unused)) Type const type,
-                         Dpl const dpl) :
-    m_raw((1ULL << 53) | (1ULL << 47) | (((u64)dpl) << 35)) {}
-    // Note: For now type is not used. However we might need it in the future
-    // when declaring 32-bit segments when initialization other cpus.
+    constexpr Descriptor(Type const type, Dpl const dpl) :
+        m_raw((1ULL << 53) |
+              (1ULL << 47) |
+              (1ULL << 44) |
+              (type == Type::Code ? (1ULL << 43) : (1ULL << 41))) {}
+    // Note: Despite all the "64-bit IgNoReS MoSt oF thE DeScriPtOr BitS" it
+    // seems that some bits are still expected to be there. First the types bit
+    // and the write bit for SS.
 
 private:
     // The raw 64-bit value of the segment descriptor, as expected by the
@@ -59,6 +62,17 @@ void Init() {
     Cpu::TableDesc const desc(gdtBase, gdtLimit);
     Cpu::lgdt(desc);
     Log::debug("GDT loaded");
+    
+    Cpu::SegmentSel const codeSel(1, Cpu::PrivLevel::Ring0);
+    Cpu::SegmentSel const dataSel(2, Cpu::PrivLevel::Ring0);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Cs, codeSel);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Ds, dataSel);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Es, dataSel);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Fs, dataSel);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Gs, dataSel);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Ss, dataSel);
+    Log::debug("Setting segment registers");
+
 }
 
 }
