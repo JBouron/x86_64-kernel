@@ -14,6 +14,12 @@ public:
     // @param limit: The size of the table in bytes.
     TableDesc(u64 const base, u16 const limit);
 
+    // Compare two TableDescs.
+    // @param other: The other TableDesc to compare against.
+    // @return: true if this and the other TableDesc have the same base and
+    // limit, false otherwise.
+    bool operator==(TableDesc const& other) const = default;
+
 private:
     u16 const limit;
     u64 const base;

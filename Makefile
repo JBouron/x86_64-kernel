@@ -20,7 +20,7 @@ LD := x86_64-elf-ld
 NASM := nasm
 
 CXXFLAGS := -ffreestanding -Wall -Wextra -fno-exceptions -fno-rtti \
-	-mno-red-zone -nostdlib -I./include -g
+	-mno-red-zone -nostdlib -I./include -std=c++20 -g
 
 KERNEL_IMG_NAME := kernel.img
 DISK_IMG_NAME := disk.img
