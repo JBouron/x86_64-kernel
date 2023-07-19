@@ -27,4 +27,19 @@ extern "C" void _lgdt(TableDesc const * const desc);
 void lgdt(TableDesc const& desc) {
     _lgdt(&desc);
 }
+
+// Read the current value loaded in GDTR. Implemented in assembly.
+// @param destBase: Where the base of the GDT should be stored.
+// @param destLimit: Where the limit of the GDT should be stored.
+extern "C" void _sgdt(u64 * const destBase, u16 * const destLimit);
+
+// Read the current value stored in the GDTR using the SGDT instruction.
+// @return: The current value loaded in GDTR.
+TableDesc sgdt() {
+    u64 base;
+    u16 limit;
+    _sgdt(&base, &limit);
+    return TableDesc(base, limit);
+}
+
 }

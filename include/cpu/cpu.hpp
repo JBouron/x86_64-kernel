@@ -24,4 +24,7 @@ static_assert(sizeof(TableDesc) == 10);
 // @param desc: Table descriptor for the GDT to be loaded.
 void lgdt(TableDesc const& desc);
 
+// Read the current value stored in the GDTR using the SGDT instruction.
+// @return: The current value loaded in GDTR.
+TableDesc sgdt();
 }
