@@ -63,6 +63,12 @@ SegmentSel::SegmentSel(u16 const selectorIndex,
     }
 }
 
+// Create a segment selector value referring to the GDT.
+// @param selectorIndex: The index of the segment to point to in the GDT.
+// @param rpl: The requested privilege level.
+SegmentSel::SegmentSel(u16 const selectorIndex, PrivLevel const rpl) :
+    SegmentSel(selectorIndex, false, rpl) {}
+
 // Create a segment selector value from a raw u16. Useful to parse the
 // different fields.
 // @param raw: The raw/hardware u16 to build the SegmentSel from.
