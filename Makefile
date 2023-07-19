@@ -84,7 +84,7 @@ $(KERNEL_IMG_NAME): $(OBJ_FILES)
 	$(LD) --script=linker.ld $^ -o $@
 
 %.o: %.asm
-	$(NASM) -felf64 -o $@ $^
+	$(NASM) -g -felf64 -o $@ $^
 
 .PHONY: clean
 clean:

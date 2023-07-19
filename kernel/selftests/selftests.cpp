@@ -22,6 +22,7 @@ void runSelfTests() {
     // macro.
 
     runTest(lgdtSgdtTest);
+    runTest(readWriteSegmentRegTest);
 
 
     bool const allPassed(TEST_STATS.numTests == TEST_STATS.numPassed);

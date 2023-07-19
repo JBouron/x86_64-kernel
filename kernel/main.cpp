@@ -5,6 +5,7 @@
 #include <logging/log.hpp>
 #include <memory/segmentation.hpp>
 #include <selftests/selftests.hpp>
+#include <cpu/cpu.hpp>
 
 extern "C" void kernelMain(void) {
     // Directly write into the VGA buffer. Append a line at the very bottom of

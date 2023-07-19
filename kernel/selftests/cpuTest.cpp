@@ -30,4 +30,63 @@ TestResult lgdtSgdtTest() {
     return TEST_SUCCESS;
 }
 
+// Test the Cpu::readSegmentReg() and Cpu::writeSegmentReg() functions. We
+// expect the read function to return the last written value.
+TestResult readWriteSegmentRegTest() {
+    // Get a copy of the current GDT as well as all the segment registers.
+    Cpu::TableDesc const origGdt(Cpu::sgdt());
+    Cpu::SegmentSel const origCs(Cpu::readSegmentReg(Cpu::SegmentReg::Cs));
+    Cpu::SegmentSel const origDs(Cpu::readSegmentReg(Cpu::SegmentReg::Ds));
+    Cpu::SegmentSel const origEs(Cpu::readSegmentReg(Cpu::SegmentReg::Es));
+    Cpu::SegmentSel const origFs(Cpu::readSegmentReg(Cpu::SegmentReg::Fs));
+    Cpu::SegmentSel const origGs(Cpu::readSegmentReg(Cpu::SegmentReg::Gs));
+    Cpu::SegmentSel const origSs(Cpu::readSegmentReg(Cpu::SegmentReg::Ss));
+
+    // A dummy GDT so that we can use deterministic selectors.
+    static u64 dummyGdt[] = {
+        // NULL desc.
+        0x0,
+        // Data segment #1.
+        (1ULL << 53) | (1ULL << 47) | (1ULL << 44) | (1ULL << 41),
+        // Data segment #2.
+        (1ULL << 53) | (1ULL << 47) | (1ULL << 44) | (1ULL << 41),
+        // Code segment #1.
+        (1ULL << 53) | (1ULL << 47) | (1ULL << 44) | (1ULL << 43),
+    };
+
+    u64 const base(reinterpret_cast<u64>(dummyGdt));
+    u64 const limit(sizeof(dummyGdt) - 1);
+    Cpu::TableDesc const dummyDesc(base, limit);
+    Cpu::lgdt(dummyDesc);
+
+    // Code segment.
+    Cpu::SegmentSel const newCs(3, false, Cpu::PrivLevel::Ring0);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Cs, newCs);
+    TEST_ASSERT(Cpu::readSegmentReg(Cpu::SegmentReg::Cs) == newCs);
+
+    // Change a data segment twice, setting it to the first and second entry of
+    // the dummy GDT. Check that readSegmentReg reports the correct value.
+    auto const testDataSeg([](Cpu::SegmentReg const reg) {
+        // Set segment to entry at index 1.
+        Cpu::SegmentSel const newSel(1, false, Cpu::PrivLevel::Ring0);
+        Cpu::writeSegmentReg(reg, newSel);
+        TEST_ASSERT(Cpu::readSegmentReg(reg) == newSel);
+
+        // Set segment to entry at index 2.
+        Cpu::SegmentSel const newSel2(2, false, Cpu::PrivLevel::Ring0);
+        Cpu::writeSegmentReg(reg, newSel2);
+        TEST_ASSERT(Cpu::readSegmentReg(reg) == newSel2);
+
+        return TEST_SUCCESS;
+    });
+
+    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Ds) == TEST_SUCCESS);
+    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Es) == TEST_SUCCESS);
+    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Fs) == TEST_SUCCESS);
+    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Gs) == TEST_SUCCESS);
+    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Ss) == TEST_SUCCESS);
+
+    return TEST_SUCCESS;
+}
+
 }
