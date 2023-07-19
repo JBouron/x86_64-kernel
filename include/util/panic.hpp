@@ -30,7 +30,10 @@ void _panic(char const * const fileName,
     Log::crit("  Location: {}:{} in {}", fileName, lineNumber, funcName);
     // Using fmtWithPrefix and manually inserting the prefix is a bit hacky
     // here. Oh well...
-    Log::fmtWithPrefix("[CRIT]   Reason: ", fmt, args...);
+    Log::fmtWithPrefixAndColor(Logging::Logger::Color::Crit,
+                               "[CRIT]   Reason: ",
+                               fmt,
+                               args...);
 
     // Halt the CPU forever.
     while (true) {
