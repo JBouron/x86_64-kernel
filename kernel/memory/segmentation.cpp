@@ -4,6 +4,7 @@
 #include <util/util.hpp>
 #include <util/panic.hpp>
 #include <memory/segmentation.hpp>
+#include <cpu/cpu.hpp>
 
 namespace Memory::Segmentation {
 
@@ -48,31 +49,6 @@ static Descriptor GDT[] = {
     Descriptor(Descriptor::Type::Data,0),
 };
 
-// Table descriptor for the LGDT instruction.
-class TableDesc {
-public:
-    // Create a table descriptor.
-    // @param base: The base virtual address of the table.
-    // @param limit: The size of the table in bytes.
-    TableDesc(u64 const base, u16 const limit) : limit(limit), base(base) {
-        // The LGDT instruction expects the limit to be of the form 8*N - 1.
-        // Enforce this.
-        if (limit % 8 != 7) {
-            PANIC("Invalid limit for TableDesc: {}", limit);
-        }
-    }
-
-private:
-    u16 const limit;
-    u64 const base;
-} __attribute__((packed));
-static_assert(sizeof(TableDesc) == 10);
-
-// Load a GDT using the LGDT instruction.
-// @param desc: Table descriptor for the GDT to be loaded.
-extern "C" void lgdt(TableDesc const * const desc);
-
-
 // Initialize segmentation. Create a GDT and load it in GDTR.
 void Init() {
     Log::debug("Segmentation: Init");
@@ -80,8 +56,8 @@ void Init() {
     u16 const gdtLimit(sizeof(GDT) - 1);
 
     Log::info("Loading GDT, base = {x}, limit = {}", gdtBase, gdtLimit);
-    TableDesc const desc(gdtBase, gdtLimit);
-    lgdt(&desc);
+    Cpu::TableDesc const desc(gdtBase, gdtLimit);
+    Cpu::lgdt(desc);
     Log::debug("GDT loaded");
 }
 
