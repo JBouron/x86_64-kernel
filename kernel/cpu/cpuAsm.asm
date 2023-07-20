@@ -38,6 +38,43 @@ _sgdt:
     leave
     ret
 
+; Load an IDT using the LIDT instruction. Implemented in assembly.
+; @param desc: Pointer to Table descriptor for the IDT to be loaded.
+; extern "C" void _lidt(TableDesc const * const desc);
+GLOBAL  _lidt:function
+_lidt:
+    push    rbp
+    mov     rbp, rsp
+
+    lidt    [rdi]
+
+    leave
+    ret
+
+; Read the current value loaded in IDTR. Implemented in assembly.
+; @param destBase: Where the base of the IDT should be stored.
+; @param destLimit: Where the limit of the IDT should be stored.
+; extern "C" void _sidt(u64 * const destBase, u16 * const destLimit);
+GLOBAL  _sidt:function
+_sidt:
+    push    rbp
+    mov     rbp, rsp
+
+    ; Make some space to read the IDTR onto the stack.
+    sub     rsp, 10
+    sidt    [rsp]
+
+    ; Write limit.
+    mov     ax, [rsp]
+    mov     [rsi], ax
+
+    ; Write base.
+    mov     rax, [rsp + 2]
+    mov     [rdi], rax
+
+    leave
+    ret
+
 ; Set the segment reg Xs to the value sel. Implemented in assembly.
 ; @param sel: The new value for Xs.
 ; extern "C" void _setCs(u16 const sel);

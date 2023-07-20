@@ -13,7 +13,7 @@ TableDesc::TableDesc(u64 const base, u16 const limit) : limit(limit),
     base(base) {
     // The LGDT instruction expects the limit to be of the form 8*N - 1.
     // Enforce this.
-    if (limit % 8 != 7) {
+    if (limit > 0 && limit % 8 != 7) {
         PANIC("Invalid limit for TableDesc: {}", limit);
     }
 }
@@ -39,6 +39,30 @@ TableDesc sgdt() {
     u64 base;
     u16 limit;
     _sgdt(&base, &limit);
+    return TableDesc(base, limit);
+}
+
+// Load an IDT using the LIDT instruction. Implemented in assembly.
+// @param desc: Pointer to Table descriptor for the IDT to be loaded.
+extern "C" void _lidt(TableDesc const * const desc);
+
+// Load an IDT using the LIDT instruction.
+// @param desc: Table descriptor for the IDT to be loaded.
+void lidt(TableDesc const& desc) {
+    _lidt(&desc);
+}
+
+// Read the current value loaded in IDTR. Implemented in assembly.
+// @param destBase: Where the base of the IDT should be stored.
+// @param destLimit: Where the limit of the IDT should be stored.
+extern "C" void _sidt(u64 * const destBase, u16 * const destLimit);
+
+// Read the current value stored in the IDTR using the SIDT instruction.
+// @return: The current value loaded in IDTR.
+TableDesc sidt() {
+    u64 base;
+    u16 limit;
+    _sidt(&base, &limit);
     return TableDesc(base, limit);
 }
 

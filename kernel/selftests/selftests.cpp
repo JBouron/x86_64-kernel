@@ -23,6 +23,7 @@ void runSelfTests() {
 
     runTest(lgdtSgdtTest);
     runTest(readWriteSegmentRegTest);
+    runTest(lidtSidtTest);
 
 
     bool const allPassed(TEST_STATS.numTests == TEST_STATS.numPassed);

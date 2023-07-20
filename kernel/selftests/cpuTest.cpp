@@ -89,4 +89,20 @@ TestResult readWriteSegmentRegTest() {
     return TEST_SUCCESS;
 }
 
+// Test for the lidt() and sidt() functions.
+TestResult lidtSidtTest() {
+    Cpu::TableDesc const origIdt(Cpu::sidt());
+
+    static u64 dummyIdt[] = { 0x0, 0x0, 0x0 };
+    u64 const base(reinterpret_cast<u64>(dummyIdt));
+    u16 const limit(sizeof(dummyIdt) - 1);
+    Cpu::TableDesc const dummyIdtDesc(base, limit);
+    Cpu::lidt(dummyIdtDesc);
+    TEST_ASSERT(Cpu::sidt() == dummyIdtDesc);
+
+    // Restore the original IDTR.
+    Cpu::lidt(origIdt);
+    return TEST_SUCCESS;
+}
+
 }

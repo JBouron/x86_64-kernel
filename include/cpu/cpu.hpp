@@ -38,6 +38,14 @@ void lgdt(TableDesc const& desc);
 // @return: The current value loaded in GDTR.
 TableDesc sgdt();
 
+// Load an IDT using the LIDT instruction.
+// @param desc: Table descriptor for the IDT to be loaded.
+void lidt(TableDesc const& desc);
+
+// Read the current value stored in the IDTR using the SIDT instruction.
+// @return: The current value loaded in IDTR.
+TableDesc sidt();
+
 
 // #############################################################################
 // Types and functions related to segment registers.
