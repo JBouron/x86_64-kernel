@@ -25,6 +25,8 @@ void runSelfTests() {
     runTest(readWriteSegmentRegTest);
     runTest(lidtSidtTest);
 
+    runTest(interruptTest);
+
 
     bool const allPassed(TEST_STATS.numTests == TEST_STATS.numPassed);
     if (allPassed) {

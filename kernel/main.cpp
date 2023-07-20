@@ -6,6 +6,7 @@
 #include <memory/segmentation.hpp>
 #include <selftests/selftests.hpp>
 #include <cpu/cpu.hpp>
+#include <interrupts/interrupts.hpp>
 
 extern "C" void kernelMain(void) {
     // Directly write into the VGA buffer. Append a line at the very bottom of
@@ -15,6 +16,7 @@ extern "C" void kernelMain(void) {
     SelfTests::runSelfTests();
 
     Memory::Segmentation::Init();
+    Interrupts::Init();
 
     while (true) {
         asm("cli");
