@@ -1,4 +1,5 @@
 *.o
+*.img
 bootloader/bootloader
 bootloader/stage0/stage0
 bootloader/stage1/stage1
