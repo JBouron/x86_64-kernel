@@ -160,5 +160,6 @@ SegmentSel readSegmentReg(SegmentReg const reg) {
         case SegmentReg::Gs: return _getGs(); break;
         case SegmentReg::Ss: return _getSs(); break;
     }
+    UNREACHABLE
 }
 }

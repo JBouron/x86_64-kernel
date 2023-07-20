@@ -19,9 +19,9 @@ Descriptor::Descriptor(Cpu::SegmentSel const targetSel,
                        Cpu::PrivLevel const dpl,
                        Type const type) :
     m_raw{
-        (u64(targetSel.raw()) << 16) | (targetOffset & 0xffff),
-        (targetOffset & 0xffff0000) | (1<<15) | (u64(dpl)<<13) | (u64(type)<<8),
-        targetOffset >> 32,
+        (u32(targetSel.raw()) << 16) | u32(targetOffset & 0xffff),
+        u32(targetOffset & 0xffff0000)|(1<<15)|(u32(dpl)<<13)|(u32(type)<<8),
+        u32(targetOffset >> 32),
         0,
     } {}
 

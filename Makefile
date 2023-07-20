@@ -19,7 +19,7 @@ AS := x86_64-elf-as
 LD := x86_64-elf-ld
 NASM := nasm
 
-CXXFLAGS := -ffreestanding -Wall -Wextra -fno-exceptions -fno-rtti \
+CXXFLAGS := -ffreestanding -Wall -Wextra -Werror -fno-exceptions -fno-rtti \
 	-mno-red-zone -nostdlib -I./include -std=c++20 -g
 
 KERNEL_IMG_NAME := kernel.img

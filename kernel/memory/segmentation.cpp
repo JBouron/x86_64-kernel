@@ -17,16 +17,12 @@ public:
         Data,
     };
 
-    // Descriptor Privilege Level (DPL).
-    using Dpl = u8;
-
     // Create a NULL segment descriptor.
     constexpr Descriptor() : m_raw(0) {}
 
     // Create a Descriptor instance.
     // @param type: The type of the segment.
-    // @param dpl: The descriptor's privilege level. Ignored for data segments.
-    constexpr Descriptor(Type const type, Dpl const dpl) :
+    constexpr Descriptor(Type const type) :
         m_raw((1ULL << 53) |
               (1ULL << 47) |
               (1ULL << 44) |
@@ -47,9 +43,9 @@ static Descriptor GDT[] = {
     // NULL segment descriptor.
     Descriptor(),
     // Kernel code segment.
-    Descriptor(Descriptor::Type::Code,0),
+    Descriptor(Descriptor::Type::Code),
     // Kernel data segment.
-    Descriptor(Descriptor::Type::Data,0),
+    Descriptor(Descriptor::Type::Data),
 };
 
 // Initialize segmentation. Create a GDT and load it in GDTR.
