@@ -42,3 +42,10 @@ void _panic(char const * const fileName,
     }
 }
 
+// Mark a section of code as unreachable. Triggers a PANIC if it is ever
+// reached.
+#define UNREACHABLE                         \
+    do {                                    \
+        PANIC("Reached unreachable code!"); \
+        __builtin_unreachable();            \
+    } while (0);
