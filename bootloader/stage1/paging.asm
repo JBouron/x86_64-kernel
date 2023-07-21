@@ -35,6 +35,7 @@ DEF_LOCAL_FUNC64(doMapPage):
     imul    rcx, 9
     add     rcx, 12
     shr     rax, cl
+    and     rax, 0x1ff
 
     ; RAX = Pointer to entry in current table.
     lea     rax, [r15 + rax * 8]
