@@ -86,4 +86,5 @@ DEF_LOCAL_FUNC64(runSelfTests):
     RUN_TEST(readBufferTest)
     RUN_TEST(findFirstAvailFrameTest)
     RUN_TEST(mapPageTest)
+    RUN_TEST(mapPageWriteTest)
     ret

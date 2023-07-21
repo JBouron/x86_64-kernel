@@ -50,3 +50,38 @@ DEF_GLOBAL_FUNC64(mapPageTest):
 
     pop     r15
     TEST_SUCCESS
+
+SECTION .data
+ALIGN   PAGE_SIZE
+mapPageWriteTestFlag:
+DQ  0x0
+
+; ==============================================================================
+; Add a mapping to a page an attempt to write into this new mapping. Tests that
+; mapPage sets write permission on the mapping.
+DEF_GLOBAL_FUNC64(mapPageWriteTest):
+    push    rbp
+    mov     rbp, rsp
+
+    lea     rax, [mapPageWriteTestFlag]
+    DEBUG   "Flag @$", rax
+
+    ; Reset the flag.
+    xor     rax, rax
+    mov     [mapPageWriteTestFlag], rax
+
+    ; Map the page containing mapPageWriteTestFlag to address 1MiB.
+    mov     rdi, ONE_MIB
+    lea     rsi, [mapPageWriteTestFlag]
+    call    mapPage
+
+    mov     rax, 0xdeadbeefcafebabe
+
+    ; Write to the flag using the new mapping.
+    mov     [ONE_MIB], rax
+
+    ; Check that the flag has been written using the ID mapped address.
+    TEST_ASSERT_EQ  rax, QWORD[mapPageWriteTestFlag]
+
+    leave
+    ret
