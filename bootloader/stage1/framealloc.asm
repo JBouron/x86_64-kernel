@@ -66,7 +66,6 @@ DEF_GLOBAL_FUNC32(allocFrameLowMem):
 ; Controls the minimum offset to be returned by allocFrame. We try to avoid
 ; touching anything under 1MiB as the granularity of the E820 memory map under
 ; 1MiB is not that great and we run the risk of corrupting BIOS memory.
-; Everything over 1MiB should be fair-game.
 NEXT_FRAME_MIN_OFFSET   EQU 0x100000
 
 ; Physical pointer to the next physical frame that is available for allocation.
@@ -228,6 +227,42 @@ DEF_LOCAL_FUNC64(initFreeList):
     add     r15, 0x18
     jmp     .loopCond
 .loopOut:
+
+    ; Now that we added all free frames above 1MiB in the free-list, add an
+    ; entry to the front/head of the list for the free frames in the memory
+    ; region spanning from STAGE_1_END and EBDA_START, which was used as an
+    ; early allocation region.
+    ; FIXME: We should probably double check that this region is indeed marked
+    ; as available in the memory map. Osdev "guarantees" that it is, but you
+    ; never know...
+    ; RAX = pointer to new node.
+    mov     rdi, FL_NODE_SIZE
+    call    malloc
+    ; RCX = stage1 end offset rounded up to the next page boundary.
+    lea     rcx, STAGE_1_END
+    add     rcx, FRAME_SIZE - 1
+    and     rcx, ~(FRAME_SIZE - 1)
+    mov     [rax + FL_BASE], rcx
+    ; Compute the number of free frames between RCX and the current
+    ; nextFrameLowMem.
+    mov     rdx, [nextFrameLowMem]
+    ; Make sure that RCX <= RDX
+    cmp     rcx, rdx
+    jbe     .nextFrameLowMemOk
+    PANIC   "nextFrameLowMem is < STAGE_1_END"
+.nextFrameLowMemOk:
+    sub     rdx, rcx
+    shr     rdx, 12
+    ; The inc is here because nextFrameLowMem points to the next _free_ frame.
+    ; Hence if RDX == nextFrameLowMem then this means there is exactly one frame
+    ; available.
+    inc     rdx
+    mov     [rax + FL_NUM_PAGES], rdx
+    ; Insert at the head of the list.
+    mov     rcx, [freeListHead]
+    mov     [rax + FL_NEXT], rcx
+    mov     [freeListHead], rax
+
 
     ; Log the free-list.
     INFO    "Physical page frame free-list:"
