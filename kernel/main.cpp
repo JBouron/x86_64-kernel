@@ -7,6 +7,7 @@
 #include <cpu/cpu.hpp>
 #include <interrupts/interrupts.hpp>
 #include <bootstruct.hpp>
+#include <framealloc/framealloc.hpp>
 
 // Log the bootstruct's content.
 // @param bootStruct: The bootstruct to dump into the logs.
@@ -35,13 +36,14 @@ static void dumpBootStruct(BootStruct const& bootStruct) {
 extern "C" void kernelMain(BootStruct const * const bootStruct) {
     Log::info("=== Kernel C++ Entry point ===");
 
+    Log::debug("Bootstruct is @{x}", reinterpret_cast<u64>(bootStruct));
+    dumpBootStruct(*bootStruct);
+
     SelfTests::runSelfTests();
 
     Memory::Segmentation::Init();
     Interrupts::Init();
-
-    Log::debug("Bootstruct is @{x}", reinterpret_cast<u64>(bootStruct));
-    dumpBootStruct(*bootStruct);
+    FrameAlloc::Init(*bootStruct);
 
     while (true) {
         asm("cli");
