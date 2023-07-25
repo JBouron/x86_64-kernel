@@ -1,5 +1,4 @@
-// Stub for the kernel C++ entry point. This is dead simple for now as we just
-// want to exercise loading the kernel from the bootloader.
+// C++ entry point of the kernel.
 
 #include <util/util.hpp>
 #include <logging/log.hpp>
@@ -7,10 +6,33 @@
 #include <selftests/selftests.hpp>
 #include <cpu/cpu.hpp>
 #include <interrupts/interrupts.hpp>
+#include <bootstruct.hpp>
 
-extern "C" void kernelMain(void const * const bootStruct) {
-    // Directly write into the VGA buffer. Append a line at the very bottom of
-    // the buffer.
+// Log the bootstruct's content.
+// @param bootStruct: The bootstruct to dump into the logs.
+static void dumpBootStruct(BootStruct const& bootStruct) {
+    Log::info("Physical memory map:");
+    for (u64 i(0); i < bootStruct.memoryMapSize; ++i) {
+        BootStruct::MemMapEntry const& entry(bootStruct.memoryMap[i]);
+        char const * const type(entry.isAvailable() ? "Available" : "Reserved");
+        u64 const end(entry.base + entry.length);
+        Log::info("  {x} - {x}  {}", entry.base, end, type);
+    }
+
+    Log::debug("Physical frame free-list:");
+    BootStruct::PhyFrameFreeListNode const * curr(
+        bootStruct.phyFrameFreeListHead);
+    while (!!curr) {
+        Log::debug("  {} frames starting @{x}", curr->numFrames, curr->base);
+        curr = curr->next;
+    }
+}
+
+// C++ entry point of the kernel. Called by the assembly entry point
+// `kernelEntry` after calling all global constructors.
+// @param bootStruct: Pointer to the BootStruct as given by the bootloader when
+// jumping to the kernel's assembly entry point.
+extern "C" void kernelMain(BootStruct const * const bootStruct) {
     Log::info("=== Kernel C++ Entry point ===");
 
     SelfTests::runSelfTests();
@@ -18,7 +40,8 @@ extern "C" void kernelMain(void const * const bootStruct) {
     Memory::Segmentation::Init();
     Interrupts::Init();
 
-    Log::info("Bootstruct is @{x}", reinterpret_cast<u64>(bootStruct));
+    Log::debug("Bootstruct is @{x}", reinterpret_cast<u64>(bootStruct));
+    dumpBootStruct(*bootStruct);
 
     while (true) {
         asm("cli");
