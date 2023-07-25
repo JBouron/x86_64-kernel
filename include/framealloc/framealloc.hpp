@@ -9,9 +9,6 @@
 // size of 4096 bytes pages.
 static constexpr u64 PAGE_SIZE = 0x1000;
 
-// Shortcut to avoid long typenames.
-using Frame = FrameAlloc::Frame;
-
 namespace FrameAlloc {
 
 // Describes a physical frame.
@@ -43,3 +40,6 @@ Frame alloc();
 void free(Frame const& frame);
 
 }
+
+// Shortcut to avoid long typenames.
+using Frame = FrameAlloc::Frame;
