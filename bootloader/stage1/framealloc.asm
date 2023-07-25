@@ -87,7 +87,7 @@ FL_NEXT         EQU 0x10 ; QWORD: pointer to the next entry/node in the list.
 FL_NODE_SIZE    EQU 0x18 ; Size of a node in bytes.
 
 ; Pointer to the head of the free list.
-DEF_LOCAL_VAR(freeListHead):
+DEF_GLOBAL_VAR(freeListHead):
 DQ  0x0
 
 ; ==============================================================================

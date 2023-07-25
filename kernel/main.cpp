@@ -8,7 +8,7 @@
 #include <cpu/cpu.hpp>
 #include <interrupts/interrupts.hpp>
 
-extern "C" void kernelMain(void) {
+extern "C" void kernelMain(void const * const bootStruct) {
     // Directly write into the VGA buffer. Append a line at the very bottom of
     // the buffer.
     Log::info("=== Kernel C++ Entry point ===");
@@ -17,6 +17,8 @@ extern "C" void kernelMain(void) {
 
     Memory::Segmentation::Init();
     Interrupts::Init();
+
+    Log::info("Bootstruct is @{x}", reinterpret_cast<u64>(bootStruct));
 
     while (true) {
         asm("cli");

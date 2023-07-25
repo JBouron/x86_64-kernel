@@ -20,5 +20,10 @@ EXT_FUNC(allocFrameLowMem)
 ; @return (RAX): The physical address of the allocated frame.
 EXT_FUNC(allocFrame)
 
+; ==============================================================================
+; Pointer to head of the physical frame free list. Only to be used by
+; bootstruct.asm.
+EXT_VAR(freeListHead)
+
 %endif
 ; vim:syntax=asm filetype=asm

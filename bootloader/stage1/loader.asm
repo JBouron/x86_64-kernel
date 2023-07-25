@@ -4,6 +4,7 @@
 %include "disk.inc"
 %include "malloc.inc"
 %include "paging.inc"
+%include "bootstruct.inc"
 
 ; The Metadata Sector
 ; ===================
@@ -111,7 +112,6 @@ ELF_HEADER_MAGIC_VALUE    EQU 0x464c457f
 
 ; ==============================================================================
 ; Load the kernel from disk
-; TODO: Implement this.
 DEF_GLOBAL_FUNC64(loadKernel):
     push    rbp
     mov     rbp, rsp
@@ -150,9 +150,14 @@ DEF_GLOBAL_FUNC64(loadKernel):
     mov     rdi, rsp
     call    parseProgramHeaderTable
 
+    ; Allocate the bootstruct.
+    ; RDI = bootstruct addr.
+    call    createBootStruct
+    mov     rdi, rax
+
     ; Jump to entry point.
     mov     rax, [rsp + ELF_HDR_ENTRY]
-    DEBUG   "Jumping to entry point @$", rax
+    DEBUG   "Jumping to entry point @$, bootstruct is @$", rax, rdi
     jmp     rax
 
     leave
