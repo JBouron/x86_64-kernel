@@ -58,13 +58,13 @@ DEF_LOCAL_FUNC64(stage1Entry64):
     mov     rbx, rsp
     DEBUG   "rsp = $", rbx
 
-    INFO    "Running self-tests"
-    call    runSelfTests
-
     INFO    "Memory map:"
     call    parseMemoryMap
 
-    INFO    "Loading kernel from memory"
+    INFO    "Running self-tests"
+    call    runSelfTests
+
+    INFO    "Loading kernel from disk"
     call    loadKernel
 .dead:
     hlt
@@ -87,4 +87,5 @@ DEF_LOCAL_FUNC64(runSelfTests):
     RUN_TEST(findFirstAvailFrameTest)
     RUN_TEST(mapPageTest)
     RUN_TEST(mapPageWriteTest)
+    RUN_TEST(allocVirtMemTest)
     ret

@@ -83,5 +83,32 @@ DEF_GLOBAL_FUNC64(mapPageWriteTest):
     ; Check that the flag has been written using the ID mapped address.
     TEST_ASSERT_EQ  rax, QWORD[mapPageWriteTestFlag]
 
-    leave
-    ret
+    TEST_SUCCESS
+
+; ==============================================================================
+; Test the allocVirtMem function
+DEF_GLOBAL_FUNC64(allocVirtMemTest):
+    push    rbp
+    mov     rbp, rsp
+
+    ; Allocate three virtual pages starting at offset:
+    mov     rdi, 0xdeadbeef000
+    mov     rsi, 3
+    call    allocVirtMem
+
+    ; Write the scream in the virtual pages.
+    mov     rax, 0xAAAAAAAAAAAAAAAA
+    mov     rdi, 0xdeadbeef000
+    mov     rcx, 3 * (PAGE_SIZE / 8)
+    cld
+    rep     stosq
+
+    ; Read the scream in the virtual pages, to make sure it is still there.
+    mov     rdi, 0xdeadbeef000
+    mov     rcx, 3 * (PAGE_SIZE / 8)
+    repe    scasq
+
+    ; If this assert fail then the scream was not as expected.
+    TEST_ASSERT_EQ  rcx, 0x0
+
+    TEST_SUCCESS

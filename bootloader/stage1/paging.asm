@@ -151,6 +151,7 @@ DEF_GLOBAL_FUNC64(allocVirtMem):
 .loopNextIte:
     add     r15, PAGE_SIZE
     dec     r14
+    jmp     .loopCond
 .loopOut:
 
     pop     r14
