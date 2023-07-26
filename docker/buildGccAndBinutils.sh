@@ -48,6 +48,11 @@ which -- $TARGET-as || echo $TARGET-as is not in the PATH
     --enable-languages=c,c++ \
     --without-headers
 make -j$NCPUS all-gcc
-make -j$NCPUS all-target-libgcc
+# Note: Linking the kernel in higher-half requires compiling with mcmodel=large.
+# However libgcc does not support mcmodel=large by default, it needs to be
+# compiled with it first.
+# Also enable no-red-zone with libgcc to avoid surprises.
+make -j$NCPUS all-target-libgcc \
+    CFLAGS_FOR_TARGET='-g -O2 -mcmodel=large -mno-red-zone'
 make -j$NCPUS install-gcc
 make -j$NCPUS install-target-libgcc
