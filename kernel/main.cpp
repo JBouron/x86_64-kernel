@@ -8,6 +8,7 @@
 #include <interrupts/interrupts.hpp>
 #include <bootstruct.hpp>
 #include <framealloc/framealloc.hpp>
+#include <paging/paging.hpp>
 
 // Log the bootstruct's content.
 // @param bootStruct: The bootstruct to dump into the logs.
@@ -44,6 +45,7 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     Memory::Segmentation::Init();
     Interrupts::Init();
     FrameAlloc::Init(*bootStruct);
+    Paging::Init(*bootStruct);
 
     while (true) {
         asm("cli");
