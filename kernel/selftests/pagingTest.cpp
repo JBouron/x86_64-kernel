@@ -20,9 +20,8 @@ TestResult mapTest() {
 
     Paging::map(startVAddr, startPAddr, numPages);
 
-    u64 const * readIdPtr(
-        reinterpret_cast<u64*>(Paging::toVirAddr(startPAddr).raw()));
-    u64 const * readMapPtr(reinterpret_cast<u64*>(startVAddr.raw()));
+    u64 const * readIdPtr(Paging::toVirAddr(startPAddr).ptr<u64>());
+    u64 const * readMapPtr(startVAddr.ptr<u64>());
     for (u64 i(0); i < mapSize / sizeof(u64); ++i) {
         TEST_ASSERT(*(readIdPtr++)==*(readMapPtr++));
     }

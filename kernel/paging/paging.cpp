@@ -136,8 +136,7 @@ struct PageTable {
                 entry.addr = nextLevel.phyOffset() >> 12;
             }
             VirAddr const nextLevelVaddr(toVirAddr(entry.addr << 12));
-            PageTable<L-1>* nextLevel(
-                reinterpret_cast<PageTable<L-1>*>(nextLevelVaddr.raw()));
+            PageTable<L-1>* nextLevel(nextLevelVaddr.ptr<PageTable<L-1>>());
             nextLevel->map(vaddr, paddr);
         }
     }
@@ -169,7 +168,7 @@ void map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages) {
                paddrStart.raw(),
                nPages);
     VirAddr const pml4VAddr(toVirAddr(Cpu::cr3() & ~(PAGE_SIZE - 1)));
-    PageTable<4>* pml4(reinterpret_cast<PageTable<4>*>(pml4VAddr.raw()));
+    PageTable<4>* pml4(pml4VAddr.ptr<PageTable<4>>());
     for (u64 i(0); i < nPages; ++i) {
         VirAddr const vaddr(vaddrStart.raw() + i * PAGE_SIZE);
         PhyAddr const paddr(paddrStart.raw() + i * PAGE_SIZE);

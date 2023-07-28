@@ -63,6 +63,11 @@ public:
 
     // Make sure it is illegal to create a VirtAddr from a PhyAddr.
     VirAddr(PhyAddr const& a) = delete;
+
+    // Cast this address to a pointer to T.
+    // @return: The pointer to T equivalent to this address.
+    template<typename T>
+    T* ptr() const { return reinterpret_cast<T*>(m_addr); }
 };
 static_assert(sizeof(VirAddr) == sizeof(u64));
 
