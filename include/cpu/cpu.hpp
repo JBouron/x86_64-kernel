@@ -119,4 +119,12 @@ void writeSegmentReg(SegmentReg const reg, SegmentSel const sel);
 // @param reg: Select which register to read.
 SegmentSel readSegmentReg(SegmentReg const reg);
 
+
+// #############################################################################
+// Control registers
+// #############################################################################
+
+// Read the current value of CR3.
+u64 cr3();
+
 }

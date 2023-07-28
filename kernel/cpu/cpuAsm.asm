@@ -130,3 +130,8 @@ _getSReg _getEs, es
 _getSReg _getFs, fs
 _getSReg _getGs, gs
 _getSReg _getSs, ss
+
+GLOBAL  _readCr3:function
+_readCr3:
+    mov     rax, cr3
+    ret

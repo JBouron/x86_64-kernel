@@ -4,6 +4,10 @@
 #include <util/util.hpp>
 #include <bootstruct.hpp>
 
+// The size of a page in bytes. For now this kernel only supports the default
+// size of 4096 bytes pages.
+static constexpr u64 PAGE_SIZE = 0x1000;
+
 // Custom types for virtual and physical addresses so that it is impossible to
 // accidently assign a virtual address with a physical one and vice-versa.
 // FIXME: There is still some more work to be done on those types, like allowing
@@ -24,6 +28,10 @@ public:
     // Convert to a u64.
     // @return: The u64 equivalent of this address.
     u64 raw() const { return m_addr; }
+
+    // Check if the address is page aligned.
+    // @return: true if the address is page aligned, false otherwise.
+    bool isPageAligned() const { return !(m_addr & (PAGE_SIZE - 1)); }
 
 private:
     // Declare VirAddr and PhyAddr as friends so only those can construct an
@@ -83,7 +91,21 @@ namespace Paging {
 // address X + DIRECT_MAP_START_VADDR.
 static constexpr u64 DIRECT_MAP_START_VADDR = 0xffff800000000000;
 
+// Get the virtual address in the direct map corresponding to the given physical
+// address.
+// @param paddr: The physical address to translate.
+// @return: The direct map address mapped to `paddr`.
+VirAddr toVirAddr(PhyAddr const paddr);
+
 // Initialize paging.
 // This function creates the direct map.
 void Init(BootStruct const& bootStruct);
+
+// Map a region of virtual memory to physical memory in the current address
+// space. The region's size must be a multiple of page size.
+// @param vaddrStart: The start virtual address of the region to be mapped.
+// @param paddrStart: The start physical address at which the region should be
+// mapped.
+// @param nPages: The size of the region in number of pages.
+void map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages);
 }

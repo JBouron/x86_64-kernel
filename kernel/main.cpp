@@ -40,12 +40,12 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     Log::debug("Bootstruct is @{x}", reinterpret_cast<u64>(bootStruct));
     dumpBootStruct(*bootStruct);
 
-    SelfTests::runSelfTests();
-
     Memory::Segmentation::Init();
     Interrupts::Init();
     FrameAlloc::Init(*bootStruct);
     Paging::Init(*bootStruct);
+
+    SelfTests::runSelfTests();
 
     while (true) {
         asm("cli");

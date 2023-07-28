@@ -162,4 +162,12 @@ SegmentSel readSegmentReg(SegmentReg const reg) {
     }
     UNREACHABLE
 }
+
+// Implementation of cr3() in assembly.
+extern "C" u64 _readCr3();
+
+// Read the current value of CR3.
+u64 cr3() {
+    return _readCr3();
+}
 }

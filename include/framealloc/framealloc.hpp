@@ -4,10 +4,7 @@
 
 #include <util/util.hpp>
 #include <bootstruct.hpp>
-
-// The size of a page in bytes. For now this kernel only supports the default
-// size of 4096 bytes pages.
-static constexpr u64 PAGE_SIZE = 0x1000;
+#include <paging/paging.hpp>
 
 namespace FrameAlloc {
 

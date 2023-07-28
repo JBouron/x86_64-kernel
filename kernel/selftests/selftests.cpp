@@ -27,6 +27,7 @@ void runSelfTests() {
 
     runTest(interruptTest);
 
+    runTest(mapTest);
 
     bool const allPassed(TEST_STATS.numTests == TEST_STATS.numPassed);
     if (allPassed) {
