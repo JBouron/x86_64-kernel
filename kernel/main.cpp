@@ -44,6 +44,9 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     Interrupts::Init();
     FrameAlloc::Init(*bootStruct);
     Paging::Init(*bootStruct);
+    // Now that paging and the direct map have been initialized, we can switch
+    // to the proper frame allocator.
+    FrameAlloc::directMapInitialized();
 
     SelfTests::runSelfTests();
 

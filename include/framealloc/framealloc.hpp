@@ -27,6 +27,9 @@ private:
 // allocator is initialized from the bootStruct's physical frame free list.
 void Init(BootStruct const& bootStruct);
 
+// Notify the frame allocator that the direct map has been initialized.
+void directMapInitialized();
+
 // Allocate a physical frame using the global allocator. This function panics if
 // no frame can be allocated.
 // @return: The Frame describing the allocated frame.
