@@ -60,10 +60,19 @@ OBJ_FILES := $(CRTI_O) $(CRTBEGIN_O) \
 # =====
 
 # Build and run the kernel.
-all:
+all: buildincontainer
+	qemu-system-x86_64 $(QEMU_FLAGS)
+
+# Build and run the kernel, waiting for GDB to attach first.
+debug: buildincontainer
+	qemu-system-x86_64 $(QEMU_FLAGS) -S
+
+# Run `make build` in the kernelbuilder container.
+.PHONY: buildincontainer
+buildincontainer:
 	sudo docker run -ti -v $$PWD/:/src/ --user $$UID:$$GID \
 		kernelbuilder make -j32 -C /src build
-	qemu-system-x86_64 $(QEMU_FLAGS)
+
 
 # Build the bootloader and the kernel, must be executed within the kernelbuilder
 # docker container since this require using the cross-compiler.
