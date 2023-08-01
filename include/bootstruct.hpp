@@ -31,10 +31,10 @@ struct BootStruct {
     // to provide the following guarantees:
     //  - The memory map is sorted on base address.
     //  - No two entries in the memory map are overlapping.
-    MemMapEntry const * const memoryMap;
+    MemMapEntry const * memoryMap;
 
     // The size of the memory map, in number of entries.
-    u64 const memoryMapSize;
+    u64 memoryMapSize;
 
     // A node in the physical frame free list created by the bootloader. This
     // list indicates all physical frames that are available for use per the
@@ -53,6 +53,6 @@ struct BootStruct {
     };
 
     // Pointer to the first node in the physical frame free list.
-    PhyFrameFreeListNode const * const phyFrameFreeListHead;
+    PhyFrameFreeListNode const * phyFrameFreeListHead;
 } __attribute__((packed));
 static_assert(sizeof(BootStruct) == 3 * sizeof(u64));

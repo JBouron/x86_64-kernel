@@ -33,6 +33,7 @@ Frame EarlyAllocator::alloc() {
         // We allocated all the frames in the current node, go to the next node
         // for the next allocation.
         m_nextAllocNode = m_nextAllocNode->next;
+        m_nextAllocFrameIndex = 0;
     }
     return res;
 }

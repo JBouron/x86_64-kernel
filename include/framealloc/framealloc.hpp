@@ -29,7 +29,7 @@ private:
 void Init(BootStruct const& bootStruct);
 
 // Run the frame allocation tests.
-void Test();
+void Test(SelfTests::TestRunner& runner);
 
 // Notify the frame allocator that the direct map has been initialized.
 void directMapInitialized();

@@ -17,6 +17,7 @@ static void runSelfTests() {
     Cpu::Test(runner);
     Interrupts::Test(runner);
     Paging::Test(runner);
+    FrameAlloc::Test(runner);
 
     runner.printSummary();
 }
