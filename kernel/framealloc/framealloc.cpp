@@ -32,6 +32,10 @@ void Init(BootStruct const& bootStruct) {
     Log::debug("Initialized early frame allocator");
 }
 
+void Test(__attribute((unused)) SelfTests::TestRunner& runner) {
+    // TODO: Add frame alloc tests.
+}
+
 // Notify the frame allocator that the direct map has been initialized.
 void directMapInitialized() {
     static bool embAllocatorInit = false;

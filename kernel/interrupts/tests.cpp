@@ -1,9 +1,7 @@
-// Tests for interrupt handling.
-
-#include <selftests/selftests.hpp>
+// Interrupt related tests.
 #include <interrupts/interrupts.hpp>
 
-namespace SelfTests {
+namespace Interrupts {
 
 // A few interrupt handlers for the interruptTest functions. Those handlers are
 // written in assembly and simply set the flag defined below to the value of the
@@ -20,7 +18,7 @@ extern "C" {
 
 // Simple test where we raise an interrupt and verify that the correct handler
 // has been called.
-TestResult interruptTest() {
+SelfTests::TestResult interruptTest() {
     // Save the current IDTR to be restored later.
     Cpu::TableDesc const origIdt(Cpu::sidt());
 
@@ -66,6 +64,12 @@ TestResult interruptTest() {
     asm("int $3");
     TEST_ASSERT(interruptTestFlag == 3);
 
-    return TEST_SUCCESS;
+    return SelfTests::TestResult::Success;
 }
+
+// Run the interrupt tests.
+void Test(SelfTests::TestRunner& runner) {
+    RUN_TEST(runner, interruptTest);
+}
+
 }

@@ -3,6 +3,7 @@
 #pragma once
 #include <util/util.hpp>
 #include <bootstruct.hpp>
+#include <selftests/selftests.hpp>
 
 // The size of a page in bytes. For now this kernel only supports the default
 // size of 4096 bytes pages.
@@ -105,6 +106,9 @@ VirAddr toVirAddr(PhyAddr const paddr);
 // Initialize paging.
 // This function creates the direct map.
 void Init(BootStruct const& bootStruct);
+
+// Run paging tests.
+void Test(SelfTests::TestRunner& runner);
 
 // Map a region of virtual memory to physical memory in the current address
 // space. The region's size must be a multiple of page size.

@@ -2,6 +2,7 @@
 
 #pragma once
 #include <cpu/cpu.hpp>
+#include <selftests/selftests.hpp>
 
 namespace Interrupts {
 
@@ -38,5 +39,8 @@ static_assert(sizeof(Descriptor) == 16);
 
 // Initialize interrupts.
 void Init();
+
+// Run the interrupt tests.
+void Test(SelfTests::TestRunner& runner);
 
 }

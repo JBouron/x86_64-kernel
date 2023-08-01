@@ -1,13 +1,11 @@
-// CPU functions related tests.
-
-#include <selftests/selftests.hpp>
+// Tests for the Cpu namespace.
 #include <cpu/cpu.hpp>
 
-namespace SelfTests {
+namespace Cpu {
 
 // Test the Cpu::lgdt and Cpu::sgdt macros. We expect the sgdt() to return the
 // last TableDesc loaded with lgdt().
-TestResult lgdtSgdtTest() {
+SelfTests::TestResult lgdtSgdtTest() {
     // A dummy GDT to be used for this test. The actual content of the gdt do
     // not matter, as long as all entries are marked as present.
     static u64 dummyGdt[] = { 0x0, (1ULL << 47), (1ULL << 47), (1ULL << 47) };
@@ -27,12 +25,12 @@ TestResult lgdtSgdtTest() {
 
     // Restore the original GDT.
     Cpu::lgdt(origGdt);
-    return TEST_SUCCESS;
+    return SelfTests::TestResult::Success;
 }
 
 // Test the Cpu::readSegmentReg() and Cpu::writeSegmentReg() functions. We
 // expect the read function to return the last written value.
-TestResult readWriteSegmentRegTest() {
+SelfTests::TestResult readWriteSegmentRegTest() {
     // Get a copy of the current GDT as well as all the segment registers.
     Cpu::TableDesc const origGdt(Cpu::sgdt());
     Cpu::SegmentSel const origCs(Cpu::readSegmentReg(Cpu::SegmentReg::Cs));
@@ -77,20 +75,20 @@ TestResult readWriteSegmentRegTest() {
         Cpu::writeSegmentReg(reg, newSel2);
         TEST_ASSERT(Cpu::readSegmentReg(reg) == newSel2);
 
-        return TEST_SUCCESS;
+        return SelfTests::TestResult::Success;
     });
 
-    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Ds) == TEST_SUCCESS);
-    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Es) == TEST_SUCCESS);
-    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Fs) == TEST_SUCCESS);
-    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Gs) == TEST_SUCCESS);
-    TEST_ASSERT(testDataSeg(Cpu::SegmentReg::Ss) == TEST_SUCCESS);
+    TEST_ASSERT(testDataSeg(SegmentReg::Ds) == SelfTests::TestResult::Success);
+    TEST_ASSERT(testDataSeg(SegmentReg::Es) == SelfTests::TestResult::Success);
+    TEST_ASSERT(testDataSeg(SegmentReg::Fs) == SelfTests::TestResult::Success);
+    TEST_ASSERT(testDataSeg(SegmentReg::Gs) == SelfTests::TestResult::Success);
+    TEST_ASSERT(testDataSeg(SegmentReg::Ss) == SelfTests::TestResult::Success);
 
-    return TEST_SUCCESS;
+    return SelfTests::TestResult::Success;
 }
 
 // Test for the lidt() and sidt() functions.
-TestResult lidtSidtTest() {
+SelfTests::TestResult lidtSidtTest() {
     Cpu::TableDesc const origIdt(Cpu::sidt());
 
     static u64 dummyIdt[] = { 0x0, 0x0, 0x0 };
@@ -102,7 +100,13 @@ TestResult lidtSidtTest() {
 
     // Restore the original IDTR.
     Cpu::lidt(origIdt);
-    return TEST_SUCCESS;
+    return SelfTests::TestResult::Success;
 }
 
+// Run the tests under this namespace.
+void Test(SelfTests::TestRunner& runner) {
+    RUN_TEST(runner, lgdtSgdtTest);
+    RUN_TEST(runner, readWriteSegmentRegTest);
+    RUN_TEST(runner, lidtSidtTest);
+}
 }

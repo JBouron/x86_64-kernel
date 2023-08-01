@@ -5,6 +5,7 @@
 #include <util/util.hpp>
 #include <bootstruct.hpp>
 #include <paging/paging.hpp>
+#include <selftests/selftests.hpp>
 
 namespace FrameAlloc {
 
@@ -26,6 +27,9 @@ private:
 // @param bootStruct: The bootStruct passed by the bootloader. The frame
 // allocator is initialized from the bootStruct's physical frame free list.
 void Init(BootStruct const& bootStruct);
+
+// Run the frame allocation tests.
+void Test();
 
 // Notify the frame allocator that the direct map has been initialized.
 void directMapInitialized();

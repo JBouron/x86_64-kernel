@@ -10,6 +10,17 @@
 #include <framealloc/framealloc.hpp>
 #include <paging/paging.hpp>
 
+static void runSelfTests() {
+    Log::info("Running self-tests:");
+    SelfTests::TestRunner runner;
+
+    Cpu::Test(runner);
+    Interrupts::Test(runner);
+    Paging::Test(runner);
+
+    runner.printSummary();
+}
+
 // Log the bootstruct's content.
 // @param bootStruct: The bootstruct to dump into the logs.
 static void dumpBootStruct(BootStruct const& bootStruct) {
@@ -48,7 +59,7 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     // to the proper frame allocator.
     FrameAlloc::directMapInitialized();
 
-    SelfTests::runSelfTests();
+    runSelfTests();
 
     while (true) {
         asm("cli");

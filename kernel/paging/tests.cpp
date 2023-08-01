@@ -1,12 +1,10 @@
-// Tests for paging functions.
-
-#include <selftests/selftests.hpp>
+// Paging related tests.
 #include <paging/paging.hpp>
 
-namespace SelfTests {
+namespace Paging {
 
 // Test for the Paging::map() function.
-TestResult mapTest() {
+SelfTests::TestResult mapTest() {
     // For this test we map the bootloader's memory to some virtual address,
     // then we read both from the mapped address and the direct map and compare
     // what we read.
@@ -26,7 +24,13 @@ TestResult mapTest() {
         TEST_ASSERT(*(readIdPtr++)==*(readMapPtr++));
     }
     // FIXME: Eventually we should unmap the pages here.
-    return TEST_SUCCESS;
+    return SelfTests::TestResult::Success;
+}
+
+
+// Run paging tests.
+void Test(SelfTests::TestRunner& runner) {
+    RUN_TEST(runner, mapTest);
 }
 
 }

@@ -1,48 +1,65 @@
 // Kernel runtime self-tests.
-
 #pragma once
 #include <logging/log.hpp>
 
 namespace SelfTests {
 
-// Run all runtime kernel self-tests.
-void runSelfTests();
-
 // The result of a test run.
-using TestResult = bool;
-TestResult const TEST_SUCCESS = true;
-TestResult const TEST_FAILURE = false;
+enum class TestResult {
+    Success,
+    Failure,
+};
 
-// A test function is a function taking no arguments and returning a TestResult.
-// If the test is passing it should return TEST_SUCCESS, otherwise it should
-// return TEST_FAILURE.
-using TestFunction = TestResult(*)();
+// Forward decl for TestFunction.
+class TestRunner;
+// A test function. Runs a test and indicates, through the return value, if the
+// test was successful or not.
+using TestFunction = TestResult (*)(void);
 
-// Run a single test function in a test harness. Output the result of the test.
-// This macro is only meant to be used by actual test code.
+// Helper class to run tests and gather statistics, e.g. number of tests passed,
+// failed, ...
+class TestRunner {
+public:
+    // Create a TestRunner.
+    TestRunner();
+
+    // Run a single test with the TestRunner. You typically want to use the
+    // RUN_TEST macro defined below instead as it automatically figures out the
+    // name of the test from the func argument.
+    // @param testName: The name of the test.
+    // @param testFunc: The test function to run.
+    void _runTest(char const * const testName, TestFunction const& func);
+
+    // Print a summary of the passed and failed tests.
+    void printSummary() const;
+
+private:
+    // The total number of tests ran so far.
+    u64 m_numTestsRan;
+    // The total number of tests that passed so far.
+    u64 m_numTestsPassed;
+};
+
+// Run a single test function with the TestRunner.
+// @param testRunner: Reference to the TestRunner instance under which the test
+// should be ran.
 // @param testFunc: The test function to run.
-#define runTest(test)               \
-    do {                            \
-        extern TestResult test();   \
-        _runTest(#test, test);      \
+#define RUN_TEST(testRunner, testFunc)              \
+    do {                                            \
+        testRunner._runTest(#testFunc, testFunc);   \
     } while (0)
 
-// Helper function for the runTest macro.
-// @param testName: The name of the test.
-// @param testFunc: The test function to run.
-void _runTest(char const * const testName, TestFunction const& test);
-
-// Some helper macros for tests.
+// Some helper macros for test functions.
 
 // Assert on a condition. If the condition is false, logs an assert failure and
-// return TEST_FAILURE.
+// return TestResult::Failure.
 // @param cond: The condition to assert on.
 #define TEST_ASSERT(cond)                                       \
     do {                                                        \
         if (!(cond)) {                                          \
             char const * const condStr(#cond);                  \
             Log::crit("    Test assert failed: {}", condStr);   \
-            return TEST_FAILURE;                                \
+            return SelfTests::TestResult::Failure;              \
         }                                                       \
     } while (0)
 

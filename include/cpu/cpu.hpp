@@ -3,8 +3,12 @@
 
 #pragma once
 #include <util/util.hpp>
+#include <selftests/selftests.hpp>
 
 namespace Cpu {
+
+// Run the tests under this namespace.
+void Test(SelfTests::TestRunner& runner);
 
 // #############################################################################
 // Types and functions related to system tables, e.g. GDT, LDT, IDT, ...
