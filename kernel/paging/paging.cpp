@@ -174,6 +174,8 @@ void map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages) {
         PhyAddr const paddr(paddrStart.raw() + i * PAGE_SIZE);
         pml4->map(vaddr, paddr);
     }
+    // Reload CR3.
+    Cpu::writeCr3(Cpu::cr3());
 }
 
 }

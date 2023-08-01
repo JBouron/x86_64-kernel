@@ -131,4 +131,8 @@ SegmentSel readSegmentReg(SegmentReg const reg);
 // Read the current value of CR3.
 u64 cr3();
 
+// Write the CR3 register.
+// @param value: The value to be written in the cr3 register.
+void writeCr3(u64 const value);
+
 }

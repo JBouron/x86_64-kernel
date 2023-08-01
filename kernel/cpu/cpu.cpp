@@ -170,4 +170,13 @@ extern "C" u64 _readCr3();
 u64 cr3() {
     return _readCr3();
 }
+
+// Implementation of writeCt3() in assembly.
+extern "C" void _writeCr3(u64);
+
+// Write the CR3 register.
+// @param value: The value to be written in the cr3 register.
+void writeCr3(u64 const value) {
+    _writeCr3(value);
+}
 }

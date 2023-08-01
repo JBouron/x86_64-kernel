@@ -135,3 +135,8 @@ GLOBAL  _readCr3:function
 _readCr3:
     mov     rax, cr3
     ret
+
+GLOBAL  _writeCr3:function
+_writeCr3:
+    mov     cr3, rdi
+    ret
