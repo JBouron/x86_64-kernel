@@ -1,5 +1,6 @@
 // Frame allocator interface and implementation types.
 #include <framealloc/framealloc.hpp>
+#include "freelist.hpp"
 
 namespace FrameAlloc {
 
@@ -93,22 +94,8 @@ public:
     virtual void free(Frame const& frame);
 
 private:
-    // An entry in the free list. This contain the metadata about a region of
-    // continuous physical frames. This struct is stored starting at the first
-    // byte of the first frame of this region, this is why there is no `base`
-    // member, the base is `this`.
-    struct Entry {
-        // The number of free frames in this region.
-        u64 numFrames;
-        // Pointer to the next entry.
-        Entry *next;
-
-        // Return a pointer to the last available frame in this region.
-        VirAddr lastFrame() const;
-    };
-
-    // Pointer to the head entry of the free-list.
-    Entry *m_head;
+    // Free-list of physical page frames.
+    EmbeddedFreeList m_freeList;
 
     // Indicate if a call to insertFreeRegion() is currently allowed. Once
     // alloc() or free() is called, insertFreeRegion() is not longer allowed to

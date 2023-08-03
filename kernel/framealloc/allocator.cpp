@@ -76,8 +76,7 @@ void EarlyAllocator::initEmbeddedFreeListAllocator(
 
 // Create an empty EmbeddedFreeListAllocator. An EmbeddedFreeListAllocator is
 // meant to be constructed iteratively.
-EmbeddedFreeListAllocator::EmbeddedFreeListAllocator() :
-    m_head(nullptr), m_allowInsert(true) {}
+EmbeddedFreeListAllocator::EmbeddedFreeListAllocator() : m_allowInsert(true) {}
 
 // Add a region of free frames to the allocator. Note: this will write the into
 // the frame starting at addr. This function can only be called before calling
@@ -89,18 +88,7 @@ void EmbeddedFreeListAllocator::insertFreeRegion(VirAddr const& addr,
     if (!m_allowInsert) {
         PANIC("Called insertFreeRegion() after alloc() or free()");
     }
-
-    // Initialize the new embedded entry.
-    Entry * const newEntry(addr.ptr<Entry>());
-    newEntry->numFrames = numFrames;
-    newEntry->next = nullptr;
-
-    // Update the next pointer of the last entry in the free-list.
-    Entry ** insertDest(&m_head);
-    while (!!*insertDest && !!(*insertDest)->next) {
-        insertDest = &(*insertDest)->next;
-    }
-    *insertDest = newEntry;
+    m_freeList.insert(addr, numFrames * PAGE_SIZE);
 }
 
 // Allocate a new physical frame.
@@ -108,39 +96,13 @@ void EmbeddedFreeListAllocator::insertFreeRegion(VirAddr const& addr,
 // allocated this function should panic. FIXME: Eventually we should handle OOM
 // situation better than a panic.
 Frame EmbeddedFreeListAllocator::alloc() {
-    VirAddr const res(m_head->lastFrame());
-    // Update the counter on head.
-    if (!(--m_head->numFrames)) {
-        // This was the last frame in the head entry, update head to point to
-        // head's next.
-        m_head = m_head->next;
-    }
-    return Frame(res.raw() - Paging::DIRECT_MAP_START_VADDR);
+    return m_freeList.alloc(PAGE_SIZE).raw() - Paging::DIRECT_MAP_START_VADDR;
 }
 
 // Free a physical frame. This operation is not implemented by this allocator
 // (see comment above class definition) and as such panics.
 void EmbeddedFreeListAllocator::free(Frame const& frame) {
-    VirAddr const frameVAddr(Paging::toVirAddr(frame.phyOffset()));
-    // Insert in the free-list.
-    Entry * const frameEntry(frameVAddr.ptr<Entry>());
-    Entry * ptr(m_head);
-    Entry ** toUpdate(&m_head);
-    while (!!ptr && ptr < frameEntry) {
-        toUpdate = &ptr->next;
-        ptr = ptr->next;
-    }
-    ASSERT(ptr != frameEntry);
-    frameEntry->numFrames = 1;
-    frameEntry->next = ptr;
-    *toUpdate = frameEntry;
-    // TODO: Implement Entry merging.
-}
-
-// Return a pointer to the last available frame in this region.
-VirAddr EmbeddedFreeListAllocator::Entry::lastFrame() const {
-    u64 const thisPtr(reinterpret_cast<u64>(this));
-    return thisPtr + (numFrames - 1) * PAGE_SIZE;
+    m_freeList.free(Paging::toVirAddr(frame.phyOffset()), PAGE_SIZE);
 }
 
 }
