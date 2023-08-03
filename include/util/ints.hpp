@@ -23,3 +23,9 @@ template<typename T>
 inline T max(T const& a, T const& b) {
     return (a > b) ? a : b;
 }
+
+// Compute the difference between two unsigned values.
+template<typename T>
+inline T absdiff(T const& a, T const& b) {
+    return (a > b) ? (a - b) : (b - a);
+}
