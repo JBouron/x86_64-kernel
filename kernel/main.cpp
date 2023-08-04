@@ -9,6 +9,7 @@
 #include <bootstruct.hpp>
 #include <framealloc/framealloc.hpp>
 #include <paging/paging.hpp>
+#include <util/result.hpp>
 
 static void runSelfTests() {
     Log::info("Running self-tests:");
@@ -18,6 +19,7 @@ static void runSelfTests() {
     Interrupts::Test(runner);
     Paging::Test(runner);
     FrameAlloc::Test(runner);
+    Result::Test(runner);
 
     runner.printSummary();
 }
