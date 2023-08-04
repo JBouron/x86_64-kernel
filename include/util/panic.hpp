@@ -27,11 +27,12 @@ void _panic(char const * const fileName,
             char const * const fmt,
             T const&... args) {
     Log::crit("==================== PANIC ====================");
-    Log::crit("  Location: {}:{} in {}", fileName, lineNumber, funcName);
+    Log::crit("Location: {}:{}", fileName, lineNumber);
+    Log::crit("Function: {}", funcName);
     // Using fmtWithPrefix and manually inserting the prefix is a bit hacky
     // here. Oh well...
     Log::fmtWithPrefixAndColor(Logging::Logger::Color::Crit,
-                               "[CRIT]   Reason: ",
+                               "[CRIT] Reason  : ",
                                fmt,
                                args...);
 
