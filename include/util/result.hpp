@@ -51,7 +51,7 @@ public:
 
     // Shortcut for ok() when a Res<T> is used in a condition.
     // @return: true if this Res<T> contains a value, false otherwise.
-    operator bool() const {
+    explicit operator bool() const {
         return ok();
     }
 
