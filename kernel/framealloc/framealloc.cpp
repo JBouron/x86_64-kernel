@@ -49,8 +49,9 @@ void directMapInitialized() {
 
 // Allocate a physical frame using the global allocator. This function panics if
 // no frame can be allocated.
-// @return: The Frame describing the allocated frame.
-Frame alloc() {
+// @return: The Frame describing the allocated frame. If the allocation failed
+// return an error instead.
+Res<Frame> alloc() {
     if (!GLOBAL_ALLOCATOR) {
         PANIC("Attempt to call FrameAlloc::alloc() before calling Init()!");
     }

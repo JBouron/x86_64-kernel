@@ -1,6 +1,7 @@
 // Definition of the EmbeddedFreeList class.
 #pragma once
 #include <paging/paging.hpp>
+#include <util/result.hpp>
 
 namespace FrameAlloc {
 
@@ -27,9 +28,9 @@ public:
 
     // Allocate memory from the free-list.
     // @param size: The size of the allocation in bytes.
-    // @return: The virtual address of the allocated memory.
-    // FIXME: Figure out what to do in case the memory cannot be allocated.
-    VirAddr alloc(u64 const size);
+    // @return: The virtual address of the allocated memory. If the allocation
+    // failed then return an Error.
+    Res<VirAddr> alloc(u64 const size);
 
     // Free memory that was allocated from this free-list, adds this memory back
     // to the free-list. The address passed as argument *must* have come from a

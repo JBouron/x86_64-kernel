@@ -13,15 +13,14 @@ EarlyAllocator::EarlyAllocator(BootStruct const& bootStruct) :
 
 // Allocate a new physical frame.
 // @return: The Frame object describing the allocated frame. If no frame can be
-// allocated this function should panic. FIXME: Eventually we should handle OOM
-// situation better than a panic.
-Frame EarlyAllocator::alloc() {
+// allocated this function returns an error.
+Res<Frame> EarlyAllocator::alloc() {
     // Frame allocation in the EarlyAllocator is simple: each allocation returns
     // the first available frame in the free-list. To keep track of the next
     // available frame we keep track of the current node (m_nextAllocNode) and
     // the index of the next free frame in that node (m_nextAllocFrameIndex).
     if (!m_nextAllocNode) {
-        PANIC("No physical frame available for allocation");
+        return Error::OutOfPhysicalMemory;
     }
     // At this point, m_nextAllocNode is guaranteed to have at least one
     // available frame.
@@ -93,10 +92,14 @@ void EmbeddedFreeListAllocator::insertFreeRegion(VirAddr const& addr,
 
 // Allocate a new physical frame.
 // @return: The Frame object describing the allocated frame. If no frame can be
-// allocated this function should panic. FIXME: Eventually we should handle OOM
-// situation better than a panic.
-Frame EmbeddedFreeListAllocator::alloc() {
-    return m_freeList.alloc(PAGE_SIZE).raw() - Paging::DIRECT_MAP_START_VADDR;
+// allocated this function returns an error.
+Res<Frame> EmbeddedFreeListAllocator::alloc() {
+    Res<VirAddr> const allocResult(m_freeList.alloc(PAGE_SIZE));
+    if (!allocResult) {
+        return allocResult.error();
+    } else {
+        return allocResult.value().raw() - Paging::DIRECT_MAP_START_VADDR;
+    }
 }
 
 // Free a physical frame. This operation is not implemented by this allocator

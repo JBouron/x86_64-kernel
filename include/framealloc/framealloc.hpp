@@ -3,6 +3,7 @@
 #pragma once
 
 #include <util/util.hpp>
+#include <util/result.hpp>
 #include <bootstruct.hpp>
 #include <paging/paging.hpp>
 #include <selftests/selftests.hpp>
@@ -36,8 +37,9 @@ void directMapInitialized();
 
 // Allocate a physical frame using the global allocator. This function panics if
 // no frame can be allocated.
-// @return: The Frame describing the allocated frame.
-Frame alloc();
+// @return: The Frame describing the allocated frame. If the allocation failed
+// return an error instead.
+Res<Frame> alloc();
 
 // Free an allocated physical frame.
 // @param Frame: A Frame describing the physical frame to be freed.

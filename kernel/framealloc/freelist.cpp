@@ -65,9 +65,9 @@ void EmbeddedFreeList::insert(VirAddr const startAddr, u64 const size) {
 
 // Allocate memory from the free-list.
 // @param size: The size of the allocation in bytes.
-// @return: The virtual address of the allocated memory.
-// FIXME: Figure out what to do in case the memory cannot be allocated.
-VirAddr EmbeddedFreeList::alloc(u64 const size) {
+// @return: The virtual address of the allocated memory. If the allocation
+// failed then return an Error.
+Res<VirAddr> EmbeddedFreeList::alloc(u64 const size) {
     // FIXME: There oughta be a minimum allocation size.
     Node** prevNext(&m_head);
     Node* curr(m_head);
@@ -89,9 +89,7 @@ VirAddr EmbeddedFreeList::alloc(u64 const size) {
         prevNext = &curr->next;
         curr = curr->next;
     }
-
-    PANIC("Empty free list");
-    UNREACHABLE
+    return Error::OutOfPhysicalMemory;
 }
 
 // Free memory that was allocated from this free-list, adds this memory back to

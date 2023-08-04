@@ -33,7 +33,12 @@ extern "C" {
 // contained in the physical addresses that are memory mapped already (e.g.
 // under directMapMaxMappedOffset).
 extern "C" u64 allocFrameFromAssembly() {
-    Frame const frame(FrameAlloc::alloc());
+    Res<Frame> const allocRes(FrameAlloc::alloc());
+    if (!allocRes) {
+        // There is nothing we can do in case of a failure at this point.
+        PANIC("Failed to allocate frame while initializing direct map");
+    }
+    Frame const& frame(allocRes.value());
     u64 const offset(frame.phyOffset());
     if (offset <= directMapMaxMappedOffset) {
         return offset + DIRECT_MAP_START_VADDR;
@@ -130,7 +135,12 @@ struct PageTable {
             entry.addr = paddr.raw() >> 12;
         } else {
             if (!entry.present) {
-                Frame const nextLevel(FrameAlloc::alloc());
+                Res<Frame> const allocRes(FrameAlloc::alloc());
+                if (!allocRes) {
+                    // FIXME: Gracefully handle error here.
+                    PANIC("Failed to allocate page table");
+                }
+                Frame const& nextLevel(allocRes.value());
                 entry.present = true;
                 entry.writable = true;
                 entry.addr = nextLevel.phyOffset() >> 12;

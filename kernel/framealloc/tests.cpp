@@ -41,15 +41,19 @@ SelfTests::TestResult earlyAllocatorTest() {
     // The EarlyAllocator being tested.
     EarlyAllocator allocator(bootstruct);
 
-    TEST_ASSERT(allocator.alloc().phyOffset() == 0x0);
-    TEST_ASSERT(allocator.alloc().phyOffset() == 0x10000);
-    TEST_ASSERT(allocator.alloc().phyOffset() == 0x20000);
-    TEST_ASSERT(allocator.alloc().phyOffset() == 0x21000);
-    TEST_ASSERT(allocator.alloc().phyOffset() == 0x30000);
-    TEST_ASSERT(allocator.alloc().phyOffset() == 0x31000);
-    TEST_ASSERT(allocator.alloc().phyOffset() == 0x32000);
-    // FIXME: Once we gracefully handle the OOM case, we shoud add a test case
-    // that the next call to alloc() fails.
+    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x0);
+    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x10000);
+    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x20000);
+    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x21000);
+    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x30000);
+    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x31000);
+    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x32000);
+
+    // No more memory, the next allocation should fail.
+    Res<Frame> const last(allocator.alloc());
+    TEST_ASSERT(!last.ok());
+    TEST_ASSERT(last.error() == Error::OutOfPhysicalMemory);
+
     return SelfTests::TestResult::Success;
 }
 
@@ -167,14 +171,18 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
 
     VirAddr allocations[4];
     for (u64 i(0); i < numAllocs; ++i) {
-        allocations[i] = freeList.alloc(allocSize);
+        Res<VirAddr> const res(freeList.alloc(allocSize));
+        TEST_ASSERT(res.ok());
+        allocations[i] = res.value();
     }
 
     // Sanity check: The head of the EmbeddedFreeList should be nullptr.
     TEST_ASSERT(!freeList.m_head);
 
-    // FIXME: Once we handle the empty free list case properly we need to add a
-    // test case that the next call to alloc() fails.
+    // Trying to allocate once more is expected to fail.
+    Res<VirAddr> const expFail(freeList.alloc(allocSize));
+    TEST_ASSERT(!expFail.ok());
+    TEST_ASSERT(expFail.error() == Error::OutOfPhysicalMemory);
 
     // Check that no two calls to alloc() returned the same address and that
     // each address' offset from the buffer is a multiple of the allocation
@@ -220,6 +228,11 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
     TEST_ASSERT(!!freeList.m_head);
     TEST_ASSERT(freeList.m_head->size == bufSize);
     TEST_ASSERT(!freeList.m_head->next);
+
+    // Try to allocate bufSize at once.
+    Res<VirAddr> const allBuf(freeList.alloc(bufSize));
+    TEST_ASSERT(allBuf.ok());
+    TEST_ASSERT(!freeList.m_head);
 
     return SelfTests::TestResult::Success;
 }

@@ -9,9 +9,8 @@ class Allocator {
 public:
     // Allocate a new physical frame.
     // @return: The Frame object describing the allocated frame. If no frame can
-    // be allocated this function should panic. FIXME: Eventually we should
-    // handle OOM situation better than a panic.
-    virtual Frame alloc() = 0;
+    // be allocated this function returns an error.
+    virtual Res<Frame> alloc() = 0;
 
     // Free a physical frame.
     // @param frame: The Frame describing the physical frame to be freed.
@@ -42,9 +41,8 @@ public:
 
     // Allocate a new physical frame.
     // @return: The Frame object describing the allocated frame. If no frame can
-    // be allocated this function should panic. FIXME: Eventually we should
-    // handle OOM situation better than a panic.
-    virtual Frame alloc();
+    // be allocated this function returns an error.
+    virtual Res<Frame> alloc();
 
     // Free a physical frame. This operation is not implemented by this
     // allocator (see comment above class definition) and as such panics.
@@ -85,9 +83,8 @@ public:
 
     // Allocate a new physical frame.
     // @return: The Frame object describing the allocated frame. If no frame can
-    // be allocated this function should panic. FIXME: Eventually we should
-    // handle OOM situation better than a panic.
-    virtual Frame alloc();
+    // be allocated this function returns an error.
+    virtual Res<Frame> alloc();
 
     // Free a physical frame. This operation is not implemented by this
     // allocator (see comment above class definition) and as such panics.
