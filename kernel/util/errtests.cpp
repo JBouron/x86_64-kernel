@@ -9,6 +9,8 @@ SelfTests::TestResult errBasicTest() {
     Err const withError(Error::Test);
     TEST_ASSERT(!!withError);
     TEST_ASSERT(withError.error() == Error::Test);
+    Err const defaultErr;
+    TEST_ASSERT(!defaultErr);
     return SelfTests::TestResult::Success;
 }
 

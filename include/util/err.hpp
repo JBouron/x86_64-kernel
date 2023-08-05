@@ -18,6 +18,9 @@ inline Ok_t Ok;
 // value.
 class Err {
 public:
+    // A default Err does not contain an error.
+    Err() : m_isError(false) {}
+
     // Construct an Err that does not contain an Error.
     Err(Ok_t const) : m_isError(false) {}
     
