@@ -82,6 +82,12 @@ public:
     // @param addr: The initial value of the address.
     VirAddr(u64 const addr) : AddrBase<VirAddr>(addr) {}
 
+    // Construct a VirAddr from a pointer. The resulting VirAddr has the same
+    // address as the pointer.
+    // @param p: The pointer to construct from.
+    template<typename T>
+    VirAddr(T const* const p) : AddrBase<VirAddr>(reinterpret_cast<u64>(p)) {}
+
     // Cast this address to a pointer to T.
     // @return: The pointer to T equivalent to this address.
     template<typename T>

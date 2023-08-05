@@ -117,13 +117,13 @@ EmbeddedFreeList::Node* EmbeddedFreeList::Node::fromVirAddr(VirAddr const addr,
 // Get the base address of this memory region, that is the address of the first
 // byte contained in the region.
 VirAddr EmbeddedFreeList::Node::base() const {
-    return reinterpret_cast<u64>(this);
+    return this;
 }
 
 // Get the end address of this memory region, that is the address of the last
 // byte contained in the region.
 VirAddr EmbeddedFreeList::Node::end() const {
-    return reinterpret_cast<u64>(this) + size - 1;
+    return reinterpret_cast<u8 const*>(this) + size - 1;
 }
 
 // Check if this memory region overlaps with another. That is if there exists at

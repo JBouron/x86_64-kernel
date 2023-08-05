@@ -62,32 +62,32 @@ SelfTests::TestResult earlyAllocatorTest() {
 SelfTests::TestResult embeddedFreeListNodeTest() {
     u8 buf[64] = {0};
     EmbeddedFreeList::Node const * const node(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf), 64));
-    TEST_ASSERT(node->base().raw() == reinterpret_cast<u64>(buf));
-    TEST_ASSERT(node->end().raw() == reinterpret_cast<u64>(buf) + 64 - 1);
+        EmbeddedFreeList::Node::fromVirAddr(buf, 64));
+    TEST_ASSERT(node->base() == buf);
+    TEST_ASSERT(node->end() == buf + 64 - 1);
     TEST_ASSERT(node->size == 64);
     return SelfTests::TestResult::Success;
 }
 
 // Check the overlapsWith function.
 SelfTests::TestResult embeddedFreeListNodeOverlapTest() {
-    u8 buf[64];
+    u8 buf[64] = {0};
     EmbeddedFreeList::Node const * const node1(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf), 32));
+        EmbeddedFreeList::Node::fromVirAddr(buf, 32));
     EmbeddedFreeList::Node const * const node2(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf+32), 32));
+        EmbeddedFreeList::Node::fromVirAddr(buf + 32, 32));
     TEST_ASSERT(node1->overlapsWith(*node1));
     TEST_ASSERT(node2->overlapsWith(*node2));
     TEST_ASSERT(!node1->overlapsWith(*node2));
     TEST_ASSERT(!node2->overlapsWith(*node1));
     EmbeddedFreeList::Node const * const node3(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf+31), 32));
+        EmbeddedFreeList::Node::fromVirAddr(buf + 31, 32));
     TEST_ASSERT(node1->overlapsWith(*node3));
     TEST_ASSERT(node3->overlapsWith(*node1));
     TEST_ASSERT(node2->overlapsWith(*node3));
     TEST_ASSERT(node3->overlapsWith(*node2));
     EmbeddedFreeList::Node const * const node4(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf+8), 16));
+        EmbeddedFreeList::Node::fromVirAddr(buf + 8, 16));
     TEST_ASSERT(node1->overlapsWith(*node4));
     TEST_ASSERT(node4->overlapsWith(*node1));
     return SelfTests::TestResult::Success;
@@ -95,21 +95,21 @@ SelfTests::TestResult embeddedFreeListNodeOverlapTest() {
 
 // Check the adjacentWith function.
 SelfTests::TestResult embeddedFreeListNodeAdjacentWithTest() {
-    u8 buf[64];
+    u8 buf[64] = {0};
     // Positive tests.
     EmbeddedFreeList::Node const * const node1(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf), 16));
+        EmbeddedFreeList::Node::fromVirAddr(buf, 16));
     EmbeddedFreeList::Node const * const node2(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf+16), 16));
+        EmbeddedFreeList::Node::fromVirAddr(buf + 16, 16));
     TEST_ASSERT(node1->adjacentWith(*node2));
     TEST_ASSERT(node2->adjacentWith(*node1));
     // Negative tests.
     EmbeddedFreeList::Node const * const node3(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf+16), 16));
+        EmbeddedFreeList::Node::fromVirAddr(buf + 16, 16));
     EmbeddedFreeList::Node const * const node4(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf), 15));
+        EmbeddedFreeList::Node::fromVirAddr(buf, 15));
     EmbeddedFreeList::Node const * const node5(
-        EmbeddedFreeList::Node::fromVirAddr(reinterpret_cast<u64>(buf+33), 16));
+        EmbeddedFreeList::Node::fromVirAddr(buf + 33, 16));
     TEST_ASSERT(!node3->adjacentWith(*node4));
     TEST_ASSERT(!node3->adjacentWith(*node5));
     TEST_ASSERT(!node4->adjacentWith(*node3));
@@ -130,7 +130,7 @@ SelfTests::TestResult embeddedFreeListInsertTest() {
 
     // Insert even elems.
     for (u64 i(0); i < numNodes; i += 2) {
-        freeList.insert(reinterpret_cast<u64>(buf + nodeSize * i), nodeSize);
+        freeList.insert(buf + nodeSize * i, nodeSize);
     }
 
     EmbeddedFreeList::Node* const first(freeList.m_head);
@@ -142,7 +142,7 @@ SelfTests::TestResult embeddedFreeListInsertTest() {
 
     // Insert odd nodes.
     for (u64 i(1); i < numNodes; i += 2) {
-        freeList.insert(reinterpret_cast<u64>(buf + nodeSize * i), nodeSize);
+        freeList.insert(buf + nodeSize * i, nodeSize);
     }
 
     TEST_ASSERT(freeList.m_head->size == bufSize);
@@ -159,7 +159,7 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
     EmbeddedFreeList freeList;
 
     // Initialize the free list with the full buffer as free.
-    freeList.insert(reinterpret_cast<u64>(buf), bufSize);
+    freeList.insert(buf, bufSize);
     // Sanity check.
     TEST_ASSERT(freeList.m_head->size == bufSize);
     TEST_ASSERT(!freeList.m_head->next);
@@ -187,7 +187,7 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
     // Check that no two calls to alloc() returned the same address and that
     // each address' offset from the buffer is a multiple of the allocation
     // size.
-    VirAddr const bufVirAddr(reinterpret_cast<u64>(buf));
+    VirAddr const bufVirAddr(buf);
     for (u64 i(0); i < numAllocs; ++i) {
         VirAddr const& addr(allocations[i]);
         TEST_ASSERT(bufVirAddr <= addr);
