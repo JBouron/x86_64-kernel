@@ -190,11 +190,10 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
     VirAddr const bufVirAddr(reinterpret_cast<u64>(buf));
     for (u64 i(0); i < numAllocs; ++i) {
         VirAddr const& addr(allocations[i]);
-        TEST_ASSERT(bufVirAddr.raw() <= addr.raw());
-        TEST_ASSERT(!((addr.raw() - bufVirAddr.raw()) % allocSize));
+        TEST_ASSERT(bufVirAddr <= addr);
+        TEST_ASSERT(!((addr - bufVirAddr) % allocSize));
         for (u64 j(0); j < numAllocs; ++j) {
-            // FIXME: Once again, comparison operators for addresses.
-            TEST_ASSERT(i == j || addr.raw() != allocations[j].raw());
+            TEST_ASSERT(i == j || addr != allocations[j]);
         }
     }
 

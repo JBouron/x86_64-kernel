@@ -23,8 +23,7 @@ void EmbeddedFreeList::insert(VirAddr const startAddr, u64 const size) {
         // other node. If this assert fails then we have a double free
         // situation.
         ASSERT(!curr->overlapsWith(*newNode));
-        // FIXME: Write VirAddr comparison operators.
-        if (newNode->base().raw() < curr->base().raw()) {
+        if (newNode->base() < curr->base()) {
             // The new node either needs to be inserted before curr or be merged
             // with curr and replace curr.
             if (newNode->adjacentWith(*curr)) {
@@ -76,7 +75,7 @@ Res<VirAddr> EmbeddedFreeList::alloc(u64 const size) {
             // We can make the allocation in the current node. Allocate at the
             // end of this node so that we only need to change the size and we
             // don't need to copy the Node metadata around.
-            VirAddr const res(curr->end().raw() - size + 1);
+            VirAddr const res(curr->end() - size + 1);
             curr->size -= size;
             if (!curr->size) {
                 // Remove node due to being empty.
@@ -132,11 +131,10 @@ VirAddr EmbeddedFreeList::Node::end() const {
 // @param other: The other Node to check overlap with.
 // @return: true if this Node and other are overlapping, false otherwise.
 bool EmbeddedFreeList::Node::overlapsWith(Node const& other) const {
-    // FIXME: Write VirAddr comparison operators.
-    u64 const tBase(base().raw());
-    u64 const tEnd(end().raw());
-    u64 const oBase(other.base().raw());
-    u64 const oEnd(other.end().raw());
+    VirAddr const& tBase(base());
+    VirAddr const& tEnd(end());
+    VirAddr const& oBase(other.base());
+    VirAddr const& oEnd(other.end());
     return (oBase <= tBase && tBase <= oEnd) ||
            (oBase <= tEnd && tEnd <= oEnd) ||
            (tBase <= oBase && oEnd <= tEnd);
@@ -147,11 +145,10 @@ bool EmbeddedFreeList::Node::overlapsWith(Node const& other) const {
 // @param other: The other Node to check adjacency with.
 // @return: true if those Nodes are adjacent, false otherwise.
 bool EmbeddedFreeList::Node::adjacentWith(Node const& other) const {
-    // FIXME: Write VirAddr comparison operators.
-    u64 const tBase(base().raw());
-    u64 const tEnd(end().raw());
-    u64 const oBase(other.base().raw());
-    u64 const oEnd(other.end().raw());
+    VirAddr const& tBase(base());
+    VirAddr const& tEnd(end());
+    VirAddr const& oBase(other.base());
+    VirAddr const& oEnd(other.end());
     return tEnd == oBase - 1 || oEnd == tBase - 1;
 }
 
