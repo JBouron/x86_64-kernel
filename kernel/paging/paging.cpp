@@ -126,7 +126,8 @@ struct PageTable {
     // FIXME: Add a way to control the attributes of the mapping.
     // @param vaddr: The virtual address to map.
     // @param paddr: The physical address to map vaddr to.
-    void map(VirAddr const vaddr, PhyAddr const paddr) {
+    // @return: Returns an error if the mapping failed.
+    Err map(VirAddr const vaddr, PhyAddr const paddr) {
         u16 const idx((vaddr.raw() >> (12 + (L-1) * 9)) & 0x1ff);
         Entry& entry(entries[idx]);
         if constexpr (L == 1) {
@@ -137,18 +138,17 @@ struct PageTable {
             if (!entry.present) {
                 Res<Frame> const allocRes(FrameAlloc::alloc());
                 if (!allocRes) {
-                    // FIXME: Gracefully handle error here.
-                    PANIC("Failed to allocate page table");
+                    return allocRes.error();
                 }
-                Frame const& nextLevel(allocRes.value());
                 entry.present = true;
                 entry.writable = true;
-                entry.addr = nextLevel.phyOffset() >> 12;
+                entry.addr = allocRes->phyOffset() >> 12;
             }
             VirAddr const nextLevelVaddr(toVirAddr(entry.addr << 12));
             PageTable<L-1>* nextLevel(nextLevelVaddr.ptr<PageTable<L-1>>());
             nextLevel->map(vaddr, paddr);
         }
+        return Ok;
     }
 
 private:
@@ -169,7 +169,8 @@ static_assert(sizeof(PageTable<1>) == PAGE_SIZE);
 // @param paddrStart: The start physical address at which the region should be
 // mapped. Must be page aligned.
 // @param nPages: The size of the region in number of pages.
-void map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages) {
+// @return: Returns an error if the mapping failed.
+Err map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages) {
     ASSERT(vaddrStart.isPageAligned());
     ASSERT(paddrStart.isPageAligned());
     ASSERT(!!nPages);
@@ -179,13 +180,24 @@ void map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages) {
                nPages);
     VirAddr const pml4VAddr(toVirAddr(Cpu::cr3() & ~(PAGE_SIZE - 1)));
     PageTable<4>* pml4(pml4VAddr.ptr<PageTable<4>>());
+    Err returnedErr;
     for (u64 i(0); i < nPages; ++i) {
         VirAddr const vaddr(vaddrStart.raw() + i * PAGE_SIZE);
         PhyAddr const paddr(paddrStart.raw() + i * PAGE_SIZE);
-        pml4->map(vaddr, paddr);
+        Err const err(pml4->map(vaddr, paddr));
+        if (err) {
+            // Stop on the first error. This does mean that the request might
+            // have been partially completed, e.g. we mapped half of the pages.
+            // FIXME: Define better semantics, either we yolo this and have
+            // undefined result on error OR we un-map the pages that were
+            // successfully mapped before the error occured.
+            returnedErr = err;
+            break;
+        }
     }
     // Reload CR3.
     Cpu::writeCr3(Cpu::cr3());
+    return returnedErr;
 }
 
 }

@@ -2,6 +2,7 @@
 
 #pragma once
 #include <util/util.hpp>
+#include <util/err.hpp>
 #include <bootstruct.hpp>
 #include <selftests/selftests.hpp>
 
@@ -116,5 +117,6 @@ void Test(SelfTests::TestRunner& runner);
 // @param paddrStart: The start physical address at which the region should be
 // mapped.
 // @param nPages: The size of the region in number of pages.
-void map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages);
+// @return: Returns an error if the mapping failed.
+Err map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages);
 }
