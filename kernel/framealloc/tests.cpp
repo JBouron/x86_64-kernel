@@ -57,6 +57,66 @@ SelfTests::TestResult earlyAllocatorTest() {
     return SelfTests::TestResult::Success;
 }
 
+// Test the EmbeddedFreeListAllocator.
+SelfTests::TestResult embeddedFreeListAllocatorTest() {
+    // Allocate a few physical frames that will be used by the frame allocator
+    // being tested.
+    u64 const numFrames(8);
+    Frame frames[numFrames];
+    for (u64 i(0); i < numFrames; ++i) {
+        Res<Frame> const alloc(FrameAlloc::alloc());
+        ASSERT(!!alloc);
+        frames[i] = alloc.value();
+    }
+
+    // Build the frame allocator to be tested.
+    EmbeddedFreeListAllocator frameAllocator;
+    for (u64 i(0); i < numFrames; ++i) {
+        VirAddr const frameVAddr(Paging::toVirAddr(frames[i].phyOffset()));
+        frameAllocator.insertFreeRegion(frameVAddr, 1);
+    }
+
+    // We repeat the following experiment twice.
+    for (u64 run(0); run < 2; ++run) {
+        // Allocate numFrames. All allocations are expected to be successful AND
+        // return a Frame that is in the frames[] array.
+        for (u64 i(0); i < numFrames; ++i) {
+            Res<Frame> const allocRes(frameAllocator.alloc());
+            Frame const& frame(allocRes.value());
+            // Dirty nested loop but that will do the job.
+            bool found(false);
+            for (u64 j(0); j < numFrames; ++j) {
+                if (frame == frames[j]) {
+                    found = true;
+                    break;
+                }
+            }
+            // If this assert fails then the allocator returned a frame that was not
+            // inserted when we built it. This prob means the allocator allocates
+            // random frames.
+            TEST_ASSERT(found);
+        }
+
+        // Trying to allocate one more frame should fail since there should not be
+        // any more free frames.
+        TEST_ASSERT(!frameAllocator.alloc().ok());
+
+        // Free all even frames.
+        for (u64 i(0); i < numFrames; i += 2) {
+            frameAllocator.free(frames[i]);
+        }
+
+        // Free all odd frames.
+        for (u64 i(1); i < numFrames; i += 2) {
+            frameAllocator.free(frames[i]);
+        }
+        // The next run will make sure that we can still allocate numFrames
+        // after freeing all of them
+    }
+
+    return SelfTests::TestResult::Success;
+}
+
 // Test constructing an EmbeddedFreeList::Node from a virtual address and a
 // size.
 SelfTests::TestResult embeddedFreeListNodeTest() {
@@ -239,6 +299,7 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
 // Run the frame allocation tests.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, earlyAllocatorTest);
+    RUN_TEST(runner, embeddedFreeListAllocatorTest);
     RUN_TEST(runner, embeddedFreeListNodeTest);
     RUN_TEST(runner, embeddedFreeListNodeOverlapTest);
     RUN_TEST(runner, embeddedFreeListNodeAdjacentWithTest);
