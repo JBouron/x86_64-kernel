@@ -14,8 +14,8 @@ EmbeddedFreeList::EmbeddedFreeList() : m_head(nullptr) {}
 // be inserted in the free-list.
 // @param size: The size of the region of free memory.
 void EmbeddedFreeList::insert(VirAddr const startAddr, u64 const size) {
+    ASSERT(MinAllocSize <= size);
     Node * const newNode(Node::fromVirAddr(startAddr, size));
-
     Node** prevNextPtr(&m_head);
     Node* curr(m_head);
     while (!!curr) {
@@ -67,16 +67,27 @@ void EmbeddedFreeList::insert(VirAddr const startAddr, u64 const size) {
 // @return: The virtual address of the allocated memory. If the allocation
 // failed then return an Error.
 Res<VirAddr> EmbeddedFreeList::alloc(u64 const size) {
-    // FIXME: There oughta be a minimum allocation size.
+    // Honor the minimum allocation size.
+    u64 const allocSize(max(MinAllocSize, size));
     Node** prevNext(&m_head);
     Node* curr(m_head);
     while (!!curr) {
-        if (size <= curr->size) {
+        u64 const sizeAfterAlloc(curr->size - allocSize);
+        bool const canHoldAlloc(
+            allocSize <= curr->size
+            && (!sizeAfterAlloc || MinAllocSize <= sizeAfterAlloc));
+        // The allocation is only possible in the current node if it is big
+        // enough to hold the allocation AND if there is enough space left after
+        // the allocation to hold the new Node metadata. The exception is the
+        // case where the allocation consumes exactly the same number of bytes
+        // currently available in that node in which case we don't need to
+        // create a new Node.
+        if (canHoldAlloc) {
             // We can make the allocation in the current node. Allocate at the
             // end of this node so that we only need to change the size and we
             // don't need to copy the Node metadata around.
-            VirAddr const res(curr->end() - size + 1);
-            curr->size -= size;
+            VirAddr const res(curr->end() - allocSize + 1);
+            curr->size -= allocSize;
             if (!curr->size) {
                 // Remove node due to being empty.
                 *prevNext = curr->next;
@@ -98,7 +109,8 @@ Res<VirAddr> EmbeddedFreeList::alloc(u64 const size) {
 // @param size: The size of the memory region in bytes.
 void EmbeddedFreeList::free(VirAddr const addr, u64 const size) {
     // Re-use insert() for the free.
-    insert(addr, size);
+    u64 const allocSize(max(MinAllocSize, size));
+    insert(addr, allocSize);
 }
 
 // Construct a node for the memory region starting at `addr` of `size` bytes.

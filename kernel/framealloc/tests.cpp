@@ -228,6 +228,8 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
     u64 const numAllocs(4);
     ASSERT(!(bufSize % numAllocs));
     u64 const allocSize(bufSize / numAllocs);
+    // Assumed by test.
+    ASSERT(allocSize >= EmbeddedFreeList::MinAllocSize);
 
     VirAddr allocations[4];
     for (u64 i(0); i < numAllocs; ++i) {
@@ -296,6 +298,63 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
     return SelfTests::TestResult::Success;
 }
 
+// Test the behaviour of the free list when requesting allocations that are less
+// than the MinAllocSize.
+SelfTests::TestResult embeddedFreeListAllocMinSizeTest() {
+    // The buffer to allocate from can hold 2 entire MinAllocSize allocations
+    // with some leftover bytes.
+    u64 const bufSize(EmbeddedFreeList::MinAllocSize * 3 - 1);
+    u8 buf[bufSize];
+    EmbeddedFreeList freeList;
+
+    // Initialize the free list with the full buffer as free.
+    freeList.insert(buf, bufSize);
+    // Sanity check.
+    TEST_ASSERT(freeList.m_head->size == bufSize);
+    TEST_ASSERT(!freeList.m_head->next);
+
+    // Try to allocate a single byte. This should be successful and the
+    // freelist's head should have "moved" by MinAllocSize.
+    Res<VirAddr> const singleByteAlloc1(freeList.alloc(1));
+    TEST_ASSERT(!!singleByteAlloc1);
+    TEST_ASSERT(!!freeList.m_head);
+    TEST_ASSERT(freeList.m_head->size ==
+                bufSize - EmbeddedFreeList::MinAllocSize);
+    TEST_ASSERT(!freeList.m_head->next);
+
+    // Trying to allocate a single byte again is expected to fail due to the
+    // fact that allocating MinAllocSize bytes would not leave enough space in
+    // the buffer to store the remaining Node.
+    Res<VirAddr> const singleByteAlloc2(freeList.alloc(1));
+    TEST_ASSERT(!singleByteAlloc2);
+    // The head should not have changed.
+    TEST_ASSERT(!!freeList.m_head);
+    TEST_ASSERT(freeList.m_head->size ==
+                bufSize - EmbeddedFreeList::MinAllocSize);
+    TEST_ASSERT(!freeList.m_head->next);
+
+    // Allocating all the remaining bytes should be possible.
+    u64 const lastAllocSize(freeList.m_head->size);
+    Res<VirAddr> const lastAlloc(freeList.alloc(lastAllocSize));
+    TEST_ASSERT(!!lastAlloc);
+    TEST_ASSERT(!freeList.m_head);
+
+    // Free the 1 byte allocation. Since it was smaller than the MinAllocSize
+    // the free() actually frees MinAllocSize bytes.
+    freeList.free(singleByteAlloc1.value(), 1);
+    TEST_ASSERT(!!freeList.m_head);
+    TEST_ASSERT(freeList.m_head->size == EmbeddedFreeList::MinAllocSize);
+    TEST_ASSERT(!freeList.m_head->next);
+
+    // Free the other allocation, the buffer is fully free at this point.
+    freeList.free(lastAlloc.value(), lastAllocSize);
+    TEST_ASSERT(!!freeList.m_head);
+    TEST_ASSERT(freeList.m_head->size == bufSize);
+    TEST_ASSERT(!freeList.m_head->next);
+
+    return SelfTests::TestResult::Success;
+}
+
 // Run the frame allocation tests.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, earlyAllocatorTest);
@@ -305,5 +364,6 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, embeddedFreeListNodeAdjacentWithTest);
     RUN_TEST(runner, embeddedFreeListInsertTest);
     RUN_TEST(runner, embeddedFreeListAllocFreeTest);
+    RUN_TEST(runner, embeddedFreeListAllocMinSizeTest);
 }
 }

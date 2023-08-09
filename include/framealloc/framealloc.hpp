@@ -13,15 +13,20 @@ namespace FrameAlloc {
 // Describes a physical frame.
 class Frame {
 public:
+    // Default constructor. The resulting physical offset is 0x0.
+    Frame();
+
     // Create a Frame from its physical offset.
     // @param physicalOffset: The physical offset of the frame.
     Frame(u64 const physicalOffset);
+
+    bool operator==(Frame const& other) const = default;
 
     // Get the physical offset of the frame.
     u64 phyOffset() const;
 
 private:
-    u64 const m_physicalOffset;
+    u64 m_physicalOffset;
 };
 
 // Initialize the frame allocator.

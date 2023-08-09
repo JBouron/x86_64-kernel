@@ -85,6 +85,15 @@ private:
         bool adjacentWith(Node const& other) const;
     };
 
+    // Allocations cannot be smaller than the size of a Node, as otherwise it
+    // would mean that a free() can try to create a Node out of a memory region
+    // of size < sizeof(Node).
+    // Any call to alloc requesting less that this value is actually allocating
+    // this minimum amount, although this is invisible to the caller. The caller
+    // is still expected to pass the original allocation size in free() even
+    // though it is less than this limit.
+    static constexpr u64 MinAllocSize = sizeof(Node);
+
     // Pointer to the first Node of the free list. nullptr if the freelist is
     // empty.
     Node* m_head;
@@ -96,6 +105,7 @@ private:
     friend SelfTests::TestResult embeddedFreeListNodeAdjacentWithTest();
     friend SelfTests::TestResult embeddedFreeListInsertTest();
     friend SelfTests::TestResult embeddedFreeListAllocFreeTest();
+    friend SelfTests::TestResult embeddedFreeListAllocMinSizeTest();
 };
 
 }

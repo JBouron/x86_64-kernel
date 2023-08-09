@@ -6,6 +6,9 @@
 
 namespace FrameAlloc {
 
+// Default constructor. The resulting physical offset is 0x0.
+Frame::Frame() : Frame(0x0) {}
+
 // Create a Frame from its physical offset.
 // @param physicalOffset: The physical offset of the frame.
 Frame::Frame(u64 const physicalOffset) : m_physicalOffset(physicalOffset) {}
