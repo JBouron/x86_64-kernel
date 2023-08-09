@@ -3,7 +3,7 @@
 #include <paging/paging.hpp>
 #include <util/result.hpp>
 
-namespace FrameAlloc {
+namespace DataStruct {
 
 // An embedded free list is a singly linked list of free memory regions where
 // the list nodes are stored within the free regions, not allocated elsewhere,

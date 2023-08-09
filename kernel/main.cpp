@@ -11,6 +11,7 @@
 #include <paging/paging.hpp>
 #include <util/result.hpp>
 #include <util/err.hpp>
+#include <datastruct/datastruct.hpp>
 
 static void runSelfTests() {
     Log::info("Running self-tests:");
@@ -22,6 +23,7 @@ static void runSelfTests() {
     FrameAlloc::Test(runner);
     Result::Test(runner);
     ErrType::Test(runner);
+    DataStruct::Test(runner);
 
     runner.printSummary();
 }

@@ -1,6 +1,6 @@
 // Frame allocator interface and implementation types.
 #include <framealloc/framealloc.hpp>
-#include "freelist.hpp"
+#include <datastruct/freelist.hpp>
 
 namespace FrameAlloc {
 
@@ -92,7 +92,7 @@ public:
 
 private:
     // Free-list of physical page frames.
-    EmbeddedFreeList m_freeList;
+    DataStruct::EmbeddedFreeList m_freeList;
 
     // Indicate if a call to insertFreeRegion() is currently allowed. Once
     // alloc() or free() is called, insertFreeRegion() is not longer allowed to

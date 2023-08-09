@@ -1,7 +1,7 @@
-#include "freelist.hpp"
+#include <datastruct/freelist.hpp>
 #include <util/assert.hpp>
 
-namespace FrameAlloc {
+namespace DataStruct {
 
 // Create an empty EmbeddedFreeList.
 EmbeddedFreeList::EmbeddedFreeList() : m_head(nullptr) {}
