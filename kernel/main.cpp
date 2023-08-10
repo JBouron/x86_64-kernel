@@ -12,6 +12,8 @@
 #include <util/result.hpp>
 #include <util/err.hpp>
 #include <datastruct/datastruct.hpp>
+#include <memory/malloc.hpp>
+#include <util/assert.hpp>
 
 static void runSelfTests() {
     Log::info("Running self-tests:");
@@ -24,6 +26,7 @@ static void runSelfTests() {
     Result::Test(runner);
     ErrType::Test(runner);
     DataStruct::Test(runner);
+    HeapAlloc::Test(runner);
 
     runner.printSummary();
 }
@@ -65,6 +68,7 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     // Now that paging and the direct map have been initialized, we can switch
     // to the proper frame allocator.
     FrameAlloc::directMapInitialized();
+    HeapAlloc::Init();
 
     runSelfTests();
 
