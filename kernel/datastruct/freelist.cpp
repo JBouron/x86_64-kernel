@@ -86,11 +86,25 @@ Res<VirAddr> EmbeddedFreeList::alloc(u64 const size) {
             // We can make the allocation in the current node. Allocate at the
             // end of this node so that we only need to change the size and we
             // don't need to copy the Node metadata around.
-            VirAddr const res(curr->end() - allocSize + 1);
-            curr->size -= allocSize;
-            if (!curr->size) {
-                // Remove node due to being empty.
+            VirAddr const res(curr->base());
+            if (curr->size == allocSize) {
+                // The allocation consumed the entire node, remove it from the
+                // list.
                 *prevNext = curr->next;
+            } else {
+                // There are leftover bytes after the allocation. "Move" the
+                // node byte `allocSize` bytes, note that this require changing
+                // the next pointer of the prev node.
+                // FIXME: This is a bit less efficient than making the
+                // allocation at the "end" of the node, in which case only the
+                // size needs to change. However, allocating at the end leads to
+                // allocations getting decreasing addresses which is a bit
+                // weird, especially when allocating heap memory since it can
+                // cause internal fragmentation.
+                u64 const newSize(curr->size - allocSize);
+                Node* const node(Node::fromVirAddr(res + allocSize, newSize));
+                node->next = curr->next;
+                *prevNext = node;
             }
             // FIXME: We should probably zero the allocated memory here.
             return res;
