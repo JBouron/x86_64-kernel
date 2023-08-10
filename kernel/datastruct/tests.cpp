@@ -103,7 +103,9 @@ SelfTests::TestResult embeddedFreeListInsertTest() {
 // free() on it.
 SelfTests::TestResult embeddedFreeListAllocFreeTest() {
     u64 const bufSize(256);
-    u8 buf[bufSize];
+    // The buffer is initialized with non-zero bytes so that we can test that
+    // the alloc() function does zero the allocated memory.
+    u8 buf[bufSize] = {0xff};
     EmbeddedFreeList freeList;
 
     // Initialize the free list with the full buffer as free.
@@ -123,7 +125,12 @@ SelfTests::TestResult embeddedFreeListAllocFreeTest() {
     for (u64 i(0); i < numAllocs; ++i) {
         Res<VirAddr> const res(freeList.alloc(allocSize));
         TEST_ASSERT(res.ok());
-        allocations[i] = res.value();
+        VirAddr const& allocAddr(res.value());
+        allocations[i] = allocAddr;
+        // Check that the memory has been zeroed.
+        for (u64 j(0); j < allocSize; ++j) {
+            TEST_ASSERT(!allocAddr.ptr<u8>()[j]);
+        }
     }
 
     // Sanity check: The head of the EmbeddedFreeList should be nullptr.

@@ -1,5 +1,6 @@
 #include <datastruct/freelist.hpp>
 #include <util/assert.hpp>
+#include <util/cstring.hpp>
 
 namespace DataStruct {
 
@@ -106,7 +107,7 @@ Res<VirAddr> EmbeddedFreeList::alloc(u64 const size) {
                 node->next = curr->next;
                 *prevNext = node;
             }
-            // FIXME: We should probably zero the allocated memory here.
+            Util::memzero(res.ptr<void>(), allocSize);
             return res;
         }
 

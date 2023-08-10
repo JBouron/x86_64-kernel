@@ -14,4 +14,13 @@ u64 strlen(char const * const str) {
     return len;
 }
 
+// Zero a memory buffer.
+// @param ptr: Memory buffer to zero.
+// @param size: Size of the buffer in bytes.
+void memzero(void * const ptr, u64 const size) {
+    u8 * const wPtr(reinterpret_cast<u8*>(ptr));
+    for (u64 i(0); i < size; ++i) {
+        wPtr[i] = 0;
+    }
+}
 }
