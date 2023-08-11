@@ -63,3 +63,48 @@ void free(void const * const ptr) {
 }
 }
 
+// new and delete operators definition. Those operators don't need to appear in
+// a header file, the compiler just expects them to exist somewhere. Moreover
+// they obviously need to be define at the top-level namespace.
+// There is one shortcoming however: we cannot return errors as new and new[]
+// must return a void*. So for now, if any allocation error occurs, raise a
+// PANIC.
+void *operator new(u64 const size) {
+    Res<void*> const allocRes(HeapAlloc::malloc(size));
+    if (!allocRes) {
+        // FIXME: We should be able to print Error values.
+        PANIC("Failed to allocate memory");
+    } else {
+        return *allocRes;
+    }
+}
+
+void *operator new[](u64 const size) {
+    Res<void*> const allocRes(HeapAlloc::malloc(size));
+    if (!allocRes) {
+        // FIXME: We should be able to print Error values.
+        PANIC("Failed to allocate memory");
+    } else {
+        return *allocRes;
+    }
+}
+
+void operator delete(void * const ptr) {
+    HeapAlloc::free(ptr);
+}
+
+void operator delete[](void * const ptr) {
+    HeapAlloc::free(ptr);
+}
+
+// Not sure what the second arg is used for, but we don't need anymore info to
+// free anyway.
+void operator delete(void * const ptr, __attribute__((unused)) u64 const sz) {
+    HeapAlloc::free(ptr);
+}
+
+// Not sure what the second arg is used for, but we don't need anymore info to
+// free anyway.
+void operator delete[](void * const ptr, __attribute__((unused)) u64 const sz) {
+    HeapAlloc::free(ptr);
+}
