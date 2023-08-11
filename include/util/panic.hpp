@@ -9,8 +9,14 @@
 // RETURN.
 // @param fmt: The format string.
 // @param (variadic): The arguments for the format string.
-#define PANIC(fmt, ...) \
-    _panic(__FILE__,__LINE__,__PRETTY_FUNCTION__,fmt __VA_OPT__(,) __VA_ARGS__)
+#define PANIC(fmt, ...)                         \
+    do {                                        \
+        _panic(__FILE__,                        \
+               __LINE__,                        \
+               __PRETTY_FUNCTION__,             \
+               fmt __VA_OPT__(,) __VA_ARGS__);  \
+        __builtin_unreachable();                \
+    } while (0)
 
 // Do not use directly, use PANIC() instead. Helper function for the PANIC
 // macro, prints the panic message and halt the cpud forever.
