@@ -105,7 +105,28 @@ private:
     // Print a value of type T in the output device.
     // @param val: the value to output to the device.
     template<typename T>
-    void printValue(T const& val, FmtOption const& fmtOption);
+    void printValue(__attribute__((unused)) T const& val,
+                    __attribute__((unused)) FmtOption const& fmtOption) {
+        printNoNewLine("(Unsupported value type)");
+    }
+
+    // Print a const pointer of T in the output device.
+    // @param ptr: the pointer to output to the device.
+    template<typename T>
+    void printValue(T const* ptr,
+                    __attribute__((unused)) FmtOption const& fmtOption) {
+        printNoNewLine("v:");
+        printValue<u64>(reinterpret_cast<u64>(ptr), 'x');
+    }
+
+    // Print a pointer of T in the output device.
+    // @param ptr: the pointer to output to the device.
+    template<typename T>
+    void printValue(T* ptr,
+                    __attribute__((unused)) FmtOption const& fmtOption) {
+        printNoNewLine("v:");
+        printValue<u64>(reinterpret_cast<u64>(ptr), 'x');
+    }
 };
 
 }

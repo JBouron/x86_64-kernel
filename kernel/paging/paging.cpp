@@ -174,10 +174,7 @@ Err map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages) {
     ASSERT(vaddrStart.isPageAligned());
     ASSERT(paddrStart.isPageAligned());
     ASSERT(!!nPages);
-    Log::debug("Mapping {x} to {x} ({} pages)",
-               vaddrStart.raw(),
-               paddrStart.raw(),
-               nPages);
+    Log::debug("Mapping {} to {} ({} pages)", vaddrStart, paddrStart, nPages);
     VirAddr const pml4VAddr(toVirAddr(Cpu::cr3() & ~(PAGE_SIZE - 1)));
     PageTable<4>* pml4(pml4VAddr.ptr<PageTable<4>>());
     Err returnedErr;

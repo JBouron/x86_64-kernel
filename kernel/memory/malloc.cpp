@@ -34,9 +34,8 @@ void Init() {
         Log::warn("HeapAlloc::Init() called twice, skipping");
         return;
     }
-    // FIXME: Add Log::xxx with VirAddr and PhyAddr.
-    Log::info("Initializing kernel heap starting @{x} for {} bytes",
-              HEAP_START.raw(),
+    Log::info("Initializing kernel heap starting {} for {} bytes",
+              HEAP_START,
               HEAP_MAX_SIZE);
     static HeapAllocator heapAllocator(HEAP_START, HEAP_MAX_SIZE);
     HEAP_ALLOCATOR = &heapAllocator;
@@ -72,8 +71,7 @@ void free(void const * const ptr) {
 void *operator new(u64 const size) {
     Res<void*> const allocRes(HeapAlloc::malloc(size));
     if (!allocRes) {
-        // FIXME: We should be able to print Error values.
-        PANIC("Failed to allocate memory");
+        PANIC("Failed to allocate memory: {}", allocRes.error());
     } else {
         return *allocRes;
     }
@@ -82,8 +80,7 @@ void *operator new(u64 const size) {
 void *operator new[](u64 const size) {
     Res<void*> const allocRes(HeapAlloc::malloc(size));
     if (!allocRes) {
-        // FIXME: We should be able to print Error values.
-        PANIC("Failed to allocate memory");
+        PANIC("Failed to allocate memory: {}", allocRes.error());
     } else {
         return *allocRes;
     }

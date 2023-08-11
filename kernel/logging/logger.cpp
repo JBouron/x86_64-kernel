@@ -1,4 +1,6 @@
 #include <logging/logger.hpp>
+#include <util/error.hpp>
+#include <util/addr.hpp>
 
 namespace Logging {
 
@@ -26,16 +28,6 @@ void Logger::printNoNewLine(char const * const str) {
 void Logger::printf(char const * const str) {
     printNoNewLine(str);
     m_dev.newLine();
-}
-
-// Print a value of type T in the output device.
-// @param val: the value to output to the device.
-template<typename T>
-void Logger::printValue(__attribute__((unused)) T const& val,
-                        __attribute__((unused)) FmtOption const& fmtOption) {
-    // This implementation is the default impl called when the particular
-    // printValue<T> specialization does not exist.
-    printNoNewLine("(Unsupported value type)");
 }
 
 // printValue<T> specialization for all currently supported types:
@@ -131,6 +123,26 @@ void Logger::printValue<i16>(i16 const& val, FmtOption const& fmtOption) {
 template<>
 void Logger::printValue<i8>(i8 const& val, FmtOption const& fmtOption) {
     printValue<i64>(val, fmtOption);
+}
+
+template<>
+void Logger::printValue<Error>(Error const& val,
+    __attribute__((unused)) FmtOption const& fmtOption) {
+    printNoNewLine(errorToString(val));
+}
+
+template<>
+void Logger::printValue<VirAddr>(VirAddr const& val,
+    __attribute__((unused)) FmtOption const& fmtOption) {
+    printNoNewLine("v:");
+    printValue<u64>(val.raw(), 'x');
+}
+
+template<>
+void Logger::printValue<PhyAddr>(PhyAddr const& val,
+    __attribute__((unused)) FmtOption const& fmtOption) {
+    printNoNewLine("p:");
+    printValue<u64>(val.raw(), 'x');
 }
 
 void Logger::setColor(Color const color) {
