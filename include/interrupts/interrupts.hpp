@@ -40,6 +40,31 @@ static_assert(sizeof(Descriptor) == 16);
 // Initialize interrupts.
 void Init();
 
+// Only 256 possible interrupt vectors per x86's architecture.
+// FIXME: This should be an actual type instead of an alias.
+using Vector = u8;
+
+// Interrupt handlers are functions taking the vector as argument and returning
+// void. Passing the vector as argument is useful if a single handler is
+// expected to handle multiple vectors.
+using InterruptHandler = void (*)(Vector const);
+
+// Register an interrupt handler for a particular vector. After this call, any
+// interrupt with vector `vector` triggers a call to `handler`. It is an error
+// to attempt to add a handler for a vector that is reserved per the x86
+// architecture.
+// @param vector: The vector for which to register the handler.
+// @param handler: The function to be called everytime an interrupt with vector
+// `vector` is raised.
+void registerHandler(Vector const vector, InterruptHandler const& handler);
+
+// Deregister the interrupt handler that was associated with the given vector.
+// If this vector refers to user-defined interrupts, any future interrupt will
+// be ignored. If this is a non-user vector (e.g. < 32) any future interrupt
+// will trigger a PANIC.
+// @param vector: The vector for which to remove the handler.
+void deregisterHandler(Vector const vector);
+
 // Run the interrupt tests.
 void Test(SelfTests::TestRunner& runner);
 

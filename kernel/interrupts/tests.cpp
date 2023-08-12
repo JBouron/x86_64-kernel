@@ -68,9 +68,45 @@ SelfTests::TestResult interruptTest() {
     return SelfTests::TestResult::Success;
 }
 
+// Test the registering of interrupt handlers.
+SelfTests::TestResult interruptHandlerRegistrationTest() {
+    // The vector on which we are running this test. This vector must not
+    // normally generate an error code as we are using a software interrupt in
+    // this test.
+    Vector const testVector(1);
+    static Vector gotVector;
+    static bool gotInterrupt;
+
+    gotVector = 0;
+    gotInterrupt = false;
+
+    // A simple interrupt handler that sets the gotVector var to the interrupt
+    // it received and sets the gotInterrupt flag to true.
+    auto const testHandler([](Vector const v) {
+        gotVector = v;
+        gotInterrupt = true;
+    });
+
+    Interrupts::registerHandler(testVector, testHandler);
+
+    // Raise interrupt. Unfortunately the value of the interrupt is hardcoded
+    // here.
+    asm("int $1");
+
+    // The testHandler should have been called and set the gotInterrupt to 1.
+    TEST_ASSERT(gotInterrupt);
+    TEST_ASSERT(gotVector == testVector);
+
+    // Deregister the handler. Unfortunately we don't really have a way to test
+    // that the handler is not called after this.
+    Interrupts::deregisterHandler(testVector);
+    return SelfTests::TestResult::Success;
+}
+
 // Run the interrupt tests.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, interruptTest);
+    RUN_TEST(runner, interruptHandlerRegistrationTest);
 }
 
 }
