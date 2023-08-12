@@ -68,6 +68,30 @@ SelfTests::TestResult interruptTest() {
     return SelfTests::TestResult::Success;
 }
 
+// Clobber all caller-saved registers. Implemented in interruptTestAsm.asm.
+extern "C" void clobberCallerSavedRegisters();
+
+// Implemented in assembly, this is the core of the
+// interruptHandlerRegistrationTest. This routine triggers a software interrupt
+// of vector = 1 and then asserts that all registers have their unchanged during
+// the interrupt.
+// @return: true if the value of all registers were unchanged by the interrupt,
+// false otherwise.
+extern "C" bool interruptRegistersSavedTestRun();
+
+// Check that the kernel's interrupt handler does not clobber the registers of
+// the interrupted context.
+SelfTests::TestResult interruptRegistersSavedTest() {
+    // A dumb interrupt handler that clobbers all caller-saved registers.
+    auto const clobberingHandler([](__attribute__((unused)) Vector const v) {
+        clobberCallerSavedRegisters();
+    });
+    Interrupts::registerHandler(1, clobberingHandler);
+    TEST_ASSERT(interruptRegistersSavedTestRun());
+    Interrupts::deregisterHandler(1);
+    return SelfTests::TestResult::Success;
+}
+
 // Test the registering of interrupt handlers.
 SelfTests::TestResult interruptHandlerRegistrationTest() {
     // The vector on which we are running this test. This vector must not
@@ -106,6 +130,7 @@ SelfTests::TestResult interruptHandlerRegistrationTest() {
 // Run the interrupt tests.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, interruptTest);
+    RUN_TEST(runner, interruptRegistersSavedTest);
     RUN_TEST(runner, interruptHandlerRegistrationTest);
 }
 
