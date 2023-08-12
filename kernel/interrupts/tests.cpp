@@ -64,6 +64,7 @@ SelfTests::TestResult interruptTest() {
     asm("int $3");
     TEST_ASSERT(interruptTestFlag == 3);
 
+    Cpu::lidt(origIdt);
     return SelfTests::TestResult::Success;
 }
 

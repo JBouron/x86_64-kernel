@@ -84,6 +84,13 @@ SelfTests::TestResult readWriteSegmentRegTest() {
     TEST_ASSERT(testDataSeg(SegmentReg::Gs) == SelfTests::TestResult::Success);
     TEST_ASSERT(testDataSeg(SegmentReg::Ss) == SelfTests::TestResult::Success);
 
+    Cpu::lgdt(origGdt);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Cs, origCs);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Ds, origDs);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Es, origEs);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Fs, origFs);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Gs, origGs);
+    Cpu::writeSegmentReg(Cpu::SegmentReg::Ss, origSs);
     return SelfTests::TestResult::Success;
 }
 
