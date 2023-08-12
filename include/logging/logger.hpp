@@ -110,6 +110,16 @@ private:
         printNoNewLine("(Unsupported value type)");
     }
 
+    // Print a char const* in the output device. Need to be manually defined
+    // here as otherwise the pointer versions of printValue<T> will be called
+    // when passing a char const*.
+    // @param str: The string to print.
+    // @param fmtOption: Ignored.
+    void printValue(char const* const& val,
+                    __attribute__((unused)) FmtOption const& fmtOption) {
+        printNoNewLine(val);
+    }
+
     // Print a const pointer of T in the output device.
     // @param ptr: the pointer to output to the device.
     template<typename T>

@@ -32,13 +32,6 @@ void Logger::printf(char const * const str) {
 
 // printValue<T> specialization for all currently supported types:
 
-template<>
-void Logger::printValue<char const*>(
-    char const* const& val,
-    __attribute__((unused)) FmtOption const& fmtOption) {
-    printNoNewLine(val);
-}
-
 // Quick and dirty implementation of printing a u64 in decimal format.
 template<>
 void Logger::printValue<u64>(u64 const& val, FmtOption const& fmtOption) {
