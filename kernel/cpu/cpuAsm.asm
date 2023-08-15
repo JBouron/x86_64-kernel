@@ -131,6 +131,16 @@ _getSReg _getFs, fs
 _getSReg _getGs, gs
 _getSReg _getSs, ss
 
+GLOBAL  _readCr0:function
+_readCr0:
+    mov     rax, cr0
+    ret
+
+GLOBAL  _writeCr0:function
+_writeCr0:
+    mov     cr0, rdi
+    ret
+
 GLOBAL  _readCr3:function
 _readCr3:
     mov     rax, cr3

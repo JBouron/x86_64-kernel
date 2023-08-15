@@ -128,6 +128,13 @@ SegmentSel readSegmentReg(SegmentReg const reg);
 // Control registers
 // #############################################################################
 
+// Read the current value of CR0.
+u64 cr0();
+
+// Write the CR0 register.
+// @param value: The value to be written in the cr0 register.
+void writeCr0(u64 const value);
+
 // Read the current value of CR3.
 u64 cr3();
 

@@ -163,6 +163,23 @@ SegmentSel readSegmentReg(SegmentReg const reg) {
     UNREACHABLE
 }
 
+// Implementation of cr0() in assembly.
+extern "C" u64 _readCr0();
+
+// Read the current value of CR0.
+u64 cr0() {
+    return _readCr0();
+}
+
+// Implementation of writeCt0() in assembly.
+extern "C" void _writeCr0(u64);
+
+// Write the CR0 register.
+// @param value: The value to be written in the cr0 register.
+void writeCr0(u64 const value) {
+    _writeCr0(value);
+}
+
 // Implementation of cr3() in assembly.
 extern "C" u64 _readCr3();
 
