@@ -135,6 +135,9 @@ u64 cr0();
 // @param value: The value to be written in the cr0 register.
 void writeCr0(u64 const value);
 
+// Read the current value of CR2.
+u64 cr2();
+
 // Read the current value of CR3.
 u64 cr3();
 

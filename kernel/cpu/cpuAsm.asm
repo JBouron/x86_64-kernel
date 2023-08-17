@@ -141,6 +141,11 @@ _writeCr0:
     mov     cr0, rdi
     ret
 
+GLOBAL  _readCr2:function
+_readCr2:
+    mov     rax, cr2
+    ret
+
 GLOBAL  _readCr3:function
 _readCr3:
     mov     rax, cr3

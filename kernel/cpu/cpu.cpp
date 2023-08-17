@@ -180,6 +180,14 @@ void writeCr0(u64 const value) {
     _writeCr0(value);
 }
 
+// Implementation of cr2() in assembly.
+extern "C" u64 _readCr2();
+
+// Read the current value of CR2.
+u64 cr2() {
+    return _readCr2();
+}
+
 // Implementation of cr3() in assembly.
 extern "C" u64 _readCr3();
 
