@@ -59,7 +59,8 @@ Res<void*> HeapAllocator::alloc(u64 const size) {
             // Map the new frame to the end of the current heap.
             PhyAddr const framePhyAddr(frameAllocRes->phyOffset());
             VirAddr const mappedAddr(m_heapStart.raw() + m_heapSize);
-            Err const err(Paging::map(mappedAddr, framePhyAddr, 1));
+            Paging::PageAttr const attrs(Paging::PageAttr::Writable);
+            Err const err(Paging::map(mappedAddr, framePhyAddr, attrs, 1));
             if (!!err) {
                 Log::crit("Could not map new frame for heap allocator");
                 // FIXME: Need a constructor in Res<T> taking an Err as arg.

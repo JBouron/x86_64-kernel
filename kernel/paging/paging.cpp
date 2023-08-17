@@ -71,6 +71,32 @@ void Init(BootStruct const& bootStruct) {
     Log::info("Initializing direct map spanning {x} bytes", dmEndOffset);
     initializeDirectMap(DIRECT_MAP_START_VADDR, dmEndOffset);
     Log::debug("Direct map initialized");
+
+    // Enable the Write-Protect bit on CR0 to catch writes on read-only pages
+    // originating from ring 0.
+    Cpu::writeCr0(Cpu::cr0() | (1 << 16));
+}
+
+// operator| for PageAttr. Use to create combination of attributes.
+// @param attr1: The first attr.
+// @param attr2: The second attr.
+// @return: The OR of attr1 and attr2.
+PageAttr operator|(PageAttr const& attr1, PageAttr const& attr2) {
+    // This is apparently safe to do as long as we specify from which type the
+    // enum is deriving from, in our case u64. This is a weird C++ quirk ...
+    return PageAttr(static_cast<u64>(attr1) | static_cast<u64>(attr2));
+}
+
+// operator& for PageAttr. Used to test that a combination of attribute
+// (computed using operator| for instance) contains a particular attribute.
+// @param attr1: The first attr.
+// @param attr2: The second attr.
+// @return: true if attr1 and attr2 share at least one bit/flag, false
+// otherwise.
+bool operator&(PageAttr const& attr1, PageAttr const& attr2) {
+    // This is apparently safe to do as long as we specify from which type the
+    // enum is deriving from, in our case u64. This is a weird C++ quirk ...
+    return !!(static_cast<u64>(attr1) & static_cast<u64>(attr2));
 }
 
 // Page-table types are taking the level of the table L as template parameter
@@ -123,16 +149,21 @@ struct PageTable {
     // Map vaddr to paddr. If this is a level 1 table, the associated entry is
     // directly modified. Otherwise this method recurse to the level L-1 table,
     // allocating it if necessary.
-    // FIXME: Add a way to control the attributes of the mapping.
     // @param vaddr: The virtual address to map.
     // @param paddr: The physical address to map vaddr to.
+    // @param attrs: The attributes of the mapping.
     // @return: Returns an error if the mapping failed.
-    Err map(VirAddr const vaddr, PhyAddr const paddr) {
+    Err map(VirAddr const vaddr, PhyAddr const paddr, PageAttr const attrs) {
         u16 const idx((vaddr.raw() >> (12 + (L-1) * 9)) & 0x1ff);
         Entry& entry(entries[idx]);
         if constexpr (L == 1) {
             entry.present = true;
-            entry.writable = true;
+            entry.writable = attrs & PageAttr::Writable;
+            entry.userAccessible = attrs & PageAttr::User;
+            entry.writeThrough = attrs & PageAttr::WriteThrough;
+            entry.cacheDisable = attrs & PageAttr::CacheDisable;
+            entry.global = attrs & PageAttr::Global;
+            entry.executeDisable = attrs & PageAttr::NoExec;
             entry.addr = paddr.raw() >> 12;
         } else {
             if (!entry.present) {
@@ -141,12 +172,16 @@ struct PageTable {
                     return allocRes.error();
                 }
                 entry.present = true;
+                // For the upper levels, set the writable and user bit to true
+                // so that the PTE at the last level decides if a given page is
+                // writable/user accessible.
                 entry.writable = true;
+                entry.userAccessible = true;
                 entry.addr = allocRes->phyOffset() >> 12;
             }
             VirAddr const nextLevelVaddr(toVirAddr(entry.addr << 12));
             PageTable<L-1>* nextLevel(nextLevelVaddr.ptr<PageTable<L-1>>());
-            nextLevel->map(vaddr, paddr);
+            nextLevel->map(vaddr, paddr, attrs);
         }
         return Ok;
     }
@@ -168,9 +203,14 @@ static_assert(sizeof(PageTable<1>) == PAGE_SIZE);
 // be page aligned.
 // @param paddrStart: The start physical address at which the region should be
 // mapped. Must be page aligned.
+// @param pageAttr: Control the attribute of the mapping. All mapped pages will
+// end up using those attributes.
 // @param nPages: The size of the region in number of pages.
 // @return: Returns an error if the mapping failed.
-Err map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages) {
+Err map(VirAddr const vaddrStart,
+        PhyAddr const paddrStart,
+        PageAttr const pageAttr,
+        u64 const nPages) {
     ASSERT(vaddrStart.isPageAligned());
     ASSERT(paddrStart.isPageAligned());
     ASSERT(!!nPages);
@@ -181,7 +221,7 @@ Err map(VirAddr const vaddrStart, PhyAddr const paddrStart, u64 const nPages) {
     for (u64 i(0); i < nPages; ++i) {
         VirAddr const vaddr(vaddrStart.raw() + i * PAGE_SIZE);
         PhyAddr const paddr(paddrStart.raw() + i * PAGE_SIZE);
-        Err const err(pml4->map(vaddr, paddr));
+        Err const err(pml4->map(vaddr, paddr, pageAttr));
         if (err) {
             // Stop on the first error. This does mean that the request might
             // have been partially completed, e.g. we mapped half of the pages.
