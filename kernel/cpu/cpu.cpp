@@ -204,4 +204,29 @@ extern "C" void _writeCr3(u64);
 void writeCr3(u64 const value) {
     _writeCr3(value);
 }
+
+
+// Implementation of outb() in assembly.
+// @param port: The port to output into.
+// @param value: The byte to write to the port.
+extern "C" void _outb(u32 const port, u8 const value);
+
+// Output a byte in an I/O port.
+// @param port: The port to output into.
+// @param value: The byte to write to the port.
+void outb(Port const port, u8 const value) {
+    _outb(port, value);
+}
+
+// Implementation of inb() in assembly.
+// @param port: The port to read from.
+// @return: The byte read from the port.
+extern "C" u8 _inb(u32 const port);
+
+// Read a byte from an I/O port.
+// @param port: The port to read from.
+// @return: The byte read from the port.
+u8 inb(Port const port) {
+    return _inb(port);
+}
 }

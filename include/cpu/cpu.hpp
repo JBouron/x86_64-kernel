@@ -145,4 +145,22 @@ u64 cr3();
 // @param value: The value to be written in the cr3 register.
 void writeCr3(u64 const value);
 
+
+// #############################################################################
+// I/O instructions.
+// #############################################################################
+
+// An I/O port.
+using Port = u16;
+
+// Output a byte in an I/O port.
+// @param port: The port to output into.
+// @param value: The byte to write to the port.
+void outb(Port const port, u8 const value);
+
+// Read a byte from an I/O port.
+// @param port: The port to read from.
+// @return: The byte read from the port.
+u8 inb(Port const port);
+
 }

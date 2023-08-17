@@ -155,3 +155,25 @@ GLOBAL  _writeCr3:function
 _writeCr3:
     mov     cr3, rdi
     ret
+
+; Implementation of outb() in assembly.
+; @param port: The port to output into.
+; @param value: The byte to write to the port.
+; extern "C" void _outb(u16 const port, u8 const value);
+GLOBAL  _outb:function
+_outb:
+    mov     dx, di
+    mov     al, sil
+    out     dx, al
+    ret
+
+;  Implementation of inb() in assembly.
+;  @param port: The port to read from.
+;  @return: The byte read from the port.
+; extern "C" u8 _inb(u16 const port);
+GLOBAL  _inb:function
+_inb:
+    mov     dx, di
+    in      al, dx
+    movzx   eax, al
+    ret
