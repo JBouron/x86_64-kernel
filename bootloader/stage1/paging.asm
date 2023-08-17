@@ -45,7 +45,8 @@ DEF_LOCAL_FUNC64(doMapPage):
     jnz     .notBaseCase
     
     ; Point the physical page frame.
-    or      r13, 0x1
+    ; FIXME: For now we map R/W.
+    or      r13, 0x3
     mov     [rax], r13
     jmp     .out
 
@@ -63,7 +64,8 @@ DEF_LOCAL_FUNC64(doMapPage):
     pop     rax
     ; Update the current entry to point to the new frame and set the present
     ; bit.
-    or      rcx, 0x1
+    ; FIXME: For now we map R/W.
+    or      rcx, 0x3
     mov     [rax], rcx
 .nextLevelPresent:
     ; RAX still points to current entry at this point. 
