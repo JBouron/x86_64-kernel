@@ -54,8 +54,21 @@ void SerialOutputDev::clear() {
 // ignore such calls.
 // @param color: The color.
 void SerialOutputDev::setColor(Logger::Color const color) {
-    // FIXME: Add support for color through bash escape sequences.
-    (void)color;
+    // Print an escape sequence into the serial console.
+    auto const printEscapeSeq([&](char const * const seq) {
+        char const * ptr(seq);
+        while (!!*ptr) {
+            printChar(*(ptr++));
+        }
+    });
+
+    switch (color) {
+        case Logger::Color::Info:   printEscapeSeq("\e[0m"); break;
+        case Logger::Color::Warn:   printEscapeSeq("\e[33m"); break;
+        case Logger::Color::Crit:   printEscapeSeq("\e[31m"); break;
+        case Logger::Color::Debug:  printEscapeSeq("\e[90m"); break;
+        default:                    printEscapeSeq("\e[0m"); break;
+    }
 }
 
 // Compute the port needed to read/write a register.
