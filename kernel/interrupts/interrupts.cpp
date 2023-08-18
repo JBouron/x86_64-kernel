@@ -97,8 +97,18 @@ static bool isVectorUserDefined(Vector const vector) {
     return vector >= 32;
 }
 
+// Disable the legacy Programmable Interrupt Controller 8259.
+static void disablePic() {
+    Cpu::outb(0xa1, 0xff);
+    Cpu::outb(0x21, 0xff);
+    Log::info("PIC disabled");
+}
+
 // Initialize interrupts.
 void Init() {
+    // Disable the legacy PIC, only use APIC.
+    disablePic();
+
     // Initialize the interrupt handlers for the non-user-defined vectors.
     for (Vector v(0); v < 32; ++v) {
         if (!isVectorReserved(v)) {
