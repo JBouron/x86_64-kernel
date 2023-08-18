@@ -221,3 +221,26 @@ _cpuid:
     pop     rbx
     leave
     ret
+
+; Implementation of rdmsr, written in assembly.
+; extern "C" u64 _rdmsr(u32 const msr);
+GLOBAL  _rdmsr:function
+_rdmsr:
+    mov     ecx, edi
+    rdmsr
+    ; In x86_64 rdmsr clears the top halves of rdx and rax.
+    shl     rdx, 32
+    or      rax, rdx
+    ret
+
+; Implementation of wrmsr, written in assembly.
+; extern "C" void _wrmsr(u32 const msr, u64 const value);
+GLOBAL  _wrmsr:function
+_wrmsr:
+    mov     ecx, edi
+    mov     eax, esi
+    mov     rdx, rsi
+    shr     rdx, 32
+
+    wrmsr
+    ret

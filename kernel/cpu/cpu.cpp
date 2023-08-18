@@ -257,4 +257,24 @@ CpuidResult cpuid(u32 const eax) {
     _cpuid(eax, 0x0, &res.eax, &res.ebx, &res.ecx, &res.edx);
     return res;
 }
+
+// Implementation of rdmsr, written in assembly.
+extern "C" u64 _rdmsr(u32 const msr);
+
+// Read a MSR.
+// @param msr: The MSR to read.
+// @return: The current value of the MSR.
+u64 rdmsr(Msr const msr) {
+    return _rdmsr(static_cast<u32>(msr));
+}
+
+// Implementation of wrmsr, written in assembly.
+extern "C" void _wrmsr(u32 const msr, u64 const value);
+
+// Write into a MSR.
+// @param msr: The MSR to write into.
+// @param value: The value to write into the MSR.
+void wrmsr(Msr const msr, u64 const value) {
+    _wrmsr(static_cast<u32>(msr), value);
+}
 }

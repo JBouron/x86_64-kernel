@@ -182,4 +182,25 @@ struct CpuidResult {
 // instruction.
 // @return: A CpuidResult containing the output of CPUID.
 CpuidResult cpuid(u32 const eax);
+
+
+// #############################################################################
+// MSRs
+// #############################################################################
+
+// MSR values. Use an enum so that we avoid making mistakes using raw u32s.
+enum class Msr : u32 {
+    IA32_APIC_BASE = 0x1b,
+};
+
+// Read a MSR.
+// @param msr: The MSR to read.
+// @return: The current value of the MSR.
+u64 rdmsr(Msr const msr);
+
+// Write into a MSR.
+// @param msr: The MSR to write into.
+// @param value: The value to write into the MSR.
+void wrmsr(Msr const msr, u64 const value);
+
 }
