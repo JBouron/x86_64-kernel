@@ -177,3 +177,47 @@ _inb:
     in      al, dx
     movzx   eax, al
     ret
+
+; Execute the CPUID instruction with the given parameters. Implemented in
+; assembly.
+; @param inEax: The value to set the EAX register to before executing CPUID.
+; @param inEcx: The value to set the ECX register to before executing CPUID.
+; @param outEax: The value of the EAX register as it was after executing CPUID.
+; @param outEbx: The value of the EBX register as it was after executing CPUID.
+; @param outEcx: The value of the EBX register as it was after executing CPUID.
+; @param outEdx: The value of the EBX register as it was after executing CPUID.
+; extern "C" void _cpuid(u32 const inEax,
+;                        u32 const inEcx,
+;                        u32* const outEax,
+;                        u32* const outEbx,
+;                        u32* const outEcx,
+;                        u32* const outEdx);
+GLOBAL  _cpuid:function
+_cpuid:
+    push    rbp
+    mov     rbp, rsp
+
+    push    rbx
+
+    ; CPUID is going to clobber RDX and RCX which are currently holding the
+    ; outEax and outEbx pointers respectively. Move them to R10 and R11.
+    mov     r10, rdx
+    mov     r11, rcx
+
+    mov     eax, edi
+    mov     ecx, esi
+    cpuid
+
+    ; At this point we have the following pointers:
+    ;   R10 = outEax
+    ;   R11 = outEbx
+    ;   R9  = outEdx
+    ;   R8  = outEcx
+    mov     [r8], ecx
+    mov     [r9], edx
+    mov     [r10], eax
+    mov     [r11], ebx
+
+    pop     rbx
+    leave
+    ret

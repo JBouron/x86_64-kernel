@@ -72,6 +72,8 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
 
     runSelfTests();
 
+    Log::warn("Hello");
+
     while (true) {
         asm("cli");
         asm("hlt");

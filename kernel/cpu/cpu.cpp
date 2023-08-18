@@ -229,4 +229,32 @@ extern "C" u8 _inb(u32 const port);
 u8 inb(Port const port) {
     return _inb(port);
 }
+
+// Execute the CPUID instruction with the given parameters. Implemented in
+// assembly.
+// @param inEax: The value to set the EAX register to before executing CPUID.
+// @param inEcx: The value to set the ECX register to before executing CPUID.
+// @param outEax: The value of the EAX register as it was after executing CPUID.
+// @param outEbx: The value of the EBX register as it was after executing CPUID.
+// @param outEcx: The value of the EBX register as it was after executing CPUID.
+// @param outEdx: The value of the EBX register as it was after executing CPUID.
+extern "C" void _cpuid(u32 const inEax,
+                       u32 const inEcx,
+                       u32* const outEax,
+                       u32* const outEbx,
+                       u32* const outEcx,
+                       u32* const outEdx);
+
+// Execute the CPUID instruction with the given param.
+// @param eax: The value to set the EAX register to before executing the CPUID
+// instruction.
+// @return: A CpuidResult containing the output of CPUID.
+CpuidResult cpuid(u32 const eax) {
+    CpuidResult res;
+    // For now we don't support passing an arg to CPUID through ECX as this is
+    // rarely needed. _cpuid does support however, so if we ever need this this
+    // is only a matter of updating Cpu::cpuid()'s prototype to include ecx.
+    _cpuid(eax, 0x0, &res.eax, &res.ebx, &res.ecx, &res.edx);
+    return res;
+}
 }

@@ -110,10 +110,30 @@ SelfTests::TestResult lidtSidtTest() {
     return SelfTests::TestResult::Success;
 }
 
+// Test Cpu::cpuid() by reading the vendor string.
+SelfTests::TestResult cpuidTest() {
+    // There are two down-sides with this test:
+    //  * We are only testing cpuid with EAX == 0x0.
+    //  * We do not check the output value for EAX.
+    // The reason is because getting the Vendor String is the only function for
+    // which we can have an expected/deterministic value.
+    Cpu::CpuidResult const res(Cpu::cpuid(0x0));
+    char vendorString[13] = {0};
+    reinterpret_cast<u32*>(vendorString)[0] = res.ebx;
+    reinterpret_cast<u32*>(vendorString)[1] = res.edx;
+    reinterpret_cast<u32*>(vendorString)[2] = res.ecx;
+
+    TEST_ASSERT(Util::streq(vendorString, "AuthenticAMD")
+                || Util::streq(vendorString, "GenuineIntel"));
+
+    return SelfTests::TestResult::Success;
+}
+
 // Run the tests under this namespace.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, lgdtSgdtTest);
     RUN_TEST(runner, readWriteSegmentRegTest);
     RUN_TEST(runner, lidtSidtTest);
+    RUN_TEST(runner, cpuidTest);
 }
 }

@@ -163,4 +163,23 @@ void outb(Port const port, u8 const value);
 // @return: The byte read from the port.
 u8 inb(Port const port);
 
+
+// #############################################################################
+// CPUID
+// #############################################################################
+
+// Store the result of a cpuid() call, that is the value of the EAX, EBX, ECX
+// and EDX registers as they were right after executing the CPUID instruction.
+struct CpuidResult {
+    u32 eax;
+    u32 ebx;
+    u32 ecx;
+    u32 edx;
+};
+
+// Execute the CPUID instruction with the given param.
+// @param eax: The value to set the EAX register to before executing the CPUID
+// instruction.
+// @return: A CpuidResult containing the output of CPUID.
+CpuidResult cpuid(u32 const eax);
 }
