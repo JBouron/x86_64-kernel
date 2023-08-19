@@ -71,7 +71,7 @@ SelfTests::TestResult mapAttrsTest() {
     // Setup a handler for page-faults.
     auto const pageFaultHandler([](Interrupts::Vector const vector,
                                    Interrupts::Frame const& frame) {
-        ASSERT(vector == 14);
+        ASSERT(vector == Interrupts::Vector(14));
         pageFaultCr2 = Cpu::cr2();
         gotPageFault = true;
 
@@ -84,7 +84,7 @@ SelfTests::TestResult mapAttrsTest() {
         ASSERT(!Paging::map(vaddr, paddr, attrs, 1));
         Log::debug("Set page as writable");
     });
-    Interrupts::registerHandler(14, pageFaultHandler);
+    Interrupts::registerHandler(Interrupts::Vector(14), pageFaultHandler);
 
     // Trigger the page-fault.
     u8* const ptr(vaddr.ptr<u8>());
@@ -94,7 +94,7 @@ SelfTests::TestResult mapAttrsTest() {
     TEST_ASSERT(pageFaultCr2 == vaddr);
 
     // Remove the temp page-fault handler.
-    Interrupts::deregisterHandler(14);
+    Interrupts::deregisterHandler(Interrupts::Vector(14));
 
     // Free the frame.
     FrameAlloc::free(*allocRes);

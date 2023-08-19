@@ -3,6 +3,7 @@
 #pragma once
 #include <cpu/cpu.hpp>
 #include <selftests/selftests.hpp>
+#include <util/subrange.hpp>
 
 namespace Interrupts {
 
@@ -41,8 +42,17 @@ static_assert(sizeof(Descriptor) == 16);
 void Init();
 
 // Only 256 possible interrupt vectors per x86's architecture.
-// FIXME: This should be an actual type instead of an alias.
-using Vector = u8;
+class Vector : public SubRange<Vector, 0, 255> {
+public:
+    // Some interrupt vectors in the x86 architecture are reserved and not used.
+    // Check if this vector is one of them.
+    // @return: true if this vector is reserved, false otherwise.
+    bool isReserved() const;
+
+    // Check if this vector is user-defined, e.g. above 32.
+    // @return: true if this vector is user-defined, false otherwise.
+    bool isUserDefined() const;
+};
 
 // An interrupt frame contains the values of all the registers of the
 // interrupted context + some information about the interrupt itself, e.g. error

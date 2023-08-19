@@ -88,9 +88,9 @@ SelfTests::TestResult interruptRegistersSavedTest() {
                                     __attribute__((unused)) Frame const& f) {
         clobberCallerSavedRegisters();
     });
-    Interrupts::registerHandler(1, clobberingHandler);
+    Interrupts::registerHandler(Vector(1), clobberingHandler);
     TEST_ASSERT(interruptRegistersSavedTestRun());
-    Interrupts::deregisterHandler(1);
+    Interrupts::deregisterHandler(Vector(1));
     return SelfTests::TestResult::Success;
 }
 
@@ -103,7 +103,7 @@ SelfTests::TestResult interruptHandlerRegistrationTest() {
     static Vector gotVector;
     static bool gotInterrupt;
 
-    gotVector = 0;
+    gotVector = Vector(0);
     gotInterrupt = false;
 
     // A simple interrupt handler that sets the gotVector var to the interrupt

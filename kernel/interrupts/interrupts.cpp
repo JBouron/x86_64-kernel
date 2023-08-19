@@ -79,24 +79,6 @@ void defaultHandler(Vector const vector, Frame const& frame) {
     PANIC("Got interrupt #{} from RIP = {x}", vector, frame.rip);
 }
 
-// Check if a particular interrupt vector is reserved.
-// FIXME: This should be a member function in the Vector type.
-// @param vector: The vector to test.
-// @return: true if the vector is reserved per x86's definition, false
-// otherwise.
-static bool isVectorReserved(Vector const vector) {
-    return vector == 15 || (22 <= vector && vector <= 31);
-}
-
-// Check if a particular interrupt vector is user-defined.
-// FIXME: This should be a member function in the Vector type.
-// @param vector: The vector to test.
-// @return: true if the vector is user-defined per x86's definition, false
-// otherwise.
-static bool isVectorUserDefined(Vector const vector) {
-    return vector >= 32;
-}
-
 // Disable the legacy Programmable Interrupt Controller 8259.
 static void disablePic() {
     Cpu::outb(0xa1, 0xff);
@@ -110,8 +92,10 @@ void Init() {
     disablePic();
 
     // Initialize the interrupt handlers for the non-user-defined vectors.
-    for (Vector v(0); v < 32; ++v) {
-        if (!isVectorReserved(v)) {
+    // FIXME: Having ++ in SubRange would be very useful for loop iterators.
+    // FIXME: SubRange comparison operator with raw u64 would be useful as well.
+    for (Vector v(0); v.raw() < 32; v = Vector(v.raw() + 1)) {
+        if (!v.isReserved()) {
             registerHandler(v, defaultHandler);
         }
     }
@@ -122,6 +106,19 @@ void Init() {
     Log::info("Loading IDT, base = {x}, limit = {}", base, limit);
     Cpu::lidt(idtDesc);
     Log::debug("IDT loaded");
+}
+
+// Some interrupt vectors in the x86 architecture are reserved and not used.
+// Check if this vector is one of them.
+// @return: true if this vector is reserved, false otherwise.
+bool Vector::isReserved() const {
+    return m_value == 15 || (22 <= m_value && m_value <= 31);
+}
+
+// Check if this vector is user-defined, e.g. above 32.
+// @return: true if this vector is user-defined, false otherwise.
+bool Vector::isUserDefined() const {
+    return m_value >= 32;
 }
 
 // The mapping vector -> InterruptHandler. A nullptr in this collection
@@ -139,10 +136,10 @@ static InterruptHandler INT_HANDLERS[256] = {nullptr};
 // @param handler: The function to be called everytime an interrupt with vector
 // `vector` is raised.
 void registerHandler(Vector const vector, InterruptHandler const& handler) {
-    if (isVectorReserved(vector)) {
+    if (vector.isReserved()) {
         PANIC("Cannot setup handler for a reserved vector");
     }
-    INT_HANDLERS[vector] = handler;
+    INT_HANDLERS[vector.raw()] = handler;
 }
 
 // Deregister the interrupt handler that was associated with the given vector.
@@ -151,30 +148,31 @@ void registerHandler(Vector const vector, InterruptHandler const& handler) {
 // will trigger a PANIC.
 // @param vector: The vector for which to remove the handler.
 void deregisterHandler(Vector const vector) {
-    if (isVectorUserDefined(vector)) {
+    if (vector.isUserDefined()) {
         // For user-defined vector simply set the handler to nullptr. The
         // genericInterruptHandler knows to ignore such handlers.
-        INT_HANDLERS[vector] = nullptr;
+        INT_HANDLERS[vector.raw()] = nullptr;
     } else {
         // Ignoring "system" interrupts is usually a bad idea. Hence set the
         // handler to the default handler which triggers a PANIC.
-        INT_HANDLERS[vector] = defaultHandler;
+        INT_HANDLERS[vector.raw()] = defaultHandler;
     }
 }
 
 // Generic interrupt handler. _All_ interrupts are entering the C++ side of
 // the kernel through this function.
 // @param vector: The vector of the current interrupt.
-extern "C" void genericInterruptHandler(u8 const vector,
+extern "C" void genericInterruptHandler(u8 const _vector,
                                         Frame const * const frame) {
-    if (isVectorReserved(vector)) {
+    Vector const vector(_vector);
+    if (vector.isReserved()) {
         // This should never happen, unless the code jumping to this function
         // sent us a garbage vector.
         PANIC("Uh? Got an interrupt on a reserved vector. Most likely a bug");
     }
     // Check if there is an interrupt handler associated with this vector.
-    InterruptHandler const& handler(INT_HANDLERS[vector]);
-    if (!isVectorUserDefined(vector) && !handler) {
+    InterruptHandler const& handler(INT_HANDLERS[vector.raw()]);
+    if (!vector.isUserDefined() && !handler) {
         // Non-user-defined vectors always have a handler, set during Init() or
         // in deregisterHandler(). If this fails then we have a bug somewhere.
         PANIC("Non-user-defined vector #{} has no registered handler", vector);
