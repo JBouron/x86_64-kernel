@@ -75,8 +75,8 @@ static const Descriptor IDT[] = {
 
 // The default interrupt handler, raises a PANIC for the unhandled interrupt.
 // This handler is set for all arch interrupt vectors upon Init.
-void defaultHandler(Vector const vector) {
-    PANIC("Got interrupt #{}", vector);
+void defaultHandler(Vector const vector, Frame const& frame) {
+    PANIC("Got interrupt #{} from RIP = {x}", vector, frame.rip);
 }
 
 // Check if a particular interrupt vector is reserved.
@@ -165,7 +165,8 @@ void deregisterHandler(Vector const vector) {
 // Generic interrupt handler. _All_ interrupts are entering the C++ side of
 // the kernel through this function.
 // @param vector: The vector of the current interrupt.
-extern "C" void genericInterruptHandler(u8 const vector) {
+extern "C" void genericInterruptHandler(u8 const vector,
+                                        Frame const * const frame) {
     if (isVectorReserved(vector)) {
         // This should never happen, unless the code jumping to this function
         // sent us a garbage vector.
@@ -179,7 +180,7 @@ extern "C" void genericInterruptHandler(u8 const vector) {
         PANIC("Non-user-defined vector #{} has no registered handler", vector);
     }
     if (!!handler) {
-        handler(vector);
+        handler(vector, *frame);
     } else {
         // Ignore user-defined vectors for which there is no handler.
         Log::warn("Ignoring spurious interrupt #{} with no handler", vector);

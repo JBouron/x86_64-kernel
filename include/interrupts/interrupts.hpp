@@ -44,10 +44,41 @@ void Init();
 // FIXME: This should be an actual type instead of an alias.
 using Vector = u8;
 
-// Interrupt handlers are functions taking the vector as argument and returning
-// void. Passing the vector as argument is useful if a single handler is
-// expected to handle multiple vectors.
-using InterruptHandler = void (*)(Vector const);
+// An interrupt frame contains the values of all the registers of the
+// interrupted context + some information about the interrupt itself, e.g. error
+// code.
+struct Frame {
+    // The error code associated with the interrupt. If the vector of the
+    // interrupt does not generate an error code this field is set to 0.
+    u64 const errorCode;
+
+    // The register values of the interrupted context. For now we only include
+    // general purpose registers and not the segment registers. Those will only
+    // become useful once we have a userspace.
+    u64 const rip;
+    u64 const rflags;
+    u64 const rsp;
+    u64 const rbp;
+    u64 const r15;
+    u64 const r14;
+    u64 const r13;
+    u64 const r12;
+    u64 const r11;
+    u64 const r10;
+    u64 const r9;
+    u64 const r8;
+    u64 const rsi;
+    u64 const rdi;
+    u64 const rdx;
+    u64 const rcx;
+    u64 const rbx;
+    u64 const rax;
+} __attribute__((packed));
+
+// Interrupt handlers are functions taking the vector and the Frame as argument
+// and returning void. Passing the vector as argument is useful if a single
+// handler is expected to handle multiple vectors.
+using InterruptHandler = void (*)(Vector const, Frame const& frame);
 
 // Register an interrupt handler for a particular vector. After this call, any
 // interrupt with vector `vector` triggers a call to `handler`. It is an error

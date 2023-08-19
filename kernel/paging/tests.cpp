@@ -69,12 +69,15 @@ SelfTests::TestResult mapAttrsTest() {
     pageFaultCr2 = 0x0;
 
     // Setup a handler for page-faults.
-    auto const pageFaultHandler([](Interrupts::Vector const vector) {
+    auto const pageFaultHandler([](Interrupts::Vector const vector,
+                                   Interrupts::Frame const& frame) {
         ASSERT(vector == 14);
         pageFaultCr2 = Cpu::cr2();
         gotPageFault = true;
 
-        // FIXME: Eventually we should test the error code.
+        // The error code should show a present page and a write violation,
+        // hence 0x3.
+        ASSERT(frame.errorCode == 0x3);
 
         // Change the mapping to be writable.
         PageAttr const attrs(PageAttr::Writable);
