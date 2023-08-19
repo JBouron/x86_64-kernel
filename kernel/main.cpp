@@ -14,6 +14,7 @@
 #include <datastruct/datastruct.hpp>
 #include <memory/malloc.hpp>
 #include <util/assert.hpp>
+#include <util/subrange.hpp>
 
 static void runSelfTests() {
     Log::info("Running self-tests:");
