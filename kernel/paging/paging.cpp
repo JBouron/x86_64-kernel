@@ -139,6 +139,17 @@ struct PageTableEntry<1> {
     u8 executeDisable : 1;
 } __attribute__((packed));
 
+// Result of an unmap operation. Primarily used within the PageTable type,
+// defined here so that it does not get duplicated for each level.
+enum class UnmapResult {
+    // Unmap was successful, nothing else to do.
+    Done,
+    // Unmap was successful and the PageTable on which unmap was called is
+    // now empty, e.g. it does not contain any more present entries, and can
+    // be de-allocated and marked as non-present.
+    DeallocateTable,
+};
+
 // Type of a level L page table.
 template<u8 L> requires (0 < L && L <= 4)
 struct PageTable {
@@ -171,6 +182,9 @@ struct PageTable {
                 if (!allocRes) {
                     return allocRes.error();
                 }
+                Log::debug("Allocated page-table level {} at {}",
+                           L - 1,
+                           PhyAddr(allocRes->phyOffset()));
                 entry.present = true;
                 // For the upper levels, set the writable and user bit to true
                 // so that the PTE at the last level decides if a given page is
@@ -186,9 +200,63 @@ struct PageTable {
         return Ok;
     }
 
+    // Unmap a virtual page. If this is a level 1 page table then this marks the
+    // entry associated with vaddr as non-present, otherwise it recurses on the
+    // next level page table mapping this address.
+    // @param vaddr: The virtual address to unmap.
+    // @return: If the unmapping operation led to this table only holding
+    // non-present entries this function returns DeallocateTable so that the
+    // caller may de-allocate this table. Otherwise always return Done.
+    UnmapResult unmap(VirAddr const vaddr) {
+        u16 const idx((vaddr.raw() >> (12 + (L-1) * 9)) & 0x1ff);
+        Entry& entry(entries[idx]);
+        if constexpr (L == 1) {
+            entry.present = false;
+        } else {
+            if (entry.present) {
+                // There is a next level page table for this address, recurse.
+                PhyAddr const nextLevelPaddr(entry.addr << 12);
+                VirAddr const nextLevelVaddr(toVirAddr(nextLevelPaddr));
+                PageTable<L-1>* nextLevel(nextLevelVaddr.ptr<PageTable<L-1>>());
+                UnmapResult const res(nextLevel->unmap(vaddr));
+                if (res == UnmapResult::DeallocateTable) {
+                    // The next level page-table is now empty, mark it as
+                    // non-present and de-allocate it.
+                    entry.present = false;
+                    Log::debug("Deallocating page-table level {} at {}",
+                               L - 1,
+                               nextLevelPaddr);
+                    FrameAlloc::free(Frame(nextLevelPaddr.raw()));
+                } else {
+                    // We are not marking any entry as non-present at this
+                    // level, therefore this table cannot become empty.
+                    return UnmapResult::Done;
+                }
+            } else {
+                // If the entry is not present then the vaddr was not mapped in
+                // the first place, nothing to unmap.
+                Log::warn("Unmapping non-mapped address {}", vaddr);
+            }
+        }
+        // Arriving here means that we removed an entry from the current table,
+        // which might have become empty. If that is the case, notify our caller
+        // to deallocate us.
+        for (u64 i(0); i < NumEntries; ++i) {
+            if (entries[i].present) {
+                // At least one entry is present, we cannot deallocate this
+                // table.
+                return UnmapResult::Done;
+            }
+        }
+        // All remaining entries are marked non-present, deallocate this table.
+        return UnmapResult::DeallocateTable;
+    }
+
 private:
+    // Number of entries of this page table, always 512 in x86_64.
+    static constexpr u64 NumEntries = 512;
     // The entries of this page table.
-    Entry entries[512];
+    Entry entries[NumEntries];
 } __attribute__((packed));
 
 // Sanity check that we got the sizes right.
@@ -196,6 +264,18 @@ static_assert(sizeof(PageTable<4>) == PAGE_SIZE);
 static_assert(sizeof(PageTable<3>) == PAGE_SIZE);
 static_assert(sizeof(PageTable<2>) == PAGE_SIZE);
 static_assert(sizeof(PageTable<1>) == PAGE_SIZE);
+
+// Get a (virtual) pointer to the PML4 table currently loaded in CR3.
+static PageTable<4>* currPml4() {
+    VirAddr const pml4VAddr(toVirAddr(Cpu::cr3() & ~(PAGE_SIZE - 1)));
+    return pml4VAddr.ptr<PageTable<4>>();
+}
+
+// Flush the TLB.
+static void flushTlb() {
+    // The magical `mov rax, cr3 ; mov cr3, rax`.
+    Cpu::writeCr3(Cpu::cr3());
+}
 
 // Map a region of virtual memory to physical memory in the current address
 // space. The region's size must be a multiple of page size.
@@ -215,8 +295,7 @@ Err map(VirAddr const vaddrStart,
     ASSERT(paddrStart.isPageAligned());
     ASSERT(!!nPages);
     Log::debug("Mapping {} to {} ({} pages)", vaddrStart, paddrStart, nPages);
-    VirAddr const pml4VAddr(toVirAddr(Cpu::cr3() & ~(PAGE_SIZE - 1)));
-    PageTable<4>* pml4(pml4VAddr.ptr<PageTable<4>>());
+    PageTable<4>* pml4(currPml4());
     Err returnedErr;
     for (u64 i(0); i < nPages; ++i) {
         VirAddr const vaddr(vaddrStart.raw() + i * PAGE_SIZE);
@@ -232,9 +311,27 @@ Err map(VirAddr const vaddrStart,
             break;
         }
     }
-    // Reload CR3.
-    Cpu::writeCr3(Cpu::cr3());
+    flushTlb();
     return returnedErr;
+}
+
+// Unmap virtual pages from virtual memory. Attempting to unmap a page that is
+// not currently mapped is a no-op.
+// @param addrStart: The address to start unmapping from.
+// @param nPages: The number of pages to unmap.
+void unmap(VirAddr const addrStart, u64 const nPages) {
+    ASSERT(addrStart.isPageAligned());
+    ASSERT(nPages > 0);
+    Log::debug("Unmapping {} ({} pages)", addrStart, nPages);
+    PageTable<4>* pml4(currPml4());
+    for (u64 i(0); i < nPages; ++i) {
+        VirAddr const vaddr(addrStart.raw() + i * PAGE_SIZE);
+        UnmapResult const res(pml4->unmap(vaddr));
+        // There is no way we would need to deallocate the PML4 as the code we
+        // are running is in the virtual address space!
+        ASSERT(res != UnmapResult::DeallocateTable);
+    }
+    flushTlb();
 }
 
 }

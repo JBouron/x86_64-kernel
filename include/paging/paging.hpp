@@ -74,4 +74,10 @@ Err map(VirAddr const vaddrStart,
         PhyAddr const paddrStart,
         PageAttr const pageAttr,
         u64 const nPages);
+
+// Unmap virtual pages from virtual memory. Attempting to unmap a page that is
+// not currently mapped is a no-op.
+// @param addrStart: The address to start unmapping from.
+// @param nPages: The number of pages to unmap.
+void unmap(VirAddr const addrStart, u64 const nPages);
 }

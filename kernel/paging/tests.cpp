@@ -27,7 +27,7 @@ SelfTests::TestResult mapTest() {
     for (u64 i(0); i < mapSize / sizeof(u64); ++i) {
         TEST_ASSERT(*(readIdPtr++)==*(readMapPtr++));
     }
-    // FIXME: Eventually we should unmap the pages here.
+    Paging::unmap(startVAddr, numPages);
     return SelfTests::TestResult::Success;
 }
 
@@ -59,12 +59,12 @@ SelfTests::TestResult mapAttrsTest() {
     // Alloc the physical frame.
     Res<FrameAlloc::Frame> const allocRes(FrameAlloc::alloc());
     TEST_ASSERT(!!allocRes);
+    paddr = allocRes->phyOffset();
 
     // Map the frame as read-only.
     PageAttr const attrs(PageAttr::None);
     TEST_ASSERT(!Paging::map(vaddr, paddr, attrs, 1));
 
-    paddr = allocRes->phyOffset();
     gotPageFault = false;
     pageFaultCr2 = 0x0;
 
@@ -93,13 +93,86 @@ SelfTests::TestResult mapAttrsTest() {
     TEST_ASSERT(gotPageFault);
     TEST_ASSERT(pageFaultCr2 == vaddr);
 
+    // Unmap the test page.
+    Paging::unmap(vaddr, 1);
+
     // Remove the temp page-fault handler.
     Interrupts::deregisterHandler(Interrupts::Vector(14));
 
     // Free the frame.
     FrameAlloc::free(*allocRes);
+    return SelfTests::TestResult::Success;
+}
 
-    // FIXME: We need an unmap().
+SelfTests::TestResult unmapTest() {
+    // The following variable must be static as they need to be accessible from
+    // the temporary page-fault handler.
+    // The physical address of the allocated frame.
+    static PhyAddr paddr;
+    // The address where the frame is mapped to in virtual memory. This is also
+    // the expected faulting address.
+    static VirAddr const vaddr(0xbadbeef000);
+    // Set by the handler to indicate that it got called.
+    static bool gotPageFault;
+    // The value of CR2 as seen by the handler at the time of the fault.
+    static VirAddr pageFaultCr2;
+    // The value of the error code as seen by the handler at the time of the
+    // fault.
+    static u64 errorCode;
+
+    // Alloc the physical frame.
+    Res<FrameAlloc::Frame> const allocRes(FrameAlloc::alloc());
+    TEST_ASSERT(!!allocRes);
+    paddr = allocRes->phyOffset();
+
+    // Map the frame as read-write.
+    PageAttr const attrs(PageAttr::Writable);
+    TEST_ASSERT(!Paging::map(vaddr, paddr, attrs, 1));
+
+    gotPageFault = false;
+    pageFaultCr2 = 0x0;
+    errorCode = 0;
+
+    // Setup a handler for page-faults.
+    auto const pageFaultHandler([](Interrupts::Vector const vector,
+                                   Interrupts::Frame const& frame) {
+        ASSERT(vector == Interrupts::Vector(14));
+        pageFaultCr2 = Cpu::cr2();
+        gotPageFault = true;
+        errorCode = frame.errorCode;
+
+        // Re-map the page.
+        PageAttr const attrs(PageAttr::Writable);
+        ASSERT(!Paging::map(vaddr, paddr, attrs, 1));
+        Log::debug("Set page as writable");
+    });
+    Interrupts::registerHandler(Interrupts::Vector(14), pageFaultHandler);
+
+    // Write to the page, no page fault expected since it is mapped and
+    // writable.
+    u8* const ptr(vaddr.ptr<u8>());
+    *ptr = 0xff;
+
+    TEST_ASSERT(!gotPageFault);
+
+    // Now unmap the page.
+    Paging::unmap(vaddr, 1);
+
+    // Write to the page again, this should trigger a page-fault. The page fault
+    // handler will remap this page so that we can complete.
+    *ptr = 0xaa;
+    TEST_ASSERT(gotPageFault);
+    TEST_ASSERT(pageFaultCr2 == vaddr);
+    TEST_ASSERT(errorCode == 0x2);
+
+    // Unmap the test page.
+    Paging::unmap(vaddr, 1);
+
+    // Remove the temp page-fault handler.
+    Interrupts::deregisterHandler(Interrupts::Vector(14));
+
+    // Free the frame.
+    FrameAlloc::free(*allocRes);
     return SelfTests::TestResult::Success;
 }
 
@@ -107,6 +180,7 @@ SelfTests::TestResult mapAttrsTest() {
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, mapTest);
     RUN_TEST(runner, mapAttrsTest);
+    RUN_TEST(runner, unmapTest);
 }
 
 }
