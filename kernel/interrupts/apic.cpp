@@ -1,6 +1,7 @@
 // Functions and types related to the Advanced Programmable Interrupt Controller
 // (APIC).
 #include "apic.hpp"
+#include <interrupts/interrupts.hpp>
 #include <paging/paging.hpp>
 #include <cpu/cpu.hpp>
 #include <util/assert.hpp>
@@ -62,6 +63,78 @@ enum class Register : u64 {
     TimerDivideConfiguration                = 0x3E0,
 };
 
+// A Local Vector Table register value.
+class Lvt {
+public:
+    // Only applicable when the LVT value is going to be used for the
+    // TimerLocalVectorTableEntry register, indicates if the APIC timer should
+    // be one-shot or periodic.
+    enum class TimerMode {
+        OneShot = 0,
+        Periodic = 1,
+    };
+
+    enum class TriggerMode {
+        EdgeTriggered = 0,
+        LevelTriggered = 1,
+    };
+
+    enum class MessageType {
+        Fixed = 0b000,
+        Smi = 0b010,
+        Nmi = 0b100,
+        External = 0b111,
+    };
+
+    // Build a _masked_ LVT value. Useful to disable a particular interrupt
+    // source.
+    Lvt() : m_value(1 << 16) {}
+
+    // Build a non-masked LVT value.
+    // @param timerMode: Only applies to the TimerLocalVectorTableEntry
+    // register, indicates if the timer should be one shot or periodic.
+    // @param triggerMode: The trigger mode of the interrupt. For now only
+    // EdgeTriggered is supported.
+    // @param messageType: The message type to be delivered to the CPU for this
+    // interrupt. For now only Fixed is supported.
+    // @param vector: The vector to be associated with this interrupt.
+    Lvt(TimerMode const timerMode,
+        TriggerMode const triggerMode,
+        MessageType const messageType,
+        Vector const vector) :
+        m_value((static_cast<u32>(timerMode) << 17)
+                | (static_cast<u32>(triggerMode) << 15)
+                | (static_cast<u32>(messageType) << 8)
+                | vector.raw()) {
+        if (triggerMode != TriggerMode::EdgeTriggered) {
+            PANIC("TriggerMode::LevelTriggered is not yet supported");
+        }
+        if (messageType != MessageType::Fixed) {
+            PANIC("MessageType other than Fixed is not yet supported");
+        }
+    }
+
+    // Build a non-masked LVT value. This is used for LVTs that do not use the
+    // timer mode.
+    // @param triggerMode: The trigger mode of the interrupt. For now only
+    // EdgeTriggered is supported.
+    // @param messageType: The message type to be delivered to the CPU for this
+    // interrupt. For now only Fixed is supported.
+    // @param vector: The vector to be associated with this interrupt.
+    Lvt(TriggerMode const triggerMode,
+        MessageType const messageType,
+        Vector const vector) :
+        Lvt(TimerMode::OneShot, triggerMode, messageType, vector) {}
+
+    // Get the raw value of this LVT, to be written into an APIC register.
+    // @return: The raw value.
+    u32 value() const {
+        return m_value;
+    }
+private:
+    u32 const m_value;
+};
+
 // Read a register from the local APIC.
 // @param reg: The register to read.
 // @return: The current value of the register.
@@ -103,7 +176,7 @@ static bool isRegisterWritable(Register const reg) {
 static void writeRegister(Register const reg, u32 const value) {
     u64 const registerOff(static_cast<u64>(reg));
     if (!isRegisterWritable(reg)) {
-        PANIC("Attempt to write into read-only APIC register {}", registerOff);
+        PANIC("Attempt to write into read-only APIC register {x}", registerOff);
     }
     *(LocalApicBase + registerOff).ptr<u32>() = value;
 }
@@ -141,21 +214,23 @@ void Init() {
     Cpu::wrmsr(Cpu::Msr::IA32_APIC_BASE, newApicBaseMsr);
     Log::info("APIC enabled");
 
+    u32 const apicId(readRegister(Register::ApicId) >> 24);
+    Log::debug("Cpu has APIC ID = {}", apicId);
+
     // For now, mask all LVTs. TODO: Do what needs to be done here.
-    writeRegister(Register::TimerLocalVectorTableEntry,
-        readRegister(Register::TimerLocalVectorTableEntry) | (1 << 16));
-    writeRegister(Register::ThermalLocalVectorTableEntry,
-        readRegister(Register::ThermalLocalVectorTableEntry) | (1 << 16));
+    Lvt const maskedLvt;
+    writeRegister(Register::TimerLocalVectorTableEntry, maskedLvt.value());
+    writeRegister(Register::ThermalLocalVectorTableEntry, maskedLvt.value());
     writeRegister(Register::PerformanceCounterLocalVectorTableEntry,
-        readRegister(Register::PerformanceCounterLocalVectorTableEntry)
-        | (1 << 16));
-    writeRegister(Register::LocalInterrupt0VectorTableEntry,
-        readRegister(Register::LocalInterrupt0VectorTableEntry) | (1 << 16));
-    writeRegister(Register::LocalInterrupt1VectorTableEntry,
-        readRegister(Register::LocalInterrupt1VectorTableEntry) | (1 << 16));
-    writeRegister(Register::ErrorVectorTableEntry,
-        readRegister(Register::ErrorVectorTableEntry) | (1 << 16));
+                  maskedLvt.value());
+    writeRegister(Register::LocalInterrupt0VectorTableEntry, maskedLvt.value());
+    writeRegister(Register::LocalInterrupt1VectorTableEntry, maskedLvt.value());
+    writeRegister(Register::ErrorVectorTableEntry, maskedLvt.value());
 }
 
+// Notify the local APIC of the End-Of-Interrupt.
+void eoi() {
+    writeRegister(Register::EndOfInterrupt, 0);
+}
 }
 }

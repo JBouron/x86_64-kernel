@@ -37,7 +37,7 @@ extern "C" void interruptHandler11();   extern "C" void interruptHandler12();
 extern "C" void interruptHandler13();   extern "C" void interruptHandler14();
 extern "C" void interruptHandler16();   extern "C" void interruptHandler17();
 extern "C" void interruptHandler18();   extern "C" void interruptHandler19();
-extern "C" void interruptHandler21();
+extern "C" void interruptHandler21();   extern "C" void interruptHandler32();
 
 // Create a Descriptor for the given vector. The descriptor points to the
 // interruptHandler<vector> function.
@@ -72,7 +72,21 @@ static const Descriptor IDT[] = {
     IDT_DESC(19),
     Descriptor(),
     IDT_DESC(21),
+    Descriptor(),
+    Descriptor(),
+    Descriptor(),
+    Descriptor(),
+    Descriptor(),
+    Descriptor(),
+    Descriptor(),
+    Descriptor(),
+    Descriptor(),
+    Descriptor(),
+    // Below are IDT entries for the user-defined vector starting at vector 32.
+    IDT_DESC(32),
 };
+// The number of elements in the IDT.
+static u64 const IDT_SIZE = sizeof(IDT) / sizeof(*IDT);
 
 // The default interrupt handler, raises a PANIC for the unhandled interrupt.
 // This handler is set for all arch interrupt vectors upon Init.
@@ -138,7 +152,9 @@ static InterruptHandler INT_HANDLERS[256] = {nullptr};
 // @param handler: The function to be called everytime an interrupt with vector
 // `vector` is raised.
 void registerHandler(Vector const vector, InterruptHandler const& handler) {
-    if (vector.isReserved()) {
+    if (vector >= IDT_SIZE) {
+        PANIC("IDT does not contain an entry for the target vector");
+    } else if (vector.isReserved()) {
         PANIC("Cannot setup handler for a reserved vector");
     }
     INT_HANDLERS[vector.raw()] = handler;
@@ -185,5 +201,6 @@ extern "C" void genericInterruptHandler(u8 const _vector,
         // Ignore user-defined vectors for which there is no handler.
         Log::warn("Ignoring spurious interrupt #{} with no handler", vector);
     }
+    Apic::eoi();
 }
 }

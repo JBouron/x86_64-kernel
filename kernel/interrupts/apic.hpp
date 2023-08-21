@@ -8,5 +8,8 @@ namespace Apic {
 // Initialize the APIC.
 void Init();
 
+// Notify the local APIC of the End-Of-Interrupt.
+void eoi();
+
 }
 }
