@@ -105,6 +105,14 @@ SelfTests::TestResult mapAttrsTest() {
 }
 
 SelfTests::TestResult unmapTest() {
+    // This test performs the following:
+    //  1. Map a virtual page as writable.
+    //  2. Write into the page, no page-fault expected.
+    //  3. Un-map the page.
+    //  4. Write into the page again.
+    //  5. Assert that the write above triggered a page-fault. The page-fault
+    //  handler re-maps the page so that the offending instruction can complete
+    //  and finish the test.
     // The following variable must be static as they need to be accessible from
     // the temporary page-fault handler.
     // The physical address of the allocated frame.
