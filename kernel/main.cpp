@@ -63,9 +63,14 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     dumpBootStruct(*bootStruct);
 
     Memory::Segmentation::Init();
-    Interrupts::Init();
     FrameAlloc::Init(*bootStruct);
     Paging::Init(*bootStruct);
+    // Interrupts must be initialized _after_ paging since the APIC
+    // initialization requires Paging::map().
+    // FIXME: We really need a way to enforce initialization order. It is hard
+    // to track down issues due to initialization being performed in the wrong
+    // order.
+    Interrupts::Init();
     // Now that paging and the direct map have been initialized, we can switch
     // to the proper frame allocator.
     FrameAlloc::directMapInitialized();

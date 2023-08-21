@@ -3,6 +3,7 @@
 #include <interrupts/interrupts.hpp>
 #include <logging/log.hpp>
 #include <util/panic.hpp>
+#include "apic.hpp"
 
 namespace Interrupts {
 
@@ -90,6 +91,9 @@ static void disablePic() {
 void Init() {
     // Disable the legacy PIC, only use APIC.
     disablePic();
+
+    // Enable the APIC.
+    Apic::Init();
 
     // Initialize the interrupt handlers for the non-user-defined vectors.
     for (Vector v(0); v < 32; ++v) {
