@@ -71,7 +71,7 @@ SelfTests::TestResult mapAttrsTest() {
     // Setup a handler for page-faults.
     auto const pageFaultHandler([](Interrupts::Vector const vector,
                                    Interrupts::Frame const& frame) {
-        ASSERT(vector == Interrupts::Vector(14));
+        ASSERT(vector == 14);
         pageFaultCr2 = Cpu::cr2();
         gotPageFault = true;
 
@@ -144,7 +144,7 @@ SelfTests::TestResult unmapTest() {
     // Setup a handler for page-faults.
     auto const pageFaultHandler([](Interrupts::Vector const vector,
                                    Interrupts::Frame const& frame) {
-        ASSERT(vector == Interrupts::Vector(14));
+        ASSERT(vector == 14);
         pageFaultCr2 = Cpu::cr2();
         gotPageFault = true;
         errorCode = frame.errorCode;

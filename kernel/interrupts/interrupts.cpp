@@ -92,9 +92,7 @@ void Init() {
     disablePic();
 
     // Initialize the interrupt handlers for the non-user-defined vectors.
-    // FIXME: Having ++ in SubRange would be very useful for loop iterators.
-    // FIXME: SubRange comparison operator with raw u64 would be useful as well.
-    for (Vector v(0); v.raw() < 32; v = Vector(v.raw() + 1)) {
+    for (Vector v(0); v < 32; ++v) {
         if (!v.isReserved()) {
             registerHandler(v, defaultHandler);
         }

@@ -20,6 +20,8 @@
 // arithmetic operators (what does it mean to divide two values of type Ring??)
 // Nevertheless, if a particular type requires those operator, it can perform
 // those operations on raw().
+// The postfix ++ operator is provided however, as it makes it easier to use a
+// SubRange (or subtype) as a loop iterator.
 // Template params:
 // @param Impl: The type of the type deriving from this one. Copy constructor,
 // assignment and comparison operators are all operating on this type.
@@ -64,10 +66,15 @@ public:
 
     // Assignment operator. This cannot panic as the other's value has already
     // been validated.
+    // @param other: The Impl to assign from.
     Impl& operator=(Impl const& other) {
         m_value = other.m_value;
-        return *this;
+        return *static_cast<Impl*>(this);
     }
+
+    // FIXME: It would be good to have operator=(UnderlyingType const), however
+    // it seems that defining such an operator here does not allow deriving type
+    // to use it. So for now, assignment must be done through copy constructor.
 
     // Get the raw value contained in this instance.
     // @return: The raw value of type UnderlyingType.
@@ -75,17 +82,32 @@ public:
         return m_value;
     }
 
-    // Comparison operators.
-#define CMP_OPERATOR(op) \
-    bool operator op (Impl const& o) const { return m_value op o.m_value; }
+    // Comparison operators. Against Impl object and against underlying types.
+#define CMP_OPERATORS(op)                                                   \
+    bool operator op (Impl const& o) const { return m_value op o.m_value; } \
+    bool operator op (UnderlyingType const& o) const { return m_value op o; }
 
-    CMP_OPERATOR(!=);
-    CMP_OPERATOR(==);
-    CMP_OPERATOR(<);
-    CMP_OPERATOR(<=);
-    CMP_OPERATOR(>);
-    CMP_OPERATOR(>=);
+    CMP_OPERATORS(!=);
+    CMP_OPERATORS(==);
+    CMP_OPERATORS(<);
+    CMP_OPERATORS(<=);
+    CMP_OPERATORS(>);
+    CMP_OPERATORS(>=);
 #undef CMP_OPERATOR
+
+    // Increment the value contained in this instance. This operator raises a
+    // PANIC if the value becomes > Max.
+    Impl& operator++() {
+        u64 const newValue(m_value + 1);
+        if (newValue < Min || Max < newValue) {
+            // FIXME: Keeping the value < Min check saves us in case of
+            // overflow, although this is not tested and therefore not
+            // supported.
+            PANIC("Value is not in range [{};{}]", Min, Max);
+        }
+        m_value = newValue;
+        return *static_cast<Impl*>(this);
+    }
 
 protected:
     // The stored value of this instance.
@@ -142,3 +164,16 @@ static_assert(!ComparableLt<A, C>);
 static_assert(!ComparableLe<A, C>);
 static_assert(!ComparableGt<A, C>);
 static_assert(!ComparableGe<A, C>);
+// Comparison with underlying type.
+static_assert(ComparableNe<A, A::UnderlyingType>);
+static_assert(ComparableEq<A, A::UnderlyingType>);
+static_assert(ComparableLt<A, A::UnderlyingType>);
+static_assert(ComparableLe<A, A::UnderlyingType>);
+static_assert(ComparableGt<A, A::UnderlyingType>);
+static_assert(ComparableGe<A, A::UnderlyingType>);
+
+template<typename U>
+concept PreIncrementable = requires (U u) { ++u; };
+static_assert(PreIncrementable<A>);
+static_assert(PreIncrementable<B>);
+static_assert(PreIncrementable<C>);
