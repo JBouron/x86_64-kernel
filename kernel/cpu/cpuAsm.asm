@@ -99,14 +99,28 @@ _setSReg _setSs, ss
 ; For _setCs the procedure is a bit more involved since we need a long jump.
 GLOBAL  _setCs:function
 _setCs:
-    ; Allocate a far pointer on the stack.
-    sub     rsp, 10
-    mov     [rsp + 0x8], di
-    mov     QWORD [rsp], .longJumpTarget
-    jmp     FAR QWORD [rsp]
-.longJumpTarget:
-    ; De-alloc the far pointer.
-    add     rsp, 10
+    ; Use a far return instead of a far jump here in case we are running on an
+    ; AMD processor. It turns out, AMD processors only support far jump to
+    ; 32bit offsets in 64-bit mode and that offset is ZERO extended to 64-bit.
+    ; Since we are in higher half, this cannot work (sign-extended would have
+    ; worked). Our only option is therefore to use a RETF, e.g. far return.
+    ; Although not mentioned in the docs, it seems that RETF is capable of
+    ; returning to a far pointer of the form m16:64 (e.g. with 64-bit offset).
+    ; My guess is this is because a far call can be done from any canonical
+    ; 64-bit offset and as such the RETF must support jumping back to a 64-bit
+    ; offset.
+    ; Intel CPUs do not have this issue since they support far jump to m16:64.
+    ; But keep it simple and use the RETF in both cases.
+    ; For both Intel and AMD it seems that a RETF pops 16 bytes from the stack,
+    ; e.g. 8-bytes for the offset + 8-bytes for the segment selector. This is
+    ; not very clear in the docs, so just to be save the segment selector is
+    ; zero-extended before being pushed on the stack.
+    movzx   rdi, di
+    push    rdi
+    lea     rax, [.farJumpTarget]
+    push    rax
+    retfq
+.farJumpTarget:
     ret
 
 ; Get the current value of the segment reg Xs. Implemented in assembly.
