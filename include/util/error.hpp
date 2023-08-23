@@ -11,6 +11,9 @@ enum class Error {
     // size.
     MaxHeapSizeReached,
 
+    // The ACPI parsing function was not able to file the RSDP.
+    NoRsdpFound,
+
     // To be used for testing only.
     Test,
 };
@@ -23,6 +26,7 @@ inline char const * errorToString(Error const value) {
     switch (value) {
         CASE(OutOfPhysicalMemory)
         CASE(MaxHeapSizeReached)
+        CASE(NoRsdpFound)
         CASE(Test)
         // -Wall and -Werror make sure that all values of Error must appear
         // here.

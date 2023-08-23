@@ -91,7 +91,7 @@ static u64 const IDT_SIZE = sizeof(IDT) / sizeof(*IDT);
 // The default interrupt handler, raises a PANIC for the unhandled interrupt.
 // This handler is set for all arch interrupt vectors upon Init.
 void defaultHandler(Vector const vector, Frame const& frame) {
-    PANIC("Got interrupt #{} from RIP = {x}", vector, frame.rip);
+    PANIC("Got interrupt #{} from RIP = {x}", vector.raw(), frame.rip);
 }
 
 // Disable the legacy Programmable Interrupt Controller 8259.

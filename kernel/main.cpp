@@ -15,6 +15,7 @@
 #include <memory/malloc.hpp>
 #include <util/assert.hpp>
 #include <util/subrange.hpp>
+#include <acpi/acpi.hpp>
 
 static void runSelfTests() {
     Log::info("Running self-tests:");
@@ -77,6 +78,8 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     HeapAlloc::Init();
 
     runSelfTests();
+
+    Acpi::parseTables();
 
     Log::warn("Hello");
 
