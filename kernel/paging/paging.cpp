@@ -55,21 +55,51 @@ VirAddr toVirAddr(PhyAddr const paddr) {
     return VirAddr(paddr.raw() + DIRECT_MAP_START_VADDR);
 }
 
+// Get the size of physical memory.
+// @param bootStruct: The BootStruct coming from the bootloader.
+// @return: The size of the physical memory in bytes.
+static u64 getPhysicalMemorySize(BootStruct const& bootStruct) {
+    // To find the end of physical memory, we use the last byte of the highest
+    // entry in the e820 memory map. While this might not be exact, it seems to
+    // be a good enough approximation. There does not seem to be a way for
+    // querying the exact size of physical memory.
+
+    // The memory map has been sorted by the bootloader hence we can only look
+    // at the end of the map. However, when running under Qemu on a AMD
+    // processor with IOMMU enabled, Qemu adds a reserved entry to the e820
+    // memory map starting @0xfd00000000 spanning 0x300000000 bytes. This entry
+    // is used for AMD's IOMMU (see AMD "HyperTransport"). Qemu always inserts
+    // this range even if the guest's physical memory is not big enough to
+    // contain that range. Therefore skip this range when finding the highest
+    // physical address.
+    for (i64 i(bootStruct.memoryMapSize - 1); i >= 0; --i) {
+        BootStruct::MemMapEntry const& entry(bootStruct.memoryMap[i]);
+        bool const isQemuIommuEntry(entry.base == 0xfd00000000
+                                    && entry.length == 0x300000000);
+        if (!isQemuIommuEntry) {
+            u64 const entryEndOffset(entry.base + entry.length);
+            return entryEndOffset;
+        } else {
+            ASSERT(!entry.isAvailable());
+            Log::warn("Ignoring e820 memmap base = {x} len = {x}",
+                      entry.base, entry.length);
+            Log::warn("Qemu creates this reserved entry for AMD's IOMMU");
+        }
+    }
+    // Is the memory map empty? This should virtually never happen unless there
+    // is a bug in the bootloader. We cannot continue if this happens so might
+    // as well die now.
+    PANIC("Cannot determine physical memory size: e820 memory map is empty");
+}
+
 // Initialize paging.
 // This function creates the direct map.
 void Init(BootStruct const& bootStruct) {
-    // To find the end of physical memory, we use the last byte of the last
-    // entry of available memory in the e820 memory map.
-    u64 dmEndOffset(0);
-    for (u64 i(0); i < bootStruct.memoryMapSize; ++i) {
-        BootStruct::MemMapEntry const& entry(bootStruct.memoryMap[i]);
-        if (entry.isAvailable()) {
-            u64 const entryEndOffset(entry.base + entry.length);
-            dmEndOffset = max(dmEndOffset, entryEndOffset);
-        }
-    }
-    Log::info("Initializing direct map spanning {x} bytes", dmEndOffset);
-    initializeDirectMap(DIRECT_MAP_START_VADDR, dmEndOffset);
+    u64 const phyMemBytes(getPhysicalMemorySize(bootStruct));
+    u64 const phyMemMib(phyMemBytes >> 20);
+    Log::info("Physical memory: {} bytes ({} MiB)", phyMemBytes, phyMemMib);
+    Log::info("Initializing direct map spanning {x} bytes", phyMemBytes);
+    initializeDirectMap(DIRECT_MAP_START_VADDR, phyMemBytes);
     Log::debug("Direct map initialized");
 
     // Enable the Write-Protect bit on CR0 to catch writes on read-only pages
