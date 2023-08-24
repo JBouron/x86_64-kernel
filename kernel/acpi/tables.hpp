@@ -64,13 +64,77 @@ struct RsdtHeader {
     }
 } __attribute__ ((packed));
 
+// A System Descriptor Table (SDT). Each SDT starts with a header and then
+// expands for (header.length - sizeof(header)) bytes. The header.signature
+// indicate the type of the SDT.
+struct Sdt {
+    RsdtHeader header;
+} __attribute__ ((packed));
+
+// Multiple APIC Description Table (MADT). Most likely the most important table,
+// contains information about the LAPIC, the I/O APIC(s), the number of CPUs in
+// the system and how IRQs are mapped to the I/O APIC(s).
+struct Madt {
+    RsdtHeader header;
+    // Physical address of the Local APIC. All cpus are using this same address
+    // to access their own LAPIC.
+    u32 localApicPhyAddr;
+    // If `1` then indicates that dual 8259 legacy PICs are installed.
+    u32 flags;
+
+    // The MADT is then followed by a number of entries (see Entry type below).
+    // Each entry contains various info about the interrupts, LAPIC, IO APIC,
+    // ...
+
+    // Entry of an Madt. Entries have different sizes depending on their type.
+    struct Entry {
+        // Type of the entry, for now only list the types of entries we are
+        // actually interested in.
+        enum class Type : u8 {
+            ProcessorLocalApic = 0,
+            IoApic = 1,
+            InterruptSourceOverride = 2,
+            NMISource = 3,
+            LocalApicNMI = 4,
+            LocalApicAddressOverride = 5,
+        };
+        // Type of the entry.
+        Type type;
+        // Length of the entry in bytes.
+        u8 length;
+
+        template<typename T>
+        T read(u64 const offset) const {
+            ASSERT(offset + sizeof(T) <= length);
+            VirAddr const addr(this);
+            return *(addr + offset).ptr<T>();
+        }
+    } __attribute__ ((packed));
+
+    // Invoke a lambda on each entry in this MADT. The lambda is expected to
+    // take the index of the entry and a pointer to the entry as argument.
+    // @param lambda: Function to call on each entry.
+    void forEachEntry(void (*lambda)(u64 const, Entry const*)) const {
+        VirAddr const start(this);
+        VirAddr const end(start + header.length);
+        VirAddr curr(start + sizeof(*this));
+        u64 index(0);
+        while (curr < end) {
+            Entry const * const entry(curr.ptr<Entry>());
+            lambda(index, entry);
+            curr = curr + entry->length;
+            index++;
+        }
+    }
+} __attribute__ ((packed));
+
 // Root System Description Table (RSDT). This is essentially a header followed
 // by an array of pointers to various System Descriptor Tables (SDT). The size
 // of the array is determined by the total length of the RSDT as:
 //      Rsdt.header.length - sizeof(RsdtHeader) / 4.
 struct Rsdt {
     // The header of the root table.
-    struct RsdtHeader header;
+    RsdtHeader header;
     // Physical addresses to the SDTs.
     u32 sdtPointers[0];
 
@@ -78,6 +142,15 @@ struct Rsdt {
     // @return: The number of SDTs under this RSDT.
     u64 numTables() const {
         return (header.length - sizeof(RsdtHeader)) / 4;
+    }
+
+    // Get a pointer to one of the SDTs contained in this RDST.
+    // @param index: The index of the table. Must be < numTables().
+    // @return: A pointer to the SDT at index i.
+    Sdt const * table(u64 const index) const {
+        ASSERT(index < numTables());
+        PhyAddr const tablePhyAddr(sdtPointers[index]);
+        return Paging::toVirAddr(tablePhyAddr).ptr<Sdt const>();
     }
 } __attribute__ ((packed));
 }

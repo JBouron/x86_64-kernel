@@ -78,6 +78,72 @@ static Res<PhyAddr> findRsdp() {
     return Error::NoRsdpFound;
 }
 
+// Parse an Entry in the MADT. Used by parseMadt as a callback for
+// Madt::forEachEntry.
+// @param idx: Index of the entry in the MADT.
+// @param Entry: Pointer to the entry to be parsed.
+static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
+    switch (entry->type) {
+        case Madt::Entry::Type::ProcessorLocalApic: {
+            u8 const procId(entry->read<u8>(2));
+            u8 const apicId(entry->read<u8>(3));
+            u32 const flags(entry->read<u32>(4));
+            Log::info("      [{}]: LAPIC: CPU ID = {} APIC ID = {} flags = {}",
+                      idx, procId, apicId, flags);
+            break;
+        }
+        case Madt::Entry::Type::IoApic: {
+            u8 const ioApicId(entry->read<u8>(2));
+            u32 const ioApicAddr(entry->read<u32>(4));
+            u32 const intBase(entry->read<u32>(8));
+            Log::info("      [{}]: IO APIC: IO APIC ID = {} IO APIC addr = {x}"
+                      " int base = {}", idx, ioApicId, ioApicAddr, intBase);
+            break;
+        }
+        case Madt::Entry::Type::InterruptSourceOverride: {
+            u8 const busSrc(entry->read<u8>(2));
+            u8 const irqSrc(entry->read<u8>(3));
+            u32 const gis(entry->read<u32>(4));
+            u16 const flags(entry->read<u16>(8));
+            Log::info("      [{}]: Int src override: Bus src = {} IRQ src = {}"
+                      " GIS = {} flags = {}", idx, busSrc, irqSrc, gis, flags);
+            break;
+        }
+        case Madt::Entry::Type::NMISource: {
+            u8 const nmiSource(entry->read<u8>(2));
+            u16 const flags(entry->read<u16>(3));
+            u8 const gis(entry->read<u8>(5));
+            Log::info("      [{}]: NMI src: src = {} flags = {} GIS = {}",
+                      idx, nmiSource, flags, gis);
+            break;
+        }
+        case Madt::Entry::Type::LocalApicNMI: {
+            u8 const procId(entry->read<u8>(2));
+            u16 const flags(entry->read<u16>(3));
+            u8 const lint(entry->read<u8>(5));
+            Log::info("      [{}]: LAPIC NMI : cpuID = {} flags = {} LINT = {}",
+                      idx, procId, flags, lint);
+            break;
+        }
+        case Madt::Entry::Type::LocalApicAddressOverride: {
+            u64 const lapicAddr(entry->read<u64>(8));
+            Log::info("      [{}]: LAPIC override: LAPIC addr = {x}",
+                      idx, lapicAddr);
+            break;
+        }
+        default: break;
+    }
+}
+
+// Parse a MADT.
+// @param madt: Pointer to the madt to parse.
+static void parseMadt(Madt const * const madt) {
+    Log::info("    Local APIC Address = {x}", madt->localApicPhyAddr);
+    Log::info("    Flags = {x}", madt->flags);
+    Log::info("    Entries:");
+    madt->forEachEntry(parseMadtEntry);
+}
+
 // Parse the ACPI tables found in BIOS memory.
 void parseTables() {
     Log::info("Parsing ACPI tables:");
@@ -99,29 +165,28 @@ void parseTables() {
     PhyAddr const rsdtAddr(rsdp->rsdtAddress);
     Log::info("RSDT is @{}", rsdtAddr);
 
-    // FIXME: The RSDT and its SDTs are located at high physical addresses that
-    // are not contained in the direct map. We have two options here:
-    //  1. Make sure the Direct Map contains the _entire_ physical memory.
-    //  2. Map and un-map each table as we use them.
-    // For now map the frame on which the RSDT is, by chance the SDTs are on the
-    // same frame. This needs to be fixed ASAP!
-    PhyAddr const paddr(rsdtAddr.raw() & ~(PAGE_SIZE - 1));
-    VirAddr const vaddr(paddr.raw());
-    ASSERT(!Paging::map(vaddr, paddr, Paging::PageAttr::None, 1));
-
-    Rsdt const * const rsdt(VirAddr(rsdtAddr.raw()).ptr<Rsdt>());
+    // Validate the RSDT checksum.
+    Rsdt const * const rsdt(Paging::toVirAddr(rsdtAddr).ptr<Rsdt>());
     if (!rsdt->header.isValid()) {
         PANIC("RSDT has an invalid checksum");
     }
 
+    // RSDT is valid, parse the SDTs it contains.
     u64 const numTables(rsdt->numTables());
     Log::info("RSDT contains {} tables:", numTables);
     for (u64 i(0); i < numTables; ++i) {
-        PhyAddr const sdtPAddr(rsdt->sdtPointers[i]);
-        RsdtHeader const * const hdr(VirAddr(sdtPAddr.raw()).ptr<RsdtHeader>());
-        char const sig[5] = { hdr->signature[0], hdr->signature[1],
-            hdr->signature[2], hdr->signature[3], 0 };
-        Log::info("  {}: @{}", sig, sdtPAddr);
+        Sdt const * const sdt(rsdt->table(i));
+        char const * const sdtSig(sdt->header.signature);
+        char const sig[5] = {sdtSig[0], sdtSig[1], sdtSig[2], sdtSig[3], 0};
+        if (!sdt->header.isValid()) {
+            PANIC("Table {} has invalid checksum!", sig);
+        }
+        Log::info("  {} table @{}", sig, sdt);
+        if (compareSignatures(sdtSig, "APIC", 4)) {
+            parseMadt(reinterpret_cast<Madt const*>(sdt));
+        } else {
+            Log::info("    Ignored by this kernel");
+        }
     }
 
     // TODO: Parse the tables of interest and store their information somewhere.
