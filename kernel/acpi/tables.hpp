@@ -103,6 +103,10 @@ struct Madt {
         // Length of the entry in bytes.
         u8 length;
 
+        // Read a value from this entry. The value must be fully contained in
+        // this entry wrt length.
+        // @param offset: Offset of the value to be read.
+        // @return: The value of type T at the given offset.
         template<typename T>
         T read(u64 const offset) const {
             ASSERT(offset + sizeof(T) <= length);

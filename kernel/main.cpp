@@ -79,7 +79,8 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
 
     runSelfTests();
 
-    Acpi::parseTables();
+    Acpi::Info const& acpi(Acpi::parseTables());
+    Log::info("{} processor(s) in the system", acpi.processorDescSize);
 
     Log::warn("Hello");
 

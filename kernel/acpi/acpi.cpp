@@ -10,6 +10,22 @@ namespace Acpi {
 // parse structs from raw memory. I should really take the time to double check
 // everything here...
 
+
+// FIXME: The following constants define the maximum size of the various arrays
+// of the Info struct. Those are are needed because we don't have dynamically
+// sized arrays yet and use statically sized arrays instead. Eventually, once we
+// have dynamic arrays, we won't need those anymore.
+static constexpr u64 MAX_IO_APIC = 4;
+static constexpr u64 MAX_CPUS = 256;
+static constexpr u64 MAX_NMI_SOURCES = 4;
+
+// The Info struct parsed from the ACPI tables.
+static Info AcpiInfo;
+
+// Indicate if the ACPI info was already parsed. Used to avoid parsing the ACPI
+// tables multiple times.
+static bool Parsed = false;
+
 // Compare two signatures. Note: both signatures MUST be of the same length as
 // specified by signatureLen.
 // @param arr1: The first signature.
@@ -78,6 +94,38 @@ static Res<PhyAddr> findRsdp() {
     return Error::NoRsdpFound;
 }
 
+// Translate a raw value of MPS INTI flags (see ACPI specs) into a Polarity.
+// @param flags: The value to translate.
+// @return: The polarity encoded in the flags.
+static Info::Polarity mpsIntiFlagsToPolarity(u16 const flags) {
+    u8 const bits(flags & 0x2);
+    if (!bits) {
+        return Info::Polarity::ConformToBusSpecs;
+    } else if (bits == 1) {
+        return Info::Polarity::ActiveHigh;
+    } else if (bits == 3) {
+        return Info::Polarity::ActiveLow;
+    } else {
+        PANIC("Invalid MPS INTI flag value: {}", flags);
+    }
+}
+
+// Translate a raw value of MPS INTI flags (see ACPI specs) into a TriggerMode.
+// @param flags: The value to translate.
+// @return: The TriggerMode encoded in the flags.
+static Info::TriggerMode mpsIntiFlagsToTriggerMode(u16 const flags) {
+    u8 const bits(flags >> 2);
+    if (!bits) {
+        return Info::TriggerMode::ConformToBusSpecs;
+    } else if (bits == 1) {
+        return Info::TriggerMode::EdgeTriggered;
+    } else if (bits == 3) {
+        return Info::TriggerMode::LevelTriggered;
+    } else {
+        PANIC("Invalid MPS INTI flag value: {}", flags);
+    }
+}
+
 // Parse an Entry in the MADT. Used by parseMadt as a callback for
 // Madt::forEachEntry.
 // @param idx: Index of the entry in the MADT.
@@ -90,6 +138,16 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             u32 const flags(entry->read<u32>(4));
             Log::info("      [{}]: LAPIC: CPU ID = {} APIC ID = {} flags = {}",
                       idx, procId, apicId, flags);
+            if (procId >= MAX_CPUS) {
+                PANIC("More cpus than currently supported. Change MAX_CPUS");
+            }
+            Info::ProcessorDesc& desc(AcpiInfo.processorDesc[procId]);
+            desc.id = procId;
+            desc.apicId = apicId;
+            desc.isEnabled = !!(flags & 0x1);
+            desc.isOnlineCapable = !!(flags & 0x2);
+            desc.hasNmiSource = false;
+            AcpiInfo.processorDescSize++;
             break;
         }
         case Madt::Entry::Type::IoApic: {
@@ -98,23 +156,47 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             u32 const intBase(entry->read<u32>(8));
             Log::info("      [{}]: IO APIC: IO APIC ID = {} IO APIC addr = {x}"
                       " int base = {}", idx, ioApicId, ioApicAddr, intBase);
+            if (ioApicId >= MAX_IO_APIC) {
+                PANIC("More I/O APICs than supported. Change MAX_IO_APIC");
+            }
+            Info::IoApicDesc& desc(AcpiInfo.ioApicDesc[ioApicId]);
+            desc.id = ioApicId;
+            desc.address = ioApicAddr;
+            desc.interruptBase = GlobalSystemIntVector(intBase);
+            AcpiInfo.ioApicDescSize++;
             break;
         }
         case Madt::Entry::Type::InterruptSourceOverride: {
             u8 const busSrc(entry->read<u8>(2));
             u8 const irqSrc(entry->read<u8>(3));
-            u32 const gis(entry->read<u32>(4));
+            u32 const gsi(entry->read<u32>(4));
             u16 const flags(entry->read<u16>(8));
             Log::info("      [{}]: Int src override: Bus src = {} IRQ src = {}"
-                      " GIS = {} flags = {}", idx, busSrc, irqSrc, gis, flags);
+                      " gsi = {} flags = {}", idx, busSrc, irqSrc, gsi, flags);
+            // FIXME: Not sure what the bus src is for.
+            ASSERT(!busSrc);
+            ASSERT(irqSrc <= 15);
+            Info::IrqDesc& desc(AcpiInfo.irqDesc[irqSrc]);
+            desc.gsiVector = GlobalSystemIntVector(gsi);
+            desc.polarity = mpsIntiFlagsToPolarity(flags);
+            desc.triggerMode = mpsIntiFlagsToTriggerMode(flags);
             break;
         }
         case Madt::Entry::Type::NMISource: {
             u8 const nmiSource(entry->read<u8>(2));
             u16 const flags(entry->read<u16>(3));
-            u8 const gis(entry->read<u8>(5));
-            Log::info("      [{}]: NMI src: src = {} flags = {} GIS = {}",
-                      idx, nmiSource, flags, gis);
+            u8 const gsi(entry->read<u8>(5));
+            Log::info("      [{}]: NMI src: src = {} flags = {} gsi = {}",
+                      idx, nmiSource, flags, gsi);
+            if (AcpiInfo.nmiSourceDescSize >= MAX_NMI_SOURCES) {
+                PANIC("More NMI sources than supported. Change MAX_NMI_SOURCE");
+            }
+            u8 const idx(AcpiInfo.nmiSourceDescSize);
+            Info::NmiSourceDesc& desc(AcpiInfo.nmiSourceDesc[idx]);
+            desc.polarity = mpsIntiFlagsToPolarity(flags);
+            desc.triggerMode = mpsIntiFlagsToTriggerMode(flags);
+            desc.gsiVector = GlobalSystemIntVector(gsi);
+            AcpiInfo.nmiSourceDescSize++;
             break;
         }
         case Madt::Entry::Type::LocalApicNMI: {
@@ -123,12 +205,21 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             u8 const lint(entry->read<u8>(5));
             Log::info("      [{}]: LAPIC NMI : cpuID = {} flags = {} LINT = {}",
                       idx, procId, flags, lint);
+            if (procId >= MAX_CPUS) {
+                PANIC("Proc ID from LocalApicNMI is out of bounds");
+            }
+            Info::ProcessorDesc& desc(AcpiInfo.processorDesc[procId]);
+            desc.hasNmiSource = true;
+            desc.nmiPolarity = mpsIntiFlagsToPolarity(flags);
+            desc.nmiTriggerMode = mpsIntiFlagsToTriggerMode(flags);
+            desc.nmiLint = lint;
             break;
         }
         case Madt::Entry::Type::LocalApicAddressOverride: {
             u64 const lapicAddr(entry->read<u64>(8));
             Log::info("      [{}]: LAPIC override: LAPIC addr = {x}",
                       idx, lapicAddr);
+            AcpiInfo.localApicAddress = lapicAddr;
             break;
         }
         default: break;
@@ -141,11 +232,34 @@ static void parseMadt(Madt const * const madt) {
     Log::info("    Local APIC Address = {x}", madt->localApicPhyAddr);
     Log::info("    Flags = {x}", madt->flags);
     Log::info("    Entries:");
+
+    AcpiInfo.localApicAddress = madt->localApicPhyAddr;
+    AcpiInfo.hasDual8259 = madt->flags & 1;
+
     madt->forEachEntry(parseMadtEntry);
 }
 
 // Parse the ACPI tables found in BIOS memory.
-void parseTables() {
+Info const& parseTables() {
+    if (Parsed) {
+        // Tables were already parsed, don't parse them again.
+        return AcpiInfo;
+    }
+
+    // Prepare the arrays in the Info struct.
+    AcpiInfo.processorDesc = new Info::ProcessorDesc[MAX_CPUS];
+    AcpiInfo.ioApicDesc = new Info::IoApicDesc[MAX_IO_APIC];
+    AcpiInfo.nmiSourceDesc = new Info::NmiSourceDesc[MAX_NMI_SOURCES];
+
+    // Set all IRQs to be ID-mapped, edge-triggered and active-high (e.g. they
+    // standard behaviour).
+    for (u8 irq(0); irq < 15; ++irq) {
+        Info::IrqDesc& desc(AcpiInfo.irqDesc[irq]);
+        desc.gsiVector = GlobalSystemIntVector(irq);
+        desc.polarity = Info::Polarity::ActiveHigh;
+        desc.triggerMode = Info::TriggerMode::EdgeTriggered;
+    }
+
     Log::info("Parsing ACPI tables:");
     Res<PhyAddr> const rsdpLoc(findRsdp());
     if (!rsdpLoc) {
@@ -188,7 +302,6 @@ void parseTables() {
             Log::info("    Ignored by this kernel");
         }
     }
-
-    // TODO: Parse the tables of interest and store their information somewhere.
+    return AcpiInfo;
 }
 }
