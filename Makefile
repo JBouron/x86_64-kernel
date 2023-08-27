@@ -73,7 +73,7 @@ debug: buildincontainer
 .PHONY: buildincontainer
 buildincontainer:
 	sudo docker run -ti -v $$PWD/:/src/ --user $$UID:$$GID \
-		kernelbuilder make -j32 -C /src build
+		kernelbuilder make -j32 -C /src IN_CONTAINER=1 build
 
 
 # Build the bootloader and the kernel, must be executed within the kernelbuilder
@@ -86,6 +86,18 @@ build: $(KERNEL_IMG_NAME)
 		bootloader/stage1/stage1 \
 		$(KERNEL_IMG_NAME) \
 		$(DISK_IMG_NAME)
+
+# Compute the dependencies of all *.cpp files and output them into a .depend
+# file which is then included in this Makefile. Only do this while running in
+# the container as this requires running the cross-compiler.
+ifeq ($(IN_CONTAINER),1)
+.depends: $(CPP_SOURCES)
+	rm -rf $@
+	for FILE in $^; do \
+		$(CXX) $(CXXFLAGS) -M $$FILE -MT $${FILE%.cpp}.o >> $@; \
+	done
+include .depends
+endif
 
 # FIXME: For now manually compile the kernel stub, eventually we should have
 # nicer rules here.
@@ -100,4 +112,4 @@ $(KERNEL_IMG_NAME): $(OBJ_FILES)
 .PHONY: clean
 clean:
 	$(MAKE) -C bootloader clean
-	rm -rf $(OBJ_FILES) $(KERNEL_IMG_NAME) $(DISK_IMG_NAME)
+	rm -rf $(OBJ_FILES) $(KERNEL_IMG_NAME) $(DISK_IMG_NAME) .depends
