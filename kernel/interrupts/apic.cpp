@@ -143,6 +143,7 @@ static u32 readRegister(Register const reg) {
         // The EOI register is write-only.
         PANIC("Attempt to read the EIO APIC register, which is write-only");
     }
+    // FIXME: Use volatile.
     return *(LocalApicBase + static_cast<u64>(reg)).ptr<u32>();
 }
 
@@ -178,6 +179,7 @@ static void writeRegister(Register const reg, u32 const value) {
     if (!isRegisterWritable(reg)) {
         PANIC("Attempt to write into read-only APIC register {x}", registerOff);
     }
+    // FIXME: Use volatile.
     *(LocalApicBase + registerOff).ptr<u32>() = value;
 }
 

@@ -193,13 +193,15 @@ extern "C" void genericInterruptHandler(u8 const _vector,
     if (!vector.isUserDefined() && !handler) {
         // Non-user-defined vectors always have a handler, set during Init() or
         // in deregisterHandler(). If this fails then we have a bug somewhere.
-        PANIC("Non-user-defined vector #{} has no registered handler", vector);
+        PANIC("Non-user-defined vector #{} has no registered handler",
+              vector.raw());
     }
     if (!!handler) {
         handler(vector, *frame);
     } else {
         // Ignore user-defined vectors for which there is no handler.
-        Log::warn("Ignoring spurious interrupt #{} with no handler", vector);
+        Log::warn("Ignoring spurious interrupt #{} with no handler",
+                  vector.raw());
     }
     Apic::eoi();
 }
