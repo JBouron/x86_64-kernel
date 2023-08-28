@@ -234,10 +234,12 @@ void IoApic::writeRedirectionTable(u8 const entryIndex,
     // DWORD followed by the high DWORD.
     // Also avoid overwritting reserved bits.
     u64 const entryRaw(entry.raw());
-    u64 const currRaw(readRedirectionTable(entryIndex).raw());
+    Register const regLow(redirectionTableEntryRegLow(entryIndex));
+    Register const regHigh(redirectionTableEntryRegHigh(entryIndex));
+    u64 const currRaw(u64(readRegister(regHigh)) << 32 | readRegister(regLow));
     u64 const newRaw((entryRaw & ~RedirectionTableEntryReservedBits)
                      | (currRaw & RedirectionTableEntryReservedBits));
-    writeRegister(redirectionTableEntryRegLow(entryIndex), newRaw & 0xffffffff);
-    writeRegister(redirectionTableEntryRegHigh(entryIndex), newRaw >> 32);
+    writeRegister(regLow, newRaw & 0xffffffff);
+    writeRegister(regHigh, newRaw >> 32);
 }
 }

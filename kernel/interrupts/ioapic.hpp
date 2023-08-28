@@ -232,7 +232,7 @@ private:
     static Register redirectionTableEntryRegHigh(u8 const entryIndex);
 
     // Mask for the reserved bits in a Redirection Table entry.
-    static u64 const RedirectionTableEntryReservedBits = 0xfffffffffffe5000ULL;
+    static u64 const RedirectionTableEntryReservedBits = 0x00fffffffffe5000ULL;
 
     // Read an entry from the redirection table.
     // @param entryIndex: The index of the entry to read.
