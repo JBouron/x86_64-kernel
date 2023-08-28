@@ -103,12 +103,16 @@ void IoApic::redirectInterrupt(InputPin const inputPin,
     writeRedirectionTable(inputPin.raw(), redirEntry);
 }
 
-// Mask an input pin of this I/O APIC.
+// (Un-)Mask an input pin of this I/O APIC. Only the `mask` bit is written
+// in the redirection entry, the other bits are untouched so that the
+// interrupt may be un-masked again.
 // @param inputPin: The input pin to mask.
-void IoApic::maskInterruptSource(InputPin const inputPin) {
-    // FIXME: Bound check.
+// @param isMasked: If true, masks the given interrupt pin, otherwise unmask
+// it.
+void IoApic::setInterruptSourceMask(InputPin const inputPin,
+                                    bool const isMasked) {
     RedirectionTableEntry entry(readRedirectionTable(inputPin.raw()));
-    entry.setMasked(true);
+    entry.setMasked(isMasked);
     writeRedirectionTable(inputPin.raw(), entry);
 }
 
@@ -126,6 +130,14 @@ u32 IoApic::readRegister(Register const src) const {
 // @param dest: The register to write into.
 // @param value: The value to write into the destination register.
 void IoApic::writeRegister(Register const dest, u32 const value) {
+    if (dest == Register::IOAPICID
+        || dest == Register::IOAPICVER
+        || dest == Register::IOAPICARB) {
+        // Currently, we do not have a use case to write into the registers
+        // other than redirection entries. Hence PANIC.
+        PANIC("Attempt to write into an I/O APIC register other than REDTBL is "
+              "not currently supported");
+    }
     *m_ioRegSel = dest;
     *m_ioWin = value;
 }

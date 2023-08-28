@@ -2,6 +2,7 @@
 #pragma once
 #include <util/addr.hpp>
 #include <acpi/acpi.hpp>
+#include <selftests/selftests.hpp>
 
 namespace Interrupts {
 
@@ -13,6 +14,8 @@ public:
     // address.
     // @param base: The base physical addres of this I/O APIC.
     IoApic(PhyAddr const base);
+
+    virtual ~IoApic() = default;
 
     // ID type used by I/O APICs.
     using Id = u8;
@@ -141,11 +144,26 @@ public:
                            TriggerMode const triggerMode,
                            Dest const destinationApic);
 
-    // Mask an input pin of this I/O APIC.
+    // (Un-)Mask an input pin of this I/O APIC. Only the `mask` bit is written
+    // in the redirection entry, the other bits are untouched so that the
+    // interrupt may be un-masked again.
     // @param inputPin: The input pin to mask.
-    void maskInterruptSource(InputPin const inputPin);
+    // @param isMasked: If true, masks the given interrupt pin, otherwise unmask
+    // it.
+    void setInterruptSourceMask(InputPin const inputPin, bool const isMasked);
 
-private:
+    // Testing related functions.
+    // Run the I/O APIC tests.
+    static void Test(SelfTests::TestRunner& runner);
+    friend SelfTests::TestResult ioApicRedirectionTableEntryTest();
+    friend SelfTests::TestResult ioApicReadRegisterTest();
+    friend SelfTests::TestResult ioApicReadWriteRedirectionTableTest();
+    friend SelfTests::TestResult
+        ioApicWriteRedirectionTableEntryReservedBitTest();
+    friend SelfTests::TestResult ioApicMaskInterruptSourceTest();
+    friend SelfTests::TestResult ioApicRedirectInterruptTest();
+
+protected:
     // The base physical address of this I/O APIC.
     PhyAddr m_base;
 
@@ -164,14 +182,14 @@ private:
     // Read an I/O APIC register.
     // @param src: The register to read.
     // @return: The current value of the register `src`.
-    u32 readRegister(Register const src) const;
+    virtual u32 readRegister(Register const src) const;
 
     // Write into an I/O APIC register. Note: This function does NOT skip
     // reserved bits in registers, it is the responsibility of the caller to
     // make sure not to change the value of a reserved bit.
     // @param dest: The register to write into.
     // @param value: The value to write into the destination register.
-    void writeRegister(Register const dest, u32 const value);
+    virtual void writeRegister(Register const dest, u32 const value);
 
     // Type for an entry in the redirection table.
     class RedirectionTableEntry {

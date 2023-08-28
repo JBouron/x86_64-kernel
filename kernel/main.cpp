@@ -103,7 +103,7 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
         asm("hlt");
         intCount++;
         if (intCount > 15) {
-            ioApic.maskInterruptSource(Interrupts::IoApic::InputPin(2));
+            ioApic.setInterruptSourceMask(Interrupts::IoApic::InputPin(2),true);
             Log::debug("Maked timer input pin on I/O apic");
         }
     }

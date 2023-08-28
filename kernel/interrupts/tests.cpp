@@ -1,6 +1,7 @@
 // Interrupt related tests.
 #include <interrupts/interrupts.hpp>
 #include <util/assert.hpp>
+#include "ioapic.hpp"
 
 namespace Interrupts {
 
@@ -206,6 +207,8 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, interruptRegistersSavedTest);
     RUN_TEST(runner, interruptHandlerRegistrationTest);
     RUN_TEST(runner, interruptHandlerFrameTest);
+
+    IoApic::Test(runner);
 }
 
 }
