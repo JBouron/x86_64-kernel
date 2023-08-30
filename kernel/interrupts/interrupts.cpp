@@ -107,7 +107,7 @@ void Init() {
     disablePic();
 
     // Enable the APIC.
-    Apic::Init();
+    InitLocalApic();
 
     // Initialize the interrupt handlers for the non-user-defined vectors.
     for (Vector v(0); v < 32; ++v) {
@@ -203,6 +203,6 @@ extern "C" void genericInterruptHandler(u8 const _vector,
         Log::warn("Ignoring spurious interrupt #{} with no handler",
                   vector.raw());
     }
-    Apic::eoi();
+    eoi();
 }
 }

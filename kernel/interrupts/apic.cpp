@@ -7,150 +7,103 @@
 #include <util/assert.hpp>
 
 namespace Interrupts {
-namespace Apic {
 
-// The virtual address of the base of the local APIC. Assigned upon calling
-// Init.
-static VirAddr LocalApicBase = 0;
-
-// All APIC registers.
-enum class Register : u64 {
-    ApicId                                  = 0x020,
-    ApicVersion                             = 0x030,
-    TaskPriority                            = 0x080,
-    ArbitrationPriority                     = 0x090,
-    ProcessorPriority                       = 0x0A0,
-    EndOfInterrupt                          = 0x0B0,
-    RemoteRead                              = 0x0C0,
-    LogicalDestination                      = 0x0D0,
-    DestinationFormat                       = 0x0E0,
-    SpuriousInterruptVector                 = 0x0F0,
-    InService31to0                          = 0x100,
-    InService63to32                         = 0x110,
-    InService95to64                         = 0x120,
-    InService127to96                        = 0x130,
-    InService159to128                       = 0x140,
-    InService191to160                       = 0x150,
-    InService223to192                       = 0x160,
-    InService255to224                       = 0x170,
-    TriggerMode31to0                        = 0x180,
-    TriggerMode63to32                       = 0x190,
-    TriggerMode95to64                       = 0x1a0,
-    TriggerMode127to96                      = 0x1b0,
-    TriggerMode159to128                     = 0x1c0,
-    TriggerMode191to160                     = 0x1d0,
-    TriggerMode223to192                     = 0x1e0,
-    TriggerMode255to224                     = 0x1f0,
-    InterruptRequest31to0                   = 0x200,
-    InterruptRequest63to32                  = 0x210,
-    InterruptRequest95to64                  = 0x220,
-    InterruptRequest127to96                 = 0x230,
-    InterruptRequest159to128                = 0x240,
-    InterruptRequest191to160                = 0x250,
-    InterruptRequest223to192                = 0x260,
-    InterruptRequest255to224                = 0x270,
-    ErrorStatus                             = 0x280,
-    InterruptCommandLow                     = 0x300,
-    InterruptCommandHigh                    = 0x310,
-    TimerLocalVectorTableEntry              = 0x320,
-    ThermalLocalVectorTableEntry            = 0x330,
-    PerformanceCounterLocalVectorTableEntry = 0x340,
-    LocalInterrupt0VectorTableEntry         = 0x350,
-    LocalInterrupt1VectorTableEntry         = 0x360,
-    ErrorVectorTableEntry                   = 0x370,
-    TimerInitialCount                       = 0x380,
-    TimerCurrentCount                       = 0x390,
-    TimerDivideConfiguration                = 0x3E0,
-};
-
-// A Local Vector Table register value.
-class Lvt {
-public:
-    // Only applicable when the LVT value is going to be used for the
-    // TimerLocalVectorTableEntry register, indicates if the APIC timer should
-    // be one-shot or periodic.
-    enum class TimerMode {
-        OneShot = 0,
-        Periodic = 1,
-    };
-
-    enum class TriggerMode {
-        EdgeTriggered = 0,
-        LevelTriggered = 1,
-    };
-
-    enum class MessageType {
-        Fixed = 0b000,
-        Smi = 0b010,
-        Nmi = 0b100,
-        External = 0b111,
-    };
-
-    // Build a _masked_ LVT value. Useful to disable a particular interrupt
-    // source.
-    Lvt() : m_value(1 << 16) {}
-
-    // Build a non-masked LVT value.
-    // @param timerMode: Only applies to the TimerLocalVectorTableEntry
-    // register, indicates if the timer should be one shot or periodic.
-    // @param triggerMode: The trigger mode of the interrupt. For now only
-    // EdgeTriggered is supported.
-    // @param messageType: The message type to be delivered to the CPU for this
-    // interrupt. For now only Fixed is supported.
-    // @param vector: The vector to be associated with this interrupt.
-    Lvt(TimerMode const timerMode,
-        TriggerMode const triggerMode,
-        MessageType const messageType,
-        Vector const vector) :
-        m_value((static_cast<u32>(timerMode) << 17)
-                | (static_cast<u32>(triggerMode) << 15)
-                | (static_cast<u32>(messageType) << 8)
-                | vector.raw()) {
-        if (triggerMode != TriggerMode::EdgeTriggered) {
-            PANIC("TriggerMode::LevelTriggered is not yet supported");
-        }
-        if (messageType != MessageType::Fixed) {
-            PANIC("MessageType other than Fixed is not yet supported");
-        }
+// Construct an interface for a Local APIC.
+// @param base: The base of the local APIC registers.
+LocalApic::LocalApic(PhyAddr const base) : m_base(base) {
+    // Check that the CPU supports APIC. Virtually all CPUs do.
+    bool const isApicSupported(Cpu::cpuid(0x1).edx & (1 << 9));
+    if (!isApicSupported) {
+        PANIC("The CPU does not support APIC. Required by this kernel");
     }
 
-    // Build a non-masked LVT value. This is used for LVTs that do not use the
-    // timer mode.
-    // @param triggerMode: The trigger mode of the interrupt. For now only
-    // EdgeTriggered is supported.
-    // @param messageType: The message type to be delivered to the CPU for this
-    // interrupt. For now only Fixed is supported.
-    // @param vector: The vector to be associated with this interrupt.
-    Lvt(TriggerMode const triggerMode,
-        MessageType const messageType,
-        Vector const vector) :
-        Lvt(TimerMode::OneShot, triggerMode, messageType, vector) {}
-
-    // Get the raw value of this LVT, to be written into an APIC register.
-    // @return: The raw value.
-    u32 value() const {
-        return m_value;
+    // Remap the virtual address in the Direct Map, associated with the base
+    // with CacheDisable and WriteThrough attributes.
+    Paging::PageAttr const attrs(Paging::PageAttr::Writable
+                                 | Paging::PageAttr::CacheDisable
+                                 | Paging::PageAttr::WriteThrough);
+    VirAddr const vaddr(Paging::toVirAddr(base));
+    if (Paging::map(vaddr, base, attrs, 1)) {
+        PANIC("Could not map local APIC to virtual memory");
     }
-private:
-    u32 const m_value;
-};
+
+    Log::debug("Enabling APIC");
+    // Enabling the APIC by setting the APIC Global Enable bit in the
+    // IA32_APIC_BASE MSR.
+    u64 const apicBaseMsr(Cpu::rdmsr(Cpu::Msr::IA32_APIC_BASE));
+    u64 const newApicBaseMsr(apicBaseMsr | (1 << 11));
+    Cpu::wrmsr(Cpu::Msr::IA32_APIC_BASE, newApicBaseMsr);
+    Log::info("APIC enabled");
+}
+
+// Setup the LAPIC timer with the given configuration. This does NOT start
+// the timer.
+// @param mode: The mode to use for the timer.
+// @param vector: The interrupt vector that should be raised when the timer
+// expires.
+void LocalApic::setupTimer(TimerMode const mode, Vector const vector) {
+    // First stop the timer to avoid any suprise interrupts.
+    stopTimer();
+    TimerLvt const lvtValue(mode, vector);
+    u32 const currLvt(readRegister(Register::TimerLocalVectorTableEntry));
+    u32 const newLvt((currLvt & TimerLvt::ReservedBitsMask)
+                     | (lvtValue.raw() & ~TimerLvt::ReservedBitsMask));
+    writeRegister(Register::TimerLocalVectorTableEntry, newLvt);
+}
+
+// Start or reset the timer. Must be called after setting up the timer using
+// setupTimer.
+// @param numTicks: The number of timer clock ticks before the timer expires
+// and fires an interrupt.
+// @param div: The divisor to use for the timer clock.
+void LocalApic::resetTimer(u32 const numTicks, TimerClockDivisor const div) {
+    // Setup the divisor first to avoid race-conditions.
+    u32 const divRaw(static_cast<u8>(div));
+    u32 const divResv(readRegister(Register::TimerDivideConfiguration) & ~0xb);
+    u32 const divValue(divResv | ((divRaw & 0xb100) << 3) | (divRaw & 0b11));
+    writeRegister(Register::TimerDivideConfiguration, divValue);
+    // Start the timer.
+    writeRegister(Register::TimerInitialCount, numTicks);
+}
+
+// Stop the timer, the timer won't ever expire until it is reset using
+// resteTimer.
+void LocalApic::stopTimer() {
+    writeRegister(Register::TimerInitialCount, 0x0);
+}
+
+// Notify the local APIC of an end-of-interrupt.
+void LocalApic::eoi() {
+    writeRegister(Register::EndOfInterrupt, 0x0);
+}
 
 // Read a register from the local APIC.
-// @param reg: The register to read.
+// @param reg: The register to read from.
 // @return: The current value of the register.
-static u32 readRegister(Register const reg) {
+u32 LocalApic::readRegister(Register const reg) const {
     if (reg == Register::EndOfInterrupt) {
         // The EOI register is write-only.
-        PANIC("Attempt to read the EIO APIC register, which is write-only");
+        PANIC("Attempt to read the EOI APIC register, which is write-only");
     }
-    // FIXME: Use volatile.
-    return *(LocalApicBase + static_cast<u64>(reg)).ptr<u32>();
+    VirAddr const regAddr(Paging::toVirAddr(m_base) + static_cast<u16>(reg));
+    return *regAddr.ptr<u32>();
+}
+
+// Write a register into the local APIC.
+// @param reg: The register to write.
+// @param value: The value to write into the register.
+void LocalApic::writeRegister(Register const reg, u32 const value) {
+    VirAddr const regAddr(Paging::toVirAddr(m_base) + static_cast<u16>(reg));
+    if (!isRegisterWritable(reg)) {
+        PANIC("Attempt to write into read-only APIC register {x}", regAddr);
+    }
+    *regAddr.ptr<u32>() = value;
 }
 
 // Check if a local APIC register can be written to, e.g. not read-only.
 // @param reg: The register to check.
 // @return: true if the register is writtable, false otherwise.
-static bool isRegisterWritable(Register const reg) {
+bool LocalApic::isRegisterWritable(Register const reg) {
     return reg == Register::ApicId
            || reg == Register::TaskPriority
            || reg == Register::EndOfInterrupt
@@ -170,28 +123,110 @@ static bool isRegisterWritable(Register const reg) {
            || reg == Register::TimerDivideConfiguration;
 }
 
-// Write a register of the local APIC. Any attempt to write into a read-only
-// register leads to a PANIC.
-// @param reg: The register to write.
-// @param value: The value to write.
-static void writeRegister(Register const reg, u32 const value) {
-    u64 const registerOff(static_cast<u64>(reg));
-    if (!isRegisterWritable(reg)) {
-        PANIC("Attempt to write into read-only APIC register {x}", registerOff);
-    }
-    // FIXME: Use volatile.
-    *(LocalApicBase + registerOff).ptr<u32>() = value;
+// Construct a default LVT, all bits to zero except the mask bit which
+// is set.
+LocalApic::Lvt::Lvt() : m_masked(true), m_vector(0) {}
+
+// Construct an LVT from a vector. The mask bit is unset.
+LocalApic::Lvt::Lvt(Vector const vector) : m_masked(false), m_vector(vector) {}
+
+// Construct an LVT from a raw value read from a register.
+LocalApic::Lvt::Lvt(u32 const raw) : m_masked(!!(raw & (1 << 16))),
+                                m_vector(raw & 0xff) {}
+
+// Set the value of the mask bit in this TimerLvt.
+// @param isMasked: Indicates if the TimerLvt should be marked as
+// masked, e.g. no interrupt fires at expiration time.
+void LocalApic::Lvt::setMasked(bool const isMasked) {
+    m_masked = isMasked;
 }
 
-// Initialize the APIC.
-void Init() {
-    // Check that the CPU supports APIC. It is getting hard to find one that
-    // doesn't as of today.
-    bool const isApicSupported(Cpu::cpuid(0x1).edx & (1 << 9));
-    if (!isApicSupported) {
-        PANIC("The CPU does not support APIC. Required by this kernel");
-    }
+// Construct a default LVT, all bits to zero except the mask bit which
+// is set.
+LocalApic::TimerLvt::TimerLvt() : Lvt(), m_timerMode(TimerMode::OneShot) {}
 
+// Construct a TimerLvt with the given configuration.
+// @param timerMode: The timer mode to use.
+// @param vector: The vector to be fired at timer expiration.
+LocalApic::TimerLvt::TimerLvt(TimerMode const timerMode, Vector const vector) :
+    Lvt(vector), m_timerMode(timerMode) {}
+
+// Construct a TimerLvt from a raw value of an APIC register.
+// @param raw: The raw value to construct the TimerLvt from.
+LocalApic::TimerLvt::TimerLvt(u32 const raw) :
+    Lvt(raw), m_timerMode(static_cast<TimerMode>(!!(raw & (1 << 17)))) {}
+
+// Get the raw value for this TimerLvt. Used when actually writing the
+// TimerLvt into an APIC register.
+u32 LocalApic::TimerLvt::raw() const {
+    return (static_cast<u64>(m_timerMode) << 17)
+           | (static_cast<u64>(m_masked) << 16)
+           | m_vector.raw();
+}
+
+// Construct a default LVT, all bits to zero except the mask bit which
+// is set.
+LocalApic::LintLvt::LintLvt() : Lvt(),
+                                m_triggerMode(TriggerMode::EdgeTriggered),
+                                m_messageType(Lvt::MessageType::Fixed) {}
+
+// Construct a LintLvt. The resulting mask bit is unset.
+// @param triggerMode: The trigger mode of the LINT{0-1}.
+// @param messageType: The message type for the LINT{0-1}.
+// @param vector: The vector to fire when the LINT{0-1} is asserted.
+LocalApic::LintLvt::LintLvt(TriggerMode const triggerMode,
+                            MessageType const messageType,
+                            Vector const vector) :
+    Lvt(vector), m_triggerMode(triggerMode), m_messageType(messageType) {}
+
+// Get the raw value for this LintLVT. Used when actually writing the
+// LintLVT into an APIC register.
+u32 LocalApic::LintLvt::raw() const {
+    return (static_cast<u64>(m_masked) << 16)
+           | (static_cast<u64>(m_triggerMode) << 15)
+           | (static_cast<u64>(m_messageType) << 8)
+           | m_vector.raw();
+}
+
+// Construct a LintLvt from a raw value of an APIC register.
+// @param raw: The raw value to construct the LintLvt from.
+LocalApic::LintLvt::LintLvt(u32 const raw) :
+    Lvt(raw), m_triggerMode(static_cast<TriggerMode>(!!(raw & (1 << 15)))),
+    m_messageType(static_cast<MessageType>((raw >> 8) & 0x7)) {}
+
+// Construct a default LVT, all bits to zero except the mask bit which
+// is set.
+LocalApic::ApicErrorLvt::ApicErrorLvt() : Lvt(),
+    m_messageType(Lvt::MessageType::Fixed) {}
+
+// Construct an ApicErrorLvt. The mask bit is unset.
+// @param messageType: The message type to be sent in case of APIC
+// error.
+// @param vector: The vector to fire.
+LocalApic::ApicErrorLvt::ApicErrorLvt(MessageType const messageType,
+                                      Vector const vector) :
+    Lvt(vector), m_messageType(messageType) {}
+
+// Construct a ApicErrorLvt from a raw value of an APIC register.
+// @param raw: The raw value to construct the ApicErrorLvt from.
+LocalApic::ApicErrorLvt::ApicErrorLvt(u32 const raw) :
+    Lvt(raw), m_messageType(static_cast<MessageType>((raw >> 8) & 0x7)) {}
+
+// Get the raw value for this ApicErrorLvt. Used when actually writing
+// the ApicErrorLvt into an APIC register.
+u32 LocalApic::ApicErrorLvt::raw() const {
+    return (static_cast<u64>(m_masked) << 16)
+           | (static_cast<u64>(m_messageType) << 8)
+           | m_vector.raw();
+}
+
+// Pointer to the global instance of LocalApic.
+// TODO: Once we have multi-cores this should be per CPU.
+static LocalApic* LOCAL_APIC = nullptr;
+
+// Initialize the APIC.
+void InitLocalApic() {
+    ASSERT(!LOCAL_APIC);
     // Get the local APIC's base.
     u64 const apicBaseMsr(Cpu::rdmsr(Cpu::Msr::IA32_APIC_BASE));
     // FIXME: Technically we should mask the bits 63:(MAX_PHY_BITS) here.
@@ -199,40 +234,13 @@ void Init() {
     Log::info("Local APIC base = {}", localApicBase);
     ASSERT(localApicBase.isPageAligned());
 
-    // Use the Direct Map for accessing the LAPIC.
-    Paging::PageAttr const attrs(Paging::PageAttr::Writable
-                                 | Paging::PageAttr::CacheDisable
-                                 | Paging::PageAttr::WriteThrough);
-    VirAddr const lapicVirBase(Paging::toVirAddr(localApicBase));
-    if (Paging::map(lapicVirBase, localApicBase, attrs, 1)) {
-        PANIC("Could not map local APIC to virtual memory");
-    }
-    LocalApicBase = lapicVirBase;
-
-    Log::debug("Enabling APIC");
-    // Enabling the APIC by setting the APIC Global Enable bit in the
-    // IA32_APIC_BASE MSR.
-    u64 const newApicBaseMsr(apicBaseMsr | (1 << 11));
-    Cpu::wrmsr(Cpu::Msr::IA32_APIC_BASE, newApicBaseMsr);
-    Log::info("APIC enabled");
-
-    u32 const apicId(readRegister(Register::ApicId) >> 24);
-    Log::debug("Cpu has APIC ID = {}", apicId);
-
-    // For now, mask all LVTs. TODO: Do what needs to be done here.
-    Lvt const maskedLvt;
-    writeRegister(Register::TimerLocalVectorTableEntry, maskedLvt.value());
-    writeRegister(Register::ThermalLocalVectorTableEntry, maskedLvt.value());
-    writeRegister(Register::PerformanceCounterLocalVectorTableEntry,
-                  maskedLvt.value());
-    writeRegister(Register::LocalInterrupt0VectorTableEntry, maskedLvt.value());
-    writeRegister(Register::LocalInterrupt1VectorTableEntry, maskedLvt.value());
-    writeRegister(Register::ErrorVectorTableEntry, maskedLvt.value());
+    static LocalApic instance(localApicBase);
+    LOCAL_APIC = &instance;
 }
 
 // Notify the local APIC of the End-Of-Interrupt.
 void eoi() {
-    writeRegister(Register::EndOfInterrupt, 0);
-}
+    ASSERT(!!LOCAL_APIC);
+    LOCAL_APIC->eoi();
 }
 }

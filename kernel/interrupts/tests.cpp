@@ -2,6 +2,7 @@
 #include <interrupts/interrupts.hpp>
 #include <util/assert.hpp>
 #include "ioapic.hpp"
+#include "apic.hpp"
 
 namespace Interrupts {
 
@@ -208,6 +209,7 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, interruptHandlerRegistrationTest);
     RUN_TEST(runner, interruptHandlerFrameTest);
 
+    LocalApic::Test(runner);
     IoApic::Test(runner);
 }
 
