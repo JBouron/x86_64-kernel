@@ -22,6 +22,12 @@ IoApic::IoApic(PhyAddr const base) : m_base(base) {
     m_ioRegSel = vaddr.ptr<Register volatile>();
     m_ioWin = (vaddr + 0x10).ptr<u32 volatile>();
 
+    // The default value of each entry should already be masked, but it does not
+    // hurt to be too careful here.
+    for (InputPin pin(0); pin < numInterruptSources(); ++pin) {
+        setInterruptSourceMask(pin, true);
+    }
+
     Log::info("Initialized I/O APIC @{}", base);
     Log::info("  ID                      = {}", id());
     Log::info("  Version                 = {x}", version());
@@ -82,13 +88,13 @@ void IoApic::redirectInterrupt(InputPin const inputPin,
         }
     } else if (deliveryMode == DeliveryMode::Nmi
                && triggerMode != TriggerMode::Edge) {
-            PANIC("NMI delivery mode requires Edge trigger mode");
+        PANIC("NMI delivery mode requires Edge trigger mode");
     } else if (deliveryMode == DeliveryMode::Init
                && triggerMode != TriggerMode::Edge) {
-            PANIC("INIT delivery mode requires Edge trigger mode");
+        PANIC("INIT delivery mode requires Edge trigger mode");
     } else if (deliveryMode == DeliveryMode::ExtInt
                && triggerMode != TriggerMode::Edge) {
-            PANIC("ExtINT delivery mode requires Edge trigger mode");
+        PANIC("ExtINT delivery mode requires Edge trigger mode");
     }
 
     // Configuration is validate, now write the entry associated with the input
