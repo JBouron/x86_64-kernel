@@ -1,7 +1,6 @@
 // Functions and types related to the Advanced Programmable Interrupt Controller
 // (APIC).
-#include "apic.hpp"
-#include <interrupts/interrupts.hpp>
+#include <interrupts/lapic.hpp>
 #include <paging/paging.hpp>
 #include <cpu/cpu.hpp>
 #include <util/assert.hpp>
@@ -34,6 +33,13 @@ LocalApic::LocalApic(PhyAddr const base) : m_base(base) {
     u64 const newApicBaseMsr(apicBaseMsr | (1 << 11));
     Cpu::wrmsr(Cpu::Msr::IA32_APIC_BASE, newApicBaseMsr);
     Log::info("APIC enabled");
+
+    Log::debug("Setup LINT1");
+    LintLvt const lvt(LintLvt::TriggerMode::EdgeTriggered,
+                      Lvt::MessageType::Nmi,
+                      Vector(0));
+    writeRegister(Register::LocalInterrupt1VectorTableEntry, lvt.raw());
+    Log::debug("OK");
 }
 
 // Setup the LAPIC timer with the given configuration. This does NOT start

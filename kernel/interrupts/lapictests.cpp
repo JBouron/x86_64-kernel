@@ -1,5 +1,5 @@
 // Tests for the LocalApic.
-#include "apic.hpp"
+#include <interrupts/lapic.hpp>
 #include <framealloc/framealloc.hpp>
 #include <util/assert.hpp>
 

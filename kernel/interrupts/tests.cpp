@@ -1,8 +1,8 @@
 // Interrupt related tests.
 #include <interrupts/interrupts.hpp>
+#include <interrupts/lapic.hpp>
 #include <util/assert.hpp>
 #include "ioapic.hpp"
-#include "apic.hpp"
 
 namespace Interrupts {
 

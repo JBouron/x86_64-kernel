@@ -1,9 +1,9 @@
 // Interrupts related functions and types.
 
 #include <interrupts/interrupts.hpp>
+#include <interrupts/lapic.hpp>
 #include <logging/log.hpp>
 #include <util/panic.hpp>
-#include "apic.hpp"
 
 namespace Interrupts {
 
