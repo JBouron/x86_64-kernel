@@ -209,7 +209,7 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, interruptHandlerRegistrationTest);
     RUN_TEST(runner, interruptHandlerFrameTest);
 
-    LocalApic::Test(runner);
+    Lapic::Test(runner);
     IoApic::Test(runner);
 }
 
