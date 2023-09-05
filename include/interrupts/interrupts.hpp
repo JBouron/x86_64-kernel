@@ -128,6 +128,11 @@ void mapIrq(Irq const irq, Vector const vector);
 // @param irq: The IRQ to unmap.
 void unmapIrq(Irq const irq);
 
+// Mask a particular IRQ. This function configures the I/O APIC to ignore
+// subsequent interrupts for this IRQ.
+// @param irq: The IRQ to mask.
+void maskIrq(Irq const irq);
+
 // Run the interrupt tests.
 void Test(SelfTests::TestRunner& runner);
 

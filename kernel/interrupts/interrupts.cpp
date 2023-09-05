@@ -280,6 +280,16 @@ void mapIrq(Irq const irq, Vector const vector) {
 void unmapIrq(Irq const irq) {
     Acpi::Gsi const gsi(irq.toGsi());
     Log::debug("Unmapping IRQ {} (GSI = {})", irq.raw(), gsi.raw());
+    // Simply mask the interrupt source at the I/O APIC level.
+    maskIrq(irq);
+}
+
+// Mask a particular IRQ. This function configures the I/O APIC to ignore
+// subsequent interrupts for this IRQ.
+// @param irq: The IRQ to mask.
+void maskIrq(Irq const irq) {
+    Acpi::Gsi const gsi(irq.toGsi());
+    Log::debug("Masking IRQ {} (GSI = {})", irq.raw(), gsi.raw());
     Acpi::Info const& acpiInfo(Acpi::parseTables());
     IoApic& ioApic(ioApicForGsi(gsi));
     // Configure the redirection entry of the I/O APIC for the associated input
@@ -290,7 +300,6 @@ void unmapIrq(Irq const irq) {
     ASSERT(gsiBase < gsi);
 
     IoApic::InputPin const inputPin(gsi.raw() - gsiBase.raw());
-    // Simply mask the interrupt source at the I/O APIC level.
     ioApic.setInterruptSourceMask(inputPin, true);
 }
 
