@@ -16,6 +16,7 @@
 #include <util/assert.hpp>
 #include <util/subrange.hpp>
 #include <acpi/acpi.hpp>
+#include <timers/pit.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -31,6 +32,7 @@ static void runSelfTests() {
     ErrType::Test(runner);
     DataStruct::Test(runner);
     HeapAlloc::Test(runner);
+    Timer::Pit::Test(runner);
 
     runner.printSummary();
 }
@@ -94,8 +96,8 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
         asm("hlt");
         intCount++;
         if (intCount > 15) {
-            Interrupts::unmapIrq(Interrupts::Irq(0));
-            Log::debug("Maked timer input pin on I/O apic");
+            Interrupts::maskIrq(Interrupts::Irq(0));
+            Log::debug("Masked timer input pin on I/O apic");
         }
     }
 }
