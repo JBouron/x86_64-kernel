@@ -286,4 +286,23 @@ extern "C" u64 _rdtsc();
 u64 rdtsc() {
     return _rdtsc();
 }
+
+// Disable external interrupts on the CPU.
+void disableInterrupts() {
+    asm("cli");
+}
+
+// Enable external interrupts on the CPU.
+void enableInterrupts() {
+    asm("sti");
+}
+
+// Set the value of the Interrupt Flag (IF) in RFLAGS.
+void setInterruptFlag(bool const ifValue) {
+    if (ifValue) {
+        enableInterrupts();
+    } else {
+        disableInterrupts();
+    }
+}
 }

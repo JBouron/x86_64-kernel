@@ -207,4 +207,11 @@ void wrmsr(Msr const msr, u64 const value);
 // @return: The current value of the TSC.
 u64 rdtsc();
 
+// Disable external interrupts on the CPU.
+void disableInterrupts();
+// Enable external interrupts on the CPU.
+void enableInterrupts();
+// Set the value of the Interrupt Flag (IF) in RFLAGS.
+void setInterruptFlag(bool const ifValue);
+
 }
