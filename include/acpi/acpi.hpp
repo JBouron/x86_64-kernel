@@ -1,6 +1,6 @@
 // Functions to parse the ACPI tables.
 #pragma once
-#include <interrupts/interrupts.hpp>
+#include <util/subrange.hpp>
 
 namespace Acpi {
 
@@ -11,7 +11,7 @@ namespace Acpi {
 // input. An I/O APIC therefore receives interrupts from base to base +
 // numInputs where numInputs is the number of inputs for this I/O APIC defined
 // as the number of entries in the redirection table.
-using GlobalSystemIntVector = Interrupts::Vector;
+class Gsi : public SubRange<Gsi, 0, u32(~0ULL)> {};
 
 // Holds the information of interest contained in ACPI tables.
 struct Info {
@@ -91,14 +91,14 @@ struct Info {
     struct IrqDesc {
         // The Global System Interrupt vector this IRQ is mapped to. For most
         // IRQs this is an ID-map, but not necessarily!
-        GlobalSystemIntVector gsiVector;
+        Gsi gsiVector;
         // The polarity of this IRQ.
         Polarity polarity = Polarity::ConformToBusSpecs;
         // The trigger mode of this IRQ.
         TriggerMode triggerMode = TriggerMode::ConformToBusSpecs;
     };
     // IrqDesc for each IRQ#.
-    IrqDesc irqDesc[15];
+    IrqDesc irqDesc[16];
 
     // I/O APICs
     // ---------
@@ -121,7 +121,7 @@ struct Info {
         // first input pin of this I/O APIC. This I/O APIC therefore handles GSI
         // vectors interruptBase through interruptBase+size where size is the
         // number of input pins on this I/O APIC.
-        GlobalSystemIntVector interruptBase;
+        Gsi interruptBase;
     };
     // The size of the ioApicDesc array.
     u8 ioApicDescSize = 0;
@@ -142,7 +142,7 @@ struct Info {
         // The trigger mode of this NMI source.
         TriggerMode triggerMode = TriggerMode::ConformToBusSpecs;
         // The GSI vector to which this NMI source is mapped.
-        GlobalSystemIntVector gsiVector;
+        Gsi gsiVector;
     };
     // The size of the nmiSourceDesc array.
     u8 nmiSourceDescSize = 0;

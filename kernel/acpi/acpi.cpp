@@ -162,7 +162,7 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             Info::IoApicDesc& desc(AcpiInfo.ioApicDesc[ioApicId]);
             desc.id = ioApicId;
             desc.address = ioApicAddr;
-            desc.interruptBase = GlobalSystemIntVector(intBase);
+            desc.interruptBase = Gsi(intBase);
             AcpiInfo.ioApicDescSize++;
             break;
         }
@@ -177,7 +177,7 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             ASSERT(!busSrc);
             ASSERT(irqSrc <= 15);
             Info::IrqDesc& desc(AcpiInfo.irqDesc[irqSrc]);
-            desc.gsiVector = GlobalSystemIntVector(gsi);
+            desc.gsiVector = Gsi(gsi);
             desc.polarity = mpsIntiFlagsToPolarity(flags);
             desc.triggerMode = mpsIntiFlagsToTriggerMode(flags);
             break;
@@ -195,7 +195,7 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             Info::NmiSourceDesc& desc(AcpiInfo.nmiSourceDesc[idx]);
             desc.polarity = mpsIntiFlagsToPolarity(flags);
             desc.triggerMode = mpsIntiFlagsToTriggerMode(flags);
-            desc.gsiVector = GlobalSystemIntVector(gsi);
+            desc.gsiVector = Gsi(gsi);
             AcpiInfo.nmiSourceDescSize++;
             break;
         }
@@ -246,6 +246,9 @@ Info const& parseTables() {
         return AcpiInfo;
     }
 
+    // FIXME: This won't be thread-safe eventually
+    Parsed = true;
+
     // Prepare the arrays in the Info struct.
     AcpiInfo.processorDesc = new Info::ProcessorDesc[MAX_CPUS];
     AcpiInfo.ioApicDesc = new Info::IoApicDesc[MAX_IO_APIC];
@@ -255,7 +258,7 @@ Info const& parseTables() {
     // standard behaviour).
     for (u8 irq(0); irq < 15; ++irq) {
         Info::IrqDesc& desc(AcpiInfo.irqDesc[irq]);
-        desc.gsiVector = GlobalSystemIntVector(irq);
+        desc.gsiVector = Gsi(irq);
         desc.polarity = Info::Polarity::ActiveHigh;
         desc.triggerMode = Info::TriggerMode::EdgeTriggered;
     }

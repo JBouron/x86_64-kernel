@@ -3,6 +3,7 @@
 #include <util/addr.hpp>
 #include <acpi/acpi.hpp>
 #include <selftests/selftests.hpp>
+#include <interrupts/interrupts.hpp>
 
 namespace Interrupts {
 

@@ -4,6 +4,7 @@
 #include <cpu/cpu.hpp>
 #include <selftests/selftests.hpp>
 #include <util/subrange.hpp>
+#include <acpi/acpi.hpp>
 
 namespace Interrupts {
 
