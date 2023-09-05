@@ -73,11 +73,11 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     // FIXME: We really need a way to enforce initialization order. It is hard
     // to track down issues due to initialization being performed in the wrong
     // order.
-    Interrupts::Init();
     // Now that paging and the direct map have been initialized, we can switch
     // to the proper frame allocator.
     FrameAlloc::directMapInitialized();
     HeapAlloc::Init();
+    Interrupts::Init();
 
     runSelfTests();
 
@@ -85,17 +85,8 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     Log::info("{} processor(s) in the system", acpi.processorDescSize);
 
     // Quick and dirty test for I/O APIC support.
-    // FIXME: Should be removed + add proper I/O APIC testing.
-    PhyAddr const ioApicBase(acpi.ioApicDesc[0].address);
-    Interrupts::IoApic ioApic(ioApicBase);
-    ioApic.redirectInterrupt(Interrupts::IoApic::InputPin(2),
-                             Interrupts::IoApic::OutVector(32),
-                             Interrupts::IoApic::DeliveryMode::Fixed,
-                             Interrupts::IoApic::DestinationMode::Physical,
-                             Interrupts::IoApic::InputPinPolarity::ActiveHigh,
-                             Interrupts::IoApic::TriggerMode::Edge,
-                             0);
-    Log::info("Created entry");
+    // FIXME: Should be removed.
+    Interrupts::mapIrq(Interrupts::Irq(0), Interrupts::Vector(32));
 
     u64 intCount(0);
     while (true) {
@@ -103,7 +94,7 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
         asm("hlt");
         intCount++;
         if (intCount > 15) {
-            ioApic.setInterruptSourceMask(Interrupts::IoApic::InputPin(2),true);
+            Interrupts::unmapIrq(Interrupts::Irq(0));
             Log::debug("Maked timer input pin on I/O apic");
         }
     }

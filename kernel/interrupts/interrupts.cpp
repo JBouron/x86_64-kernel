@@ -4,6 +4,8 @@
 #include <interrupts/lapic.hpp>
 #include <logging/log.hpp>
 #include <util/panic.hpp>
+#include <util/assert.hpp>
+#include "ioapic.hpp"
 
 namespace Interrupts {
 
@@ -101,6 +103,42 @@ static void disablePic() {
     Log::info("PIC disabled");
 }
 
+// Array of IoApic. One such instance per I/O APIC in the system.
+static IoApic ** IO_APICS = nullptr;
+static u8 NUM_IO_APICS = 0;
+
+// Create one IoApic interface for each I/O APIC present in the system.
+static void initIoApics() {
+    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    u8 const numIoApics(acpiInfo.ioApicDescSize);
+    Log::info("{} I/O APIC(s) present in the system", numIoApics);
+    NUM_IO_APICS = numIoApics;
+    IO_APICS = new IoApic*[numIoApics];
+    for (u8 i(0); i < numIoApics; ++i) {
+        PhyAddr const base(acpiInfo.ioApicDesc[i].address);
+        Log::info("Initializing I/O APIC with base {}", base);
+        IO_APICS[i] = new IoApic(base);
+    }
+}
+
+// Find the I/O APIC receiving the interrupts associated with a given GSI.
+// @param gsi: The GSI for which to get the I/O APIC.
+// @return: Reference to the interface of the I/O APIC handling the GSI.
+static IoApic& ioApicForGsi(Acpi::Gsi const gsi) {
+    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    for (u8 i(0); i < NUM_IO_APICS; ++i) {
+        IoApic& ioApic(*IO_APICS[i]);
+        // The smallest GSI handled by this IO APIC.
+        Acpi::Gsi const gsiStart(acpiInfo.ioApicDesc[i].interruptBase);
+        // The highest GSI handled by this IO APIC.
+        Acpi::Gsi const gsiEnd(gsiStart.raw()+ioApic.numInterruptSources() - 1);
+        if (gsiStart <= gsi && gsi <= gsiEnd) {
+            return ioApic;
+        }
+    }
+    PANIC("Could not find I/O APIC for GSI = {}", gsi.raw());
+}
+
 // Initialize interrupts.
 void Init() {
     // Disable the legacy PIC, only use APIC.
@@ -108,6 +146,8 @@ void Init() {
 
     // Enable the APIC.
     Interrupts::lapic();
+
+    initIoApics();
 
     // Initialize the interrupt handlers for the non-user-defined vectors.
     for (Vector v(0); v < 32; ++v) {
@@ -135,6 +175,14 @@ bool Vector::isReserved() const {
 // @return: true if this vector is user-defined, false otherwise.
 bool Vector::isUserDefined() const {
     return m_value >= 32;
+}
+
+// Get the ACPI Global System Interrupt number associated with this IRQ #.
+// This requires parsing the ACPI tables to find the mapping IRQ <-> GSI.
+// @return: The GSI associated with this IRQ.
+Acpi::Gsi Irq::toGsi() const {
+    Acpi::Info const acpiInfo(Acpi::parseTables());
+    return acpiInfo.irqDesc[raw()].gsiVector;
 }
 
 // The mapping vector -> InterruptHandler. A nullptr in this collection
@@ -175,6 +223,75 @@ void deregisterHandler(Vector const vector) {
         // handler to the default handler which triggers a PANIC.
         INT_HANDLERS[vector.raw()] = defaultHandler;
     }
+}
+
+// Map an IRQ to a particular vector. This function takes care of configuring
+// the I/O APIC so that a vector `vector` is raised when the given IRQ is
+// asserted.
+// @param irq: The IRQ to map.
+// @param vector: The vector to map the IRQ to.
+void mapIrq(Irq const irq, Vector const vector) {
+    Acpi::Gsi const gsi(irq.toGsi());
+    Log::debug("Mapping IRQ {} (GSI = {}) to Vector {}", irq.raw(), gsi.raw(),
+               vector.raw());
+    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    Acpi::Info::IrqDesc const& irqDesc(acpiInfo.irqDesc[irq.raw()]);
+    IoApic& ioApic(ioApicForGsi(gsi));
+    // Configure the redirection entry of the I/O APIC for the associated input
+    // pin.
+    // FIXME: The IoApic::Id might not correspond to the index of this IoApic in
+    // the IO_APICS array!
+    Acpi::Gsi const gsiBase(acpiInfo.ioApicDesc[ioApic.id()].interruptBase);
+    ASSERT(gsiBase < gsi);
+
+    IoApic::InputPin const inputPin(gsi.raw() - gsiBase.raw());
+    IoApic::OutVector const outVector(vector.raw());
+
+    // Convert the Acpi::Info::Polarity to IoApic::InputPinPolarity.
+    IoApic::InputPinPolarity const polarity(
+        (irqDesc.polarity == Acpi::Info::Polarity::ConformToBusSpecs
+         || irqDesc.polarity == Acpi::Info::Polarity::ActiveHigh) ?
+            IoApic::InputPinPolarity::ActiveHigh :
+            IoApic::InputPinPolarity::ActiveLow);
+
+    // Convert the Acpi::Info::TriggerMode to IoApic::TriggerMode.
+    IoApic::TriggerMode const triggerMode(
+        (irqDesc.triggerMode == Acpi::Info::TriggerMode::ConformToBusSpecs
+         || irqDesc.triggerMode == Acpi::Info::TriggerMode::EdgeTriggered) ?
+            IoApic::TriggerMode::Edge :
+            IoApic::TriggerMode::Level);
+
+    // FIXME: For now all interrupts are sent to CPU #0 in Fixed/Physical mode.
+    IoApic::Dest const destinationApic(0x0);
+
+    // Write the redirection entry.
+    ioApic.redirectInterrupt(inputPin,
+                             outVector,
+                             IoApic::DeliveryMode::Fixed,
+                             IoApic::DestinationMode::Physical,
+                             polarity,
+                             triggerMode,
+                             destinationApic);
+}
+
+// Unmap an IRQ from whatever vector it was mapped to. This revert the
+// operation done in map(irq, vec).
+// @param irq: The IRQ to unmap.
+void unmapIrq(Irq const irq) {
+    Acpi::Gsi const gsi(irq.toGsi());
+    Log::debug("Unmapping IRQ {} (GSI = {})", irq.raw(), gsi.raw());
+    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    IoApic& ioApic(ioApicForGsi(gsi));
+    // Configure the redirection entry of the I/O APIC for the associated input
+    // pin.
+    // FIXME: The IoApic::Id might not correspond to the index of this IoApic in
+    // the IO_APICS array!
+    Acpi::Gsi const gsiBase(acpiInfo.ioApicDesc[ioApic.id()].interruptBase);
+    ASSERT(gsiBase < gsi);
+
+    IoApic::InputPin const inputPin(gsi.raw() - gsiBase.raw());
+    // Simply mask the interrupt source at the I/O APIC level.
+    ioApic.setInterruptSourceMask(inputPin, true);
 }
 
 // Generic interrupt handler. _All_ interrupts are entering the C++ side of
