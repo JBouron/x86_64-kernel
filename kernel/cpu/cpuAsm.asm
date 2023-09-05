@@ -258,3 +258,12 @@ _wrmsr:
 
     wrmsr
     ret
+
+; Implementation of rdtsc(), in assembly.
+; extern "C" u64 _rdtsc();
+GLOBAL  _rdtsc:function
+_rdtsc:
+    rdtsc
+    shl     rdx, 32
+    or      rax, rdx
+    ret

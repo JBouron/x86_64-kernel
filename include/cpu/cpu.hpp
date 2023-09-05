@@ -203,4 +203,8 @@ u64 rdmsr(Msr const msr);
 // @param value: The value to write into the MSR.
 void wrmsr(Msr const msr, u64 const value);
 
+// Read the Time-Stamp Counter.
+// @return: The current value of the TSC.
+u64 rdtsc();
+
 }

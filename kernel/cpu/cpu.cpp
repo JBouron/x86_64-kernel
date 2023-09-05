@@ -277,4 +277,13 @@ extern "C" void _wrmsr(u32 const msr, u64 const value);
 void wrmsr(Msr const msr, u64 const value) {
     _wrmsr(static_cast<u32>(msr), value);
 }
+
+// Implementation of rdtsc(), in assembly.
+extern "C" u64 _rdtsc();
+
+// Read the Time-Stamp Counter.
+// @return: The current value of the TSC.
+u64 rdtsc() {
+    return _rdtsc();
+}
 }
