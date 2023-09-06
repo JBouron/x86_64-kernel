@@ -160,4 +160,67 @@ void start() {
 void stop() {
     Interrupts::lapic().setTimerInitialCount(0);
 }
+
+// Delay the current thread/cpu for the given duration. This is NOT a sleep, the
+// core is simply busy-waiting for the entire duration. The interrupt flag is
+// untouched during the delay.
+// This function uses the LAPIC timer to perform the delay, hence cannot be
+// used if the timer is already running!
+// @param duration: The amount of time to delay the thread/core for.
+void delay(Duration const duration) {
+    // Compute the base frequency if needed.
+    if (LapicTimerBaseFreq == 1) {
+        // The LAPIC timer frequency has not been computed yet, compute it now.
+        LapicTimerBaseFreq = getTimerFreq();
+    }
+
+    // For a delay we let the LAPIC timer decrement its counter in masked
+    // periodic mode and count the number of ticks that elapsed in a busy loop.
+    // We stop once this number of ticks reaches the equivalent of the requested
+    // duration.
+
+    // Setup the timer as periodic with masked interrupt.
+    Interrupts::Lapic::Lvt const lvt({
+        .mask = true,
+        .timerMode = Interrupts::Lapic::Lvt::TimerMode::Periodic
+    });
+    Interrupts::lapic().setTimerLvt(lvt);
+    // Don't divide the timer's clock.
+    Interrupts::lapic().setTimerDivideConfiguration(
+        Interrupts::Lapic::TimerDivideConfiguration::DivideBy1);
+
+    // Timer is always reloaded with the max possible value to keep the number
+    // of overflows to a minimum.
+    u32 const reloadCount(u32(~0ULL));
+
+    // The number of ticks to wait for.
+    u64 const numTicksForDuration(
+        duration.microSecs() * (LapicTimerBaseFreq.raw() / 1000000));
+
+    // Number of ticks left to wait.
+    u64 remainingTicks(numTicksForDuration);
+    // Last count on the timer. Used to compute the number of elapsed ticks
+    // between two iterations of the wait loop.
+    u32 last(reloadCount);
+
+    // Start the timer and the wait loop.
+    Interrupts::lapic().setTimerInitialCount(reloadCount);
+    u64 minElapsed(~0ULL);
+    while (!!remainingTicks) {
+        asm("pause");
+        u32 const curr(Interrupts::lapic().timerCurrentCount());
+        // The number of ticks that elapsed between two iterations of the loop.
+        u64 const elapsed((curr <= last) ?
+                          // Case #1: curr <= last, there was no underflow.
+                          (last - curr) :
+                          // Case #1: last < curr, there was and underflow, we
+                          // need to account for the ticks before _and_ after
+                          // the overflow.
+                          (last + reloadCount - curr));
+        minElapsed = min(minElapsed, elapsed);
+        last = curr;
+        // Make sure not to underflow when updating remainingTicks.
+        remainingTicks -= min(remainingTicks, elapsed);
+    }
+}
 }

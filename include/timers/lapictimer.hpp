@@ -16,4 +16,12 @@ void start();
 
 // Stop the LAPIC timer.
 void stop();
+
+// Delay the current thread/cpu for the given duration. This is NOT a sleep, the
+// core is simply busy-waiting for the entire duration. The interrupt flag is
+// untouched during the delay.
+// This function uses the LAPIC timer to perform the delay, hence cannot be
+// used if the timer is already running!
+// @param duration: The amount of time to delay the thread/core for.
+void delay(Duration const duration);
 }
