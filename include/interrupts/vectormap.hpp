@@ -9,4 +9,8 @@ static const Vector PitVector = Vector(32);
 
 // Vector used by the LAPIC timer.
 static const Vector LapicTimerVector = Vector(33);
+
+// Vector used by various tests. Since tests are ran serially this vector should
+// always be available to use.
+static const Vector TestVector = Vector(34);
 }
