@@ -1,7 +1,7 @@
-// Tests for the Programmable Interval Timer (PIT) functions.
+// Timer tests.
 #include <timers/pit.hpp>
 
-namespace Timer::Pit {
+namespace Timer {
 
 // Test basic functionality of the PIT timer configuration. This function simply
 // sets the timer to fire an interrupts with a particular vector and checks that
@@ -66,7 +66,7 @@ SelfTests::TestResult pitBasicTest() {
     return SelfTests::TestResult::Success;
 }
 
-// Run PIT tests.
+// Run Timer tests.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, pitBasicTest);
 }

@@ -5,4 +5,7 @@
 namespace Timer {
 // Type for a frequency in Hz.
 class Freq : public SubRange<Freq, 1, ~0ULL> {};
+
+// Run Timers tests.
+void Test(SelfTests::TestRunner& runner);
 }

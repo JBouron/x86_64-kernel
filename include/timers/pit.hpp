@@ -25,7 +25,4 @@ void disable();
 // Configure the PIT to fire an interrupt at the given frequency.
 // @param freq: The frequency to configure the PIT to.
 void setFrequency(Freq const freq);
-
-// Run PIT tests.
-void Test(SelfTests::TestRunner& runner);
 }

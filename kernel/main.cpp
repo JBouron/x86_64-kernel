@@ -16,7 +16,7 @@
 #include <util/assert.hpp>
 #include <util/subrange.hpp>
 #include <acpi/acpi.hpp>
-#include <timers/pit.hpp>
+#include <timers/timers.hpp>
 #include <timers/lapictimer.hpp>
 #include <interrupts/vectormap.hpp>
 
@@ -34,7 +34,7 @@ static void runSelfTests() {
     ErrType::Test(runner);
     DataStruct::Test(runner);
     HeapAlloc::Test(runner);
-    Timer::Pit::Test(runner);
+    Timer::Test(runner);
 
     runner.printSummary();
 }
