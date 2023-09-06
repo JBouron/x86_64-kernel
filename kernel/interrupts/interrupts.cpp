@@ -40,6 +40,7 @@ extern "C" void interruptHandler13();   extern "C" void interruptHandler14();
 extern "C" void interruptHandler16();   extern "C" void interruptHandler17();
 extern "C" void interruptHandler18();   extern "C" void interruptHandler19();
 extern "C" void interruptHandler21();   extern "C" void interruptHandler32();
+extern "C" void interruptHandler33();
 
 // Create a Descriptor for the given vector. The descriptor points to the
 // interruptHandler<vector> function.
@@ -86,6 +87,7 @@ static const Descriptor IDT[] = {
     Descriptor(),
     // Below are IDT entries for the user-defined vector starting at vector 32.
     IDT_DESC(32),
+    IDT_DESC(33),
 };
 // The number of elements in the IDT.
 static u64 const IDT_SIZE = sizeof(IDT) / sizeof(*IDT);

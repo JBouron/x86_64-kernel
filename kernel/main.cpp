@@ -17,6 +17,8 @@
 #include <util/subrange.hpp>
 #include <acpi/acpi.hpp>
 #include <timers/pit.hpp>
+#include <timers/lapictimer.hpp>
+#include <interrupts/vectormap.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -86,18 +88,8 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     Acpi::Info const& acpi(Acpi::parseTables());
     Log::info("{} processor(s) in the system", acpi.processorDescSize);
 
-    // Quick and dirty test for I/O APIC support.
-    // FIXME: Should be removed.
-    Interrupts::mapIrq(Interrupts::Irq(0), Interrupts::Vector(32));
-
-    u64 intCount(0);
     while (true) {
         asm("sti");
         asm("hlt");
-        intCount++;
-        if (intCount > 15) {
-            Interrupts::maskIrq(Interrupts::Irq(0));
-            Log::debug("Masked timer input pin on I/O apic");
-        }
     }
 }
