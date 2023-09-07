@@ -239,24 +239,25 @@ public:
         // other message types.
         Vector vector;
         // The message type of the interrupt sent to the destination cpu.
-        MessageType messageType;
+        MessageType messageType = MessageType::Fixed;
         // Control how the destination core(s) are computed from the destination
         // field.
-        DestinationMode destinationMode;
+        DestinationMode destinationMode = DestinationMode::Physical;
         // (Read-only) Set when the local APIC has sent the IPI and is waiting
         // for it to be accepted by the destination. It is not needed to wait on
         // this bit to send a new IPI; IPIs are always delivered regardless of
         // the value of this bit.
-        bool deliveryStatus;
+        bool deliveryStatus = false;
         // Don't understand, read the docs.
-        bool level;
+        bool level = false;
         // Specifies how the IPIs to the local APIC are triggered.
-        TriggerMode triggerMode;
+        TriggerMode triggerMode = TriggerMode::EdgeTriggered;
         // The status of a remote read from another local APIC. If DataAvailable
         // the data can be read from the Remote Read Register.
-        ReadRemoteStatus readRemoteStatus;
+        ReadRemoteStatus readRemoteStatus = ReadRemoteStatus::InvalidRead;
         // Shorthand notation for the destination of the IPI.
-        DestinationShorthand destinationShorthand;
+        DestinationShorthand destinationShorthand =
+            DestinationShorthand::DestinationField;
         // The destination of this IPI, this can either be a single or multiple
         // APIC(s). Ignored if the DestinationShorthand is not DestinationField.
         // This field is interpreted as a physical or logical destination
