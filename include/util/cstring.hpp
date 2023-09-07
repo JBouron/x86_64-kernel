@@ -18,8 +18,16 @@ u64 strlen(char const * const str);
 // false otherwise.
 bool streq(char const * const str1, char const * const str2);
 
+// FIXME: Do we really need to use void here?
 // Zero a memory buffer.
 // @param ptr: Memory buffer to zero.
 // @param size: Size of the buffer in bytes.
 void memzero(void * const ptr, u64 const size);
+
+// FIXME: Do we really need to use void here?
+// Copy a memory buffer into another
+// @param dest: The destination buffer.
+// @param src: The source buffer.
+// @param size: The number of bytes to copy.
+void memcpy(void * const dst, void const * const src, u64 const size);
 }

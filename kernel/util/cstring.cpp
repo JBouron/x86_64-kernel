@@ -35,4 +35,16 @@ void memzero(void * const ptr, u64 const size) {
         wPtr[i] = 0;
     }
 }
+
+// Copy a memory buffer into another
+// @param dest: The destination buffer.
+// @param src: The source buffer.
+// @param size: The number of bytes to copy.
+void memcpy(void * const _dst, void const * const _src, u64 const size) {
+    u8 * dst(reinterpret_cast<u8*>(_dst));
+    u8 const * src(reinterpret_cast<u8 const*>(_src));
+    for (u64 i(0); i < size; ++i, ++dst, ++src) {
+        *dst = *src;
+    }
+}
 }
