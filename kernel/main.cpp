@@ -19,6 +19,7 @@
 #include <timers/timers.hpp>
 #include <timers/lapictimer.hpp>
 #include <interrupts/vectormap.hpp>
+#include <smp/smp.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -35,6 +36,7 @@ static void runSelfTests() {
     DataStruct::Test(runner);
     HeapAlloc::Test(runner);
     Timer::Test(runner);
+    Smp::Test(runner);
 
     runner.printSummary();
 }
