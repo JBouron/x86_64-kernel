@@ -34,9 +34,8 @@ SelfTests::TestResult wakeApplicationProcessorTest() {
     // Wake up cpu 1 and make it run the bootstrap code.
     wakeApplicationProcessor(Smp::Id(1), bootFrame);
 
-    Timer::LapicTimer::delay(Timer::Duration::MilliSecs(100));
-    TEST_ASSERT(*bootFrameVir.ptr<u32>() == 0xb1e2b007);
-
+    // Wait for cpu 1 to execute the boot code.
+    TEST_WAIT_FOR(*bootFrameVir.ptr<u32>() == 0xb1e2b007, 1000);
     return SelfTests::TestResult::Success;
 }
 
