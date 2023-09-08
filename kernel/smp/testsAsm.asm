@@ -13,24 +13,17 @@ wakeApplicationProcessorTestBootCode:
     nop
     nop
     nop
-    ; Get the IP.
-    call    .local
-.local:
-    ; BX = IP of current instruction (e.g. pop).
-    ; Important note: The CS might not be zero here, actually it is not
-    ; specified what the CS is, hence this IP really is relative to the current
-    ; CS.
-    pop     bx
-    ; The offset of the pop instruction above is exactly 7 bytes from the start
-    ; of the code (e.g. from the first nop). Hence the offset of the boot
-    ; code in the current segment is:
-    sub     bx, 7
+    ; The code is always stored at the beginning of a page (because of how AP
+    ; startup works) and the CS:IP is set to vv00:0000 where vv is the vector
+    ; in the SIPI. This means that the offset of the first byte of the NOP-slide
+    ; above is _always_ 0x0 in the current code segment.
     ; Set DS = CS so that we can write the flag in the same segment we are
     ; executing on.
     mov     ax, cs
     mov     ds, ax
     ; Overwrite the NOP-slide with the flag.
     mov     eax, 0xb1e2b007
+    xor     bx, bx
     mov     [bx], eax
     ; Halt this cpu.
 .dead:
