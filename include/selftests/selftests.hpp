@@ -1,6 +1,7 @@
 // Kernel runtime self-tests.
 #pragma once
 #include <logging/log.hpp>
+#include <util/panic.hpp>
 
 namespace SelfTests {
 
@@ -58,7 +59,7 @@ private:
     do {                                                        \
         if (!(cond)) {                                          \
             char const * const condStr(#cond);                  \
-            Log::crit("    Test assert failed: {}", condStr);   \
+            PANIC("    Test assert failed: {}", condStr);   \
             return SelfTests::TestResult::Failure;              \
         }                                                       \
     } while (0)

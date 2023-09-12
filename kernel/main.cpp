@@ -28,6 +28,7 @@ static void runSelfTests() {
     SelfTests::TestRunner runner;
 
     Cpu::Test(runner);
+    Memory::Segmentation::Test(runner);
     Interrupts::Test(runner);
     Paging::Test(runner);
     FrameAlloc::Test(runner);

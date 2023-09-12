@@ -4,48 +4,67 @@
 #include <util/util.hpp>
 #include <util/panic.hpp>
 #include <memory/segmentation.hpp>
-#include <cpu/cpu.hpp>
 
 namespace Memory::Segmentation {
+// Constructor meant to be called by deriving classes.
+// @param base: The base of the descriptor.
+// @param limit: The limit of the descriptor.
+// @param dpl: The dpl of the descriptor.
+// @param type: The type of the descriptor.
+// @param mode: Controls if this descriptor is a 16, 32 or 64-bit code/data
+// segment.
+// @param gran: The granularity of the descriptor.
+Descriptor::Descriptor(Base const base,
+                       Limit const limit,
+                       Cpu::PrivLevel const dpl,
+                       Type const type,
+                       Mode const mode,
+                       Granularity const gran) :
+    m_raw((u64(base & 0xff000000) << 32)
+          | (static_cast<u64>(gran) << 55)
+          | (((mode == Mode::Bits32) ? 1ULL : 0ULL) << 54)
+          | (((mode == Mode::Bits64) ? 1ULL : 0ULL) << 53)
+          | (((limit.raw() >> 16) & 0xf) << 48)
+          | (1ULL << 47)
+          | (static_cast<u64>(dpl) << 45)
+          | (1ULL << 44)
+          | (static_cast<u64>(type) << 40)
+          | (u64((base >> 16) & 0xff) << 32)
+          | (u64(base & 0xffff) << 16)
+          | (u64(limit.raw() & 0xffff))) {}
 
-// 64-bit Segment Descriptor for the GDT.
-class Descriptor {
-public:
-    // Type of segment descriptor.
-    enum class Type {
-        Code,
-        Data,
-    };
+// Get the raw value of this descriptor.
+u64 Descriptor::raw() const {
+    return m_raw;
+}
 
-    // Create a NULL segment descriptor.
-    constexpr Descriptor() : m_raw(0) {}
+// Create a 32-bit segment descriptor.
+// @param base: The base of the descriptor.
+// @param limit: The limit of the descriptor.
+// @param dpl: The dpl of the descriptor.
+// @param type: The type of the descriptor.
+// @param gran: The granularity of the descriptor.
+Descriptor32::Descriptor32(Base const base,
+                           Limit const limit,
+                           Cpu::PrivLevel const dpl,
+                           Type const type,
+                           Granularity const gran) :
+    Descriptor(base, limit, dpl, type, Mode::Bits32, gran) {}
 
-    // Create a Descriptor instance.
-    // @param type: The type of the segment.
-    constexpr Descriptor(Type const type) :
-        m_raw((1ULL << 53) |
-              (1ULL << 47) |
-              (1ULL << 44) |
-              (type == Type::Code ? (1ULL << 43) : (1ULL << 41))) {}
-    // Note: Despite all the "64-bit IgNoReS MoSt oF thE DeScriPtOr BitS" it
-    // seems that some bits are still expected to be there. First the types bit
-    // and the write bit for SS.
-
-private:
-    // The raw 64-bit value of the segment descriptor, as expected by the
-    // hardware.
-    u64 const m_raw;
-} __attribute__((packed));
-static_assert(sizeof(Descriptor) == 8);
+// Create a 64-bit segment descriptor.
+// @param dpl: The dpl of the descriptor.
+// @param type: The type of the descriptor.
+Descriptor64::Descriptor64(Cpu::PrivLevel const dpl, Type const type) :
+    Descriptor(0, Limit(0), dpl, type, Mode::Bits64, Granularity::Byte) {}
 
 // The GDT to be used throughout the entire kernel.
 static Descriptor GDT[] = {
     // NULL segment descriptor.
     Descriptor(),
     // Kernel code segment.
-    Descriptor(Descriptor::Type::Code),
+    Descriptor64(Cpu::PrivLevel::Ring0, Descriptor::Type::CodeExecuteReadable),
     // Kernel data segment.
-    Descriptor(Descriptor::Type::Data),
+    Descriptor64(Cpu::PrivLevel::Ring0, Descriptor::Type::DataReadWrite),
 };
 
 // Initialize segmentation. Create a GDT and load it in GDTR.
