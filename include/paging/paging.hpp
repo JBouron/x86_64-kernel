@@ -16,12 +16,6 @@ namespace Paging {
 // address X + DIRECT_MAP_START_VADDR.
 static constexpr u64 DIRECT_MAP_START_VADDR = 0xffff800000000000;
 
-// Get the virtual address in the direct map corresponding to the given physical
-// address.
-// @param paddr: The physical address to translate.
-// @return: The direct map address mapped to `paddr`.
-VirAddr toVirAddr(PhyAddr const paddr);
-
 // Initialize paging.
 // This function creates the direct map.
 void Init(BootStruct const& bootStruct);

@@ -55,7 +55,7 @@ static Res<PhyAddr> searchRsdpInRange(PhyAddr const searchStartAddr,
     ASSERT(!(searchStartAddr.raw() & 0xf));
     // The RSDP is always on a 16 byte boundary.
     for (PhyAddr addr(searchStartAddr); addr < searchStopAddr; addr = addr+16) {
-        Rsdp const * const candidate(Paging::toVirAddr(addr).ptr<Rsdp>());
+        Rsdp const * const candidate(addr.toVir().ptr<Rsdp>());
         if (compareSignatures(candidate->signature, "RSD PTR ", 8)) {
             return addr;
         }
@@ -67,7 +67,7 @@ static Res<PhyAddr> searchRsdpInRange(PhyAddr const searchStartAddr,
 // @return: If found, return the physical address of the RSDP, otherwise return
 // an error.
 static Res<PhyAddr> findRsdp() {
-    PhyAddr const ebdaBase(u64(*Paging::toVirAddr(0x040E).ptr<u16>()) << 4);
+    PhyAddr const ebdaBase(u64(*PhyAddr(0x040E).toVir().ptr<u16>()) << 4);
     Log::info("EBDA Base = {}", ebdaBase);
 
     // Search the first 1KiB of the EBDA
@@ -270,7 +270,7 @@ Info const& parseTables() {
     }
     Log::info("RSDP found @{}", *rsdpLoc);
 
-    Rsdp const * const rsdp(Paging::toVirAddr(*rsdpLoc).ptr<Rsdp>());
+    Rsdp const * const rsdp((*rsdpLoc).toVir().ptr<Rsdp>());
     if (!rsdp->isValid()) {
         PANIC("The RSDP has an invalid checksum");
     } else if (!!rsdp->revision) {
@@ -283,7 +283,7 @@ Info const& parseTables() {
     Log::info("RSDT is @{}", rsdtAddr);
 
     // Validate the RSDT checksum.
-    Rsdt const * const rsdt(Paging::toVirAddr(rsdtAddr).ptr<Rsdt>());
+    Rsdt const * const rsdt(rsdtAddr.toVir().ptr<Rsdt>());
     if (!rsdt->header.isValid()) {
         PANIC("RSDT has an invalid checksum");
     }

@@ -105,6 +105,16 @@ public:
     // Create a PhyAddr.
     // @param addr: The initial value of the address.
     PhyAddr(u64 const addr) : AddrBase<PhyAddr>(addr) {}
+
+    // Get the virtual address in the direct map corresponding to this physical
+    // address.
+    // @return: The direct map address mapped to `paddr`.
+    VirAddr toVir() const {
+        // FIXME: This is needed to avoid circular dependency with paging.hpp.
+        // This is obviously a bad idea to redefine it here.
+        static constexpr u64 DIRECT_MAP_START_VADDR = 0xffff800000000000;
+        return VirAddr(raw() + DIRECT_MAP_START_VADDR);
+    }
 };
 static_assert(sizeof(PhyAddr) == sizeof(u64));
 

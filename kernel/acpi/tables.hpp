@@ -154,7 +154,7 @@ struct Rsdt {
     Sdt const * table(u64 const index) const {
         ASSERT(index < numTables());
         PhyAddr const tablePhyAddr(sdtPointers[index]);
-        return Paging::toVirAddr(tablePhyAddr).ptr<Sdt const>();
+        return tablePhyAddr.toVir().ptr<Sdt const>();
     }
 } __attribute__ ((packed));
 }

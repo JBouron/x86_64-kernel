@@ -65,7 +65,7 @@ void EarlyAllocator::initEmbeddedFreeListAllocator(
         u64 const allocatedInNode(
             (node == m_nextAllocNode) ? m_nextAllocFrameIndex : 0);
         VirAddr const baseVAddr(
-            Paging::toVirAddr(node->base + allocatedInNode * PAGE_SIZE));
+            PhyAddr(node->base + allocatedInNode * PAGE_SIZE).toVir());
         ASSERT(allocatedInNode < node->numFrames);
         u64 const numFrames(node->numFrames - allocatedInNode);
         alloc.insertFreeRegion(baseVAddr, numFrames);
@@ -105,7 +105,7 @@ Res<Frame> EmbeddedFreeListAllocator::alloc() {
 // Free a physical frame. This operation is not implemented by this allocator
 // (see comment above class definition) and as such panics.
 void EmbeddedFreeListAllocator::free(Frame const& frame) {
-    m_freeList.free(Paging::toVirAddr(frame.phyOffset()), PAGE_SIZE);
+    m_freeList.free(PhyAddr(frame.phyOffset()).toVir(), PAGE_SIZE);
 }
 
 }

@@ -20,7 +20,7 @@ Lapic::Lapic(PhyAddr const base) : m_base(base) {
     Paging::PageAttr const attrs(Paging::PageAttr::Writable
                                  | Paging::PageAttr::CacheDisable
                                  | Paging::PageAttr::WriteThrough);
-    VirAddr const vaddr(Paging::toVirAddr(base));
+    VirAddr const vaddr(base.toVir());
     if (Paging::map(vaddr, base, attrs, 1)) {
         PANIC("Could not map local APIC to virtual memory");
     }
@@ -470,7 +470,7 @@ void Lapic::setTimerDivideConfiguration(TimerDivideConfiguration const cfg) {
 // @param reg: The register to read from.
 // @return: The current value of the register.
 u32 Lapic::readRegister(Register const reg) const {
-    VirAddr const regAddr(Paging::toVirAddr(m_base) + static_cast<u16>(reg));
+    VirAddr const regAddr(m_base.toVir() + static_cast<u16>(reg));
     return *regAddr.ptr<u32 volatile>();
 }
 
@@ -482,7 +482,7 @@ u32 Lapic::readRegister(Register const reg) const {
 void Lapic::writeRegister(Register const reg,
                           u32 const value,
                           WriteMask const mask) {
-    VirAddr const regAddr(Paging::toVirAddr(m_base) + static_cast<u16>(reg));
+    VirAddr const regAddr(m_base.toVir() + static_cast<u16>(reg));
     u32 volatile * const ptr(regAddr.ptr<u32 volatile>());
     u32 const rawMask(static_cast<u32>(mask));
     u32 const currValue(*ptr);

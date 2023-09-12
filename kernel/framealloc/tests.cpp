@@ -71,7 +71,7 @@ SelfTests::TestResult embeddedFreeListAllocatorTest() {
     // Build the frame allocator to be tested.
     EmbeddedFreeListAllocator frameAllocator;
     for (u64 i(0); i < numFrames; ++i) {
-        VirAddr const frameVAddr(Paging::toVirAddr(frames[i].phyOffset()));
+        VirAddr const frameVAddr(PhyAddr(frames[i].phyOffset()).toVir());
         frameAllocator.insertFreeRegion(frameVAddr, 1);
     }
 

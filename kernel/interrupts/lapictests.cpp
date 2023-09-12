@@ -295,7 +295,7 @@ public:
         delete lapic;
         // Revert the changes made to the page-table attributes in the Lapic
         // constructor.
-        VirAddr const vaddr(Paging::toVirAddr(m_base));
+        VirAddr const vaddr(m_base.toVir());
         Paging::PageAttr const attr(Paging::PageAttr::Writable);
         Paging::map(vaddr, m_base, attr, 1);
         FrameAlloc::free(FrameAlloc::Frame(m_base.raw()));
@@ -310,7 +310,7 @@ public:
 // @param lapic: The Lapic for which to modify the register.
 // @param reg: The Lapic::Register to access.
 #define REG_PTR(lapic, reg) \
-    *((Paging::toVirAddr(lapic.m_base) + static_cast<u16>(reg)).ptr<u32>())
+    *((lapic.m_base.toVir() + static_cast<u16>(reg)).ptr<u32>())
 
 // Test reading from the Lapic through the public interface.
 SelfTests::TestResult lapicReadTest() {
@@ -375,7 +375,7 @@ SelfTests::TestResult lapicReadTest() {
     TEST_ASSERT(!spur2.focusCpuCoreScheduling);
 
     // ISR.
-    u32 * const isrBase((Paging::toVirAddr(lapic.m_base)
+    u32 * const isrBase((lapic.m_base.toVir()
                          + static_cast<u16>(Lapic::Register::InService))
                         .ptr<u32>());
     for (u64 i(0); i < 8; ++i) {
@@ -389,7 +389,7 @@ SelfTests::TestResult lapicReadTest() {
     }
 
     // TMR.
-    u32 * const tmrBase((Paging::toVirAddr(lapic.m_base)
+    u32 * const tmrBase((lapic.m_base.toVir()
                          + static_cast<u16>(Lapic::Register::TriggerMode))
                         .ptr<u32>());
     for (u64 i(0); i < 8; ++i) {
@@ -403,7 +403,7 @@ SelfTests::TestResult lapicReadTest() {
     }
 
     // TMR.
-    u32 * const irrBase((Paging::toVirAddr(lapic.m_base)
+    u32 * const irrBase((lapic.m_base.toVir()
                          + static_cast<u16>(Lapic::Register::InterruptRequest))
                         .ptr<u32>());
     for (u64 i(0); i < 8; ++i) {
@@ -479,7 +479,7 @@ SelfTests::TestResult lapicReadTest() {
         Lapic::InterruptCmd::DestinationShorthand::AllIncludingSelf,
         Lapic::InterruptCmd::DestinationShorthand::AllExcludingSelf,
     };
-    u32 * const icrBase((Paging::toVirAddr(lapic.m_base)
+    u32 * const icrBase((lapic.m_base.toVir()
                          + static_cast<u16>(Lapic::Register::InterruptCommand))
                         .ptr<u32>());
     for (auto const msgType : messageType) {

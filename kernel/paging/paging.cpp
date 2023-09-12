@@ -47,14 +47,6 @@ extern "C" u64 allocFrameFromAssembly() {
     }
 }
 
-// Get the virtual address in the direct map corresponding to the given physical
-// address.
-// @param paddr: The physical address to translate.
-// @return: The direct map address mapped to `paddr`.
-VirAddr toVirAddr(PhyAddr const paddr) {
-    return VirAddr(paddr.raw() + DIRECT_MAP_START_VADDR);
-}
-
 // Get the size of physical memory.
 // @param bootStruct: The BootStruct coming from the bootloader.
 // @return: The size of the physical memory in bytes.
@@ -223,7 +215,7 @@ struct PageTable {
                 entry.userAccessible = true;
                 entry.addr = allocRes->phyOffset() >> 12;
             }
-            VirAddr const nextLevelVaddr(toVirAddr(entry.addr << 12));
+            VirAddr const nextLevelVaddr(PhyAddr(entry.addr << 12).toVir());
             PageTable<L-1>* nextLevel(nextLevelVaddr.ptr<PageTable<L-1>>());
             nextLevel->map(vaddr, paddr, attrs);
         }
@@ -246,7 +238,7 @@ struct PageTable {
             if (entry.present) {
                 // There is a next level page table for this address, recurse.
                 PhyAddr const nextLevelPaddr(entry.addr << 12);
-                VirAddr const nextLevelVaddr(toVirAddr(nextLevelPaddr));
+                VirAddr const nextLevelVaddr(nextLevelPaddr.toVir());
                 PageTable<L-1>* nextLevel(nextLevelVaddr.ptr<PageTable<L-1>>());
                 UnmapResult const res(nextLevel->unmap(vaddr));
                 if (res == UnmapResult::DeallocateTable) {
@@ -297,7 +289,7 @@ static_assert(sizeof(PageTable<1>) == PAGE_SIZE);
 
 // Get a (virtual) pointer to the PML4 table currently loaded in CR3.
 static PageTable<4>* currPml4() {
-    VirAddr const pml4VAddr(toVirAddr(Cpu::cr3() & ~(PAGE_SIZE - 1)));
+    VirAddr const pml4VAddr(PhyAddr(Cpu::cr3() & ~(PAGE_SIZE - 1)).toVir());
     return pml4VAddr.ptr<PageTable<4>>();
 }
 

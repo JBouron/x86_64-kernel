@@ -17,7 +17,7 @@ SelfTests::TestResult wakeApplicationProcessorTest() {
     // 1MiB limit, so for now we simply use a page that is used by the
     // bootloader, it won't mind.
     PhyAddr const bootFrame(0x8000);
-    VirAddr const bootFrameVir(Paging::toVirAddr(bootFrame));
+    VirAddr const bootFrameVir(bootFrame.toVir());
 
     // Copy the bootstrap code.
     u64 const bootStrapCodeSize(

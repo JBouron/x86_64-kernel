@@ -10,7 +10,7 @@ namespace Interrupts {
 IoApic::IoApic(PhyAddr const base) : m_base(base) {
     // Change the mapping in the page table to be uncachable and writethrough.
     ASSERT(base.isPageAligned());
-    VirAddr const vaddr(Paging::toVirAddr(base));
+    VirAddr const vaddr(base.toVir());
     Paging::PageAttr const attr(Paging::PageAttr::Writable
                                 | Paging::PageAttr::WriteThrough
                                 | Paging::PageAttr::CacheDisable);
