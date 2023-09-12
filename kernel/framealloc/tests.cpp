@@ -40,13 +40,13 @@ SelfTests::TestResult earlyAllocatorTest() {
     // The EarlyAllocator being tested.
     EarlyAllocator allocator(bootstruct);
 
-    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x0);
-    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x10000);
-    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x20000);
-    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x21000);
-    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x30000);
-    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x31000);
-    TEST_ASSERT(allocator.alloc().value().phyOffset() == 0x32000);
+    TEST_ASSERT(allocator.alloc().value().addr() == 0x0);
+    TEST_ASSERT(allocator.alloc().value().addr() == 0x10000);
+    TEST_ASSERT(allocator.alloc().value().addr() == 0x20000);
+    TEST_ASSERT(allocator.alloc().value().addr() == 0x21000);
+    TEST_ASSERT(allocator.alloc().value().addr() == 0x30000);
+    TEST_ASSERT(allocator.alloc().value().addr() == 0x31000);
+    TEST_ASSERT(allocator.alloc().value().addr() == 0x32000);
 
     // No more memory, the next allocation should fail.
     Res<Frame> const last(allocator.alloc());
@@ -71,7 +71,7 @@ SelfTests::TestResult embeddedFreeListAllocatorTest() {
     // Build the frame allocator to be tested.
     EmbeddedFreeListAllocator frameAllocator;
     for (u64 i(0); i < numFrames; ++i) {
-        VirAddr const frameVAddr(PhyAddr(frames[i].phyOffset()).toVir());
+        VirAddr const frameVAddr(frames[i].addr().toVir());
         frameAllocator.insertFreeRegion(frameVAddr, 1);
     }
 

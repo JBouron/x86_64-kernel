@@ -7,6 +7,7 @@
 #include <bootstruct.hpp>
 #include <paging/paging.hpp>
 #include <selftests/selftests.hpp>
+#include <util/addr.hpp>
 
 namespace FrameAlloc {
 
@@ -16,17 +17,17 @@ public:
     // Default constructor. The resulting physical offset is 0x0.
     Frame();
 
-    // Create a Frame from its physical offset.
-    // @param physicalOffset: The physical offset of the frame.
-    Frame(u64 const physicalOffset);
+    // Create a Frame from its physical address.
+    // @param physicalAddr: The physical address of the frame.
+    Frame(PhyAddr const physicalOffset);
 
     bool operator==(Frame const& other) const = default;
 
-    // Get the physical offset of the frame.
-    u64 phyOffset() const;
+    // Get the physical address of the frame.
+    PhyAddr addr() const;
 
 private:
-    u64 m_physicalOffset;
+    PhyAddr m_physicalAddr;
 };
 
 // Initialize the frame allocator.

@@ -9,13 +9,13 @@ namespace FrameAlloc {
 // Default constructor. The resulting physical offset is 0x0.
 Frame::Frame() : Frame(0x0) {}
 
-// Create a Frame from its physical offset.
-// @param physicalOffset: The physical offset of the frame.
-Frame::Frame(u64 const physicalOffset) : m_physicalOffset(physicalOffset) {}
+// Create a Frame from its physical address.
+// @param physicalAddr: The physical address of the frame.
+Frame::Frame(PhyAddr const physicalAddr) : m_physicalAddr(physicalAddr) {}
 
-// Get the physical offset of the frame.
-u64 Frame::phyOffset() const {
-    return m_physicalOffset;
+// Get the physical address of the frame.
+PhyAddr Frame::addr() const {
+    return m_physicalAddr;
 }
 
 

@@ -57,7 +57,7 @@ Res<void*> HeapAllocator::alloc(u64 const size) {
                 return frameAllocRes.error();
             }
             // Map the new frame to the end of the current heap.
-            PhyAddr const framePhyAddr(frameAllocRes->phyOffset());
+            PhyAddr const framePhyAddr(frameAllocRes->addr());
             VirAddr const mappedAddr(m_heapStart.raw() + m_heapSize);
             Paging::PageAttr const attrs(Paging::PageAttr::Writable);
             Err const err(Paging::map(mappedAddr, framePhyAddr, attrs, 1));

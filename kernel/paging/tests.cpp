@@ -59,7 +59,7 @@ SelfTests::TestResult mapAttrsTest() {
     // Alloc the physical frame.
     Res<FrameAlloc::Frame> const allocRes(FrameAlloc::alloc());
     TEST_ASSERT(!!allocRes);
-    paddr = allocRes->phyOffset();
+    paddr = allocRes->addr();
 
     // Map the frame as read-only.
     PageAttr const attrs(PageAttr::None);
@@ -131,7 +131,7 @@ SelfTests::TestResult unmapTest() {
     // Alloc the physical frame.
     Res<FrameAlloc::Frame> const allocRes(FrameAlloc::alloc());
     TEST_ASSERT(!!allocRes);
-    paddr = allocRes->phyOffset();
+    paddr = allocRes->addr();
 
     // Map the frame as read-write.
     PageAttr const attrs(PageAttr::Writable);

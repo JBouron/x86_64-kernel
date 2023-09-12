@@ -287,7 +287,7 @@ public:
     MockLapicGuard() {
         Res<FrameAlloc::Frame> const alloc(FrameAlloc::alloc());
         ASSERT(alloc.ok());
-        m_base = alloc->phyOffset();
+        m_base = alloc->addr();
         lapic = new Lapic(m_base);
     }
 

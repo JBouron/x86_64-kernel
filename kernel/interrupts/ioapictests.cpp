@@ -97,7 +97,7 @@ SelfTests::TestResult ioApicRedirectionTableEntryTest() {
 
 class MockIoApic : public IoApic {
 public:
-    MockIoApic() : IoApic(FrameAlloc::alloc().value().phyOffset()) {
+    MockIoApic() : IoApic(FrameAlloc::alloc().value().addr()) {
         for (u64 i(0); i < sizeof(registers) / sizeof(*registers); ++i) {
             registers[i] = 0;
         }

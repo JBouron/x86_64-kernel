@@ -41,8 +41,7 @@ Res<Frame> EarlyAllocator::alloc() {
 // (see comment above class definition) and as such panics.
 void EarlyAllocator::free(Frame const& frame) {
     // free() is not implemented in this allocator.
-    u64 const offset(frame.phyOffset());
-    PANIC("Attempted to free physical frame @{}: not implemented", offset);
+    PANIC("Attempted to free physical frame {}: not implemented", frame.addr());
 }
 
 // Initialize an EmbeddedFreeListAllocator's free-list with this allocator's
@@ -105,7 +104,7 @@ Res<Frame> EmbeddedFreeListAllocator::alloc() {
 // Free a physical frame. This operation is not implemented by this allocator
 // (see comment above class definition) and as such panics.
 void EmbeddedFreeListAllocator::free(Frame const& frame) {
-    m_freeList.free(PhyAddr(frame.phyOffset()).toVir(), PAGE_SIZE);
+    m_freeList.free(frame.addr().toVir(), PAGE_SIZE);
 }
 
 }

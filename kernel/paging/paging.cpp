@@ -39,7 +39,7 @@ extern "C" u64 allocFrameFromAssembly() {
         PANIC("Failed to allocate frame while initializing direct map");
     }
     Frame const& frame(allocRes.value());
-    u64 const offset(frame.phyOffset());
+    u64 const offset(frame.addr().raw());
     if (offset <= directMapMaxMappedOffset) {
         return offset + DIRECT_MAP_START_VADDR;
     } else {
@@ -206,14 +206,14 @@ struct PageTable {
                 }
                 Log::debug("Allocated page-table level {} at {}",
                            L - 1,
-                           PhyAddr(allocRes->phyOffset()));
+                           allocRes->addr());
                 entry.present = true;
                 // For the upper levels, set the writable and user bit to true
                 // so that the PTE at the last level decides if a given page is
                 // writable/user accessible.
                 entry.writable = true;
                 entry.userAccessible = true;
-                entry.addr = allocRes->phyOffset() >> 12;
+                entry.addr = allocRes->addr().raw() >> 12;
             }
             VirAddr const nextLevelVaddr(PhyAddr(entry.addr << 12).toVir());
             PageTable<L-1>* nextLevel(nextLevelVaddr.ptr<PageTable<L-1>>());
