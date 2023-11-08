@@ -91,6 +91,17 @@ public:
                  Granularity const gran);
 } __attribute__((packed));
 
+// A flat 32-bit code or data segment descriptor, e.g. a segment that spans the
+// entire 4GiB address space. This is meant to be used as a shortcut for
+// Descriptor32.
+class Descriptor32Flat : public Descriptor32 {
+public:
+    // Create a flat 32-bit segment descriptor.
+    // @param dpl: The dpl of the descriptor.
+    // @param type: The type of the descriptor.
+    Descriptor32Flat(Cpu::PrivLevel const dpl, Type const type);
+} __attribute__((packed));
+
 // A 64-bit code or data segment descriptor. In 64-bits, most of the fields in
 // the segment descriptor are ingnored, hence the lighter constructor.
 class Descriptor64 : public Descriptor {

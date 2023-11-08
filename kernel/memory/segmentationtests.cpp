@@ -74,6 +74,24 @@ SelfTests::TestResult segmentationDescriptorTest() {
         }
     }
 
+    // Descriptor32Flat test.
+    for (auto const dpl : dpls) {
+        for (auto const type : types) {
+            Descriptor const desc(Descriptor32Flat(dpl, type));
+            u64 const raw(desc.raw());
+            u64 const exp(
+                (u64(1) << 55)
+                | (u64(1) << 54)
+                | (u64(0xf) << 48)
+                | (u64(1) << 47)
+                | (static_cast<u64>(dpl) << 45)
+                | (u64(1) << 44)
+                | (static_cast<u64>(type) << 40)
+                | 0xffff);
+            TEST_ASSERT(raw == exp);
+        }
+    }
+
     // Descriptor64 test.
     for (auto const dpl : dpls) {
         for (auto const type : types) {

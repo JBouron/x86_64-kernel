@@ -51,6 +51,12 @@ Descriptor32::Descriptor32(Base const base,
                            Granularity const gran) :
     Descriptor(base, limit, dpl, type, Mode::Bits32, gran) {}
 
+// Create a flat 32-bit segment descriptor.
+// @param dpl: The dpl of the descriptor.
+// @param type: The type of the descriptor.
+Descriptor32Flat::Descriptor32Flat(Cpu::PrivLevel const dpl, Type const type) :
+    Descriptor32(Base(0x0), Limit(0xfffff), dpl, type, Granularity::Page) {}
+
 // Create a 64-bit segment descriptor.
 // @param dpl: The dpl of the descriptor.
 // @param type: The type of the descriptor.
