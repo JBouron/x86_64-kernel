@@ -28,9 +28,13 @@ public:
     // limit, false otherwise.
     bool operator==(TableDesc const& other) const = default;
 
+    // Read limit and base of a TableDesc.
+    u16 limit() const { return m_limit; }
+    u64 base() const { return m_base; }
+
 private:
-    u16 const limit;
-    u64 const base;
+    u16 const m_limit;
+    u64 const m_base;
 } __attribute__((packed));
 static_assert(sizeof(TableDesc) == 10);
 

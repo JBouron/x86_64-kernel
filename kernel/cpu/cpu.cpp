@@ -9,12 +9,12 @@ namespace Cpu {
 // Create a table descriptor.
 // @param base: The base virtual address of the table.
 // @param limit: The size of the table in bytes.
-TableDesc::TableDesc(u64 const base, u16 const limit) : limit(limit),
-    base(base) {
+TableDesc::TableDesc(u64 const base, u16 const limit) : m_limit(limit),
+    m_base(base) {
     // The LGDT instruction expects the limit to be of the form 8*N - 1.
     // Enforce this.
-    if (limit > 0 && limit % 8 != 7) {
-        PANIC("Invalid limit for TableDesc: {}", limit);
+    if (m_limit > 0 && m_limit % 8 != 7) {
+        PANIC("Invalid limit for TableDesc: {}", m_limit);
     }
 }
 
