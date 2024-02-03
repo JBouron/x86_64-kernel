@@ -110,20 +110,14 @@ apStartup:
 
     BITS    64
 
-    ; We are now in 64-bits long mode! Load the final GDT.
-    lgdt    [rbx + 5 * 8 + 4]
+    ; We are now in 64-bits long mode!
+    ; Finish setting up this AP and jump to the target.
+    mov     rdi, rbx
+    EXTERN  finalizeApplicationProcessorStartup
+    ; Need to jump rax as otherwise the jump would be relative and this would
+    ; not work since this code gets relocated at runtime.
+    lea     rax, [finalizeApplicationProcessorStartup]
+    jmp     rax
 
-    ; FIXME: Allocate a proper stack for this CPU. As of now, all APs are
-    ; sharing the same stack. It is fine as long as they don't run at the same
-    ; time.
-
-    ; Jump to the target 64-bit code.
-    jmp     [rbx + 5 * 8 + 4 + 10]
-
-    ; In case we ever return just sleep forever.
-.dead:
-    sti
-    hlt
-    jmp     .dead
 GLOBAL  apStartupEnd:function
 apStartupEnd:

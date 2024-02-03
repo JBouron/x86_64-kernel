@@ -5,6 +5,7 @@
 #include <timers/lapictimer.hpp>
 #include <memory/segmentation.hpp>
 #include <util/assert.hpp>
+#include <memory/stack.hpp>
 
 namespace Smp {
 
@@ -320,4 +321,37 @@ void startupApplicationProcessor(Id const id, void (*entryPoint64Bits)(void)) {
     Timer::LapicTimer::delay(Timer::Duration::Secs(1));
 }
 
+// Function called by an application processor during the startup routine, after
+// switching to 64-bits mode.
+// This function finalizes the AP configuration, ie. switches to the final GDT,
+// allocates a stack, ... before jumping to the target indicated in the
+// ApBootInfo struct. The goal is to keep apStartup as small as possible by
+// doing anything that can be done in C++ here.
+// Defined as extern "C" so that it is callable from asm.
+// This function does NOT return.
+// @param info: The ApBootInfo.
+extern "C" void finalizeApplicationProcessorStartup(
+    ApBootInfo const * const info) {
+
+    // Switch to the final GDT that will be used until reset.
+    Cpu::TableDesc const gdtDesc(info->finalGdtBase, info->finalGdtLimit);
+    Cpu::lgdt(gdtDesc);
+    // FIXME: The segments registers are not reloaded, ie. we are still using
+    // the shadow values. This is due to the fact that we don't have access to
+    // the selectors to be used. We should call Segmentation::Init().  instead
+    // of initializing the GDT ourselves here.
+
+    // Allocate a stack for this cpu.
+    Res<VirAddr> const stackAllocRes(Stack::allocate());
+    if (!stackAllocRes) {
+        Log::crit("Could not allocate a stack for AP {}, reason: {}",
+            Smp::id(), stackAllocRes.error());
+        PANIC("Un-recoverable error");
+    }
+
+    // Switch to the new stack and jump to the target.
+    Stack::switchToStack(stackAllocRes.value(),
+                         reinterpret_cast<void(*)()>(info->targetAddr));
+    UNREACHABLE
+}
 }
