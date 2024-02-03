@@ -122,6 +122,8 @@ DEF_GLOBAL_FUNC32(jumpToLongMode):
     mov     eax, cr0
     or      eax, CR0_PG_BIT_MASK
     mov     cr0, eax
+    ; FIXME: Per AMD's manual, the instruction following the mov into cr0 MUST
+    ; be a branch.
 
     ; We are now in IA-32e mode. Check the IA32_EFER.LMA bit to make sure.
     mov     ecx, IA32_EFER_MSR

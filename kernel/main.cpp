@@ -62,6 +62,19 @@ static void dumpBootStruct(BootStruct const& bootStruct) {
     }
 }
 
+// Placeholder function that is the target for booting-up application
+// processors.
+static void apTarget() {
+    Cpu::CpuidResult const res(Cpu::cpuid(0x01));
+    u64 const id(res.ebx >> 24);
+    Log::info("CPU {} online", id);
+
+    while (true) {
+        asm("sti");
+        asm("hlt");
+    }
+}
+
 // C++ entry point of the kernel. Called by the assembly entry point
 // `kernelEntry` after calling all global constructors.
 // @param bootStruct: Pointer to the BootStruct as given by the bootloader when
@@ -89,7 +102,12 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     runSelfTests();
 
     Acpi::Info const& acpi(Acpi::parseTables());
-    Log::info("{} processor(s) in the system", acpi.processorDescSize);
+    u8 const numCpus(acpi.processorDescSize);
+    Log::info("{} processor(s) in the system", numCpus);
+
+    for (u8 i(1); i < numCpus; ++i) {
+        Smp::startupApplicationProcessor(Smp::Id(i), apTarget);
+    }
 
     while (true) {
         asm("sti");

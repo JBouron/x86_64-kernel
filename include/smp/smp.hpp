@@ -10,12 +10,16 @@ namespace Smp {
 // we don't yet support x2APIC.
 class Id : public SubRange<Id, 0, 255> {};
 
-// Wake an Application Processors (AP).
-// @param id: The ID of the cpu to be woken.
-// @param bootStrapRoutine: Physical address of the bootstrap routine at which
-// the APs should start executing. This must point to real-mode code. This
-// address must be page aligned and below the 1MiB address.
-void wakeApplicationProcessor(Id const id, PhyAddr const bootStrapRoutine);
+// Startup an application processor, that is:
+//  1. Wake the processor and transition from real-mode to 64-bit mode.
+//  2. Use the same GDT and page table as the calling processor.
+//  3. Allocate a stack for the application processor.
+//  4. Branch execution to a specified location.
+// This function returns once all four steps have completed.
+// @param id: The ID of the application processor to start.
+// @param entryPoint: The 64-bit entry point to which the application processor
+// branches to once awaken.
+void startupApplicationProcessor(Id const id, void (*entryPoint64Bits)(void));
 
 // Run SMP tests.
 void Test(SelfTests::TestRunner& runner);

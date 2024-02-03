@@ -11,6 +11,9 @@ extern "C" void wakeApplicationProcessorTestBootCodeEnd();
 
 namespace Smp {
 
+// Defined in smp.cpp but not accessible through smp.hpp.
+extern void wakeApplicationProcessor(Id const id, PhyAddr const bootStrapRoutine);
+
 // Test waking-up an application processor.
 SelfTests::TestResult wakeApplicationProcessorTest() {
     // FIXME: We don't really have a way to allocate a Frame that is under the

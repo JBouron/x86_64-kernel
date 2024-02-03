@@ -3,6 +3,8 @@
 #include <acpi/acpi.hpp>
 #include <interrupts/lapic.hpp>
 #include <timers/lapictimer.hpp>
+#include <memory/segmentation.hpp>
+#include <util/assert.hpp>
 
 namespace Smp {
 
@@ -17,7 +19,6 @@ static void sendInitIpi(Id const id) {
         .destination = static_cast<u8>(id.raw())
     });
 
-    // The max number of tries.
     static u64 const maxTries = 10;
     for (u64 i(0); i < maxTries; ++i) {
         // Send the IPI.
@@ -55,7 +56,6 @@ static void sendStartupIpi(Id const id, Interrupts::Vector const vector) {
         .destination = static_cast<u8>(id.raw())
     });
 
-    // The max number of tries.
     static u64 const maxTries = 10;
     for (u64 i(0); i < maxTries; ++i) {
         // Send the SIPI.
@@ -188,6 +188,118 @@ void wakeApplicationProcessor(Id const id, PhyAddr const bootStrapRoutine) {
     // Send the Startup IPI.
     sendStartupIpi(id, sipiVector);
     // At this point the core should be running.
+}
+
+// Struct containing various info that is required to setup/configure an
+// Application Processor (AP). Each AP, upon booting, checks this struct, stored
+// at a known address in order to know which GDT, page-table, ... to use.
+struct ApBootInfo {
+    // A temporary GDT stored under the 1MiB limit, thus accessible from
+    // real-mode, that the AP can use in order to transition to 64-bit mode.
+    // Once in 64-bit mode, the AP switches over to the "real" GDT which is
+    // store in higher-half virtual memory, see `finalGdtAddr`.
+    // This temporary GDT contains the following entries:
+    //  Index | Entry type
+    //    0x1 | 32-bit flat code segment
+    //    0x2 | 32-bit flat R/W data segment
+    //    0x3 | 64-bit code segment
+    //    0x4 | 64-bit data segment
+    u64 gdt[5];
+    // The page-table to be used by the AP when switching to 64-bit mode. This
+    // is the same as used by the Boot-strap processor (BSP).
+    u32 pageTable;
+    // Virtual address and size of the GDT to be used once 64-bit mode has been
+    // enabled.
+    u16 finalGdtLimit;
+    u64 finalGdtBase;
+    // The virtual address to jump to after 64-bit has been enabled and the GDT
+    // setup.
+    u64 targetAddr;
+} __attribute__((packed));
+static_assert(sizeof(ApBootInfo) <= PAGE_SIZE);
+
+extern "C" u8 apStartup;
+extern "C" u8 apStartupEnd;
+
+// Startup an application processor, that is:
+//  1. Wake the processor and transition from real-mode to 64-bit mode.
+//  2. Use the same GDT and page table as the calling processor.
+//  3. Allocate a stack for the application processor.
+//  4. Branch execution to a specified location.
+// This function returns once all four steps have completed.
+// @param id: The ID of the application processor to start.
+// @param entryPoint: The 64-bit entry point to which the application processor
+// branches to once awaken.
+void startupApplicationProcessor(Id const id, void (*entryPoint64Bits)(void)) {
+    // For now we only wake one application processor (AP) at a time, this makes
+    // things easier due to not requiring any mutex/lock. All APs can use the
+    // same physical frame as their boot stack.
+
+    // The AP booting "protocol" uses three physical frames:
+    //  - A code frame where the boot is loaded: 0x8000.
+    //  - A data frame where the booting AP can find the ApBootInfo that
+    //  contains the various info required to setup/configure the AP: 0x9000.
+    //  - A stack frame on which the booting AP sets up a temporary stack used
+    //  until it can allocate a proper stack: 0xa000.
+    // All of the frames above have hard-coded addresses because the frame
+    // allocator does not allow us to force an allocation to be under a specific
+    // address. Moreover, some addresses lead to invalid vectors when waking an
+    // AP (see comment in wakeApplicationProcessor). Hence we re-use frames that
+    // were used by the bootloader.
+    Log::debug("Starting application processor {}", id.raw());
+
+    PhyAddr const apStartupCodeFrame(0x8000);
+    PhyAddr const apBootInfoFrame(0x9000);
+    PhyAddr const apStackFrame(0xa000);
+
+    // Prepare the ApBootInfo struct.
+    ApBootInfo * const bootInfo(apBootInfoFrame.toVir().ptr<ApBootInfo>());
+
+    bootInfo->gdt[0] = Memory::Segmentation::Descriptor().raw();
+    // 32-bit code segment.
+    bootInfo->gdt[1] = Memory::Segmentation::Descriptor32Flat(
+        Cpu::PrivLevel::Ring0,
+        Memory::Segmentation::Descriptor::Type::CodeExecuteReadable).raw();
+    // 32-bit data segment.
+    bootInfo->gdt[2] = Memory::Segmentation::Descriptor32Flat(
+        Cpu::PrivLevel::Ring0,
+        Memory::Segmentation::Descriptor::Type::DataReadWrite).raw();
+    // 64-bit code segment.
+    bootInfo->gdt[3] = Memory::Segmentation::Descriptor64(
+        Cpu::PrivLevel::Ring0,
+        Memory::Segmentation::Descriptor::Type::CodeExecuteReadable).raw();
+    // 64-bit data segment.
+    bootInfo->gdt[4] = Memory::Segmentation::Descriptor64(
+        Cpu::PrivLevel::Ring0,
+        Memory::Segmentation::Descriptor::Type::DataReadWrite).raw();
+
+    bootInfo->pageTable = Cpu::cr3();
+
+    Cpu::TableDesc const longModeGdt(Cpu::sgdt());
+    bootInfo->finalGdtBase = longModeGdt.base();
+    bootInfo->finalGdtLimit = longModeGdt.limit();
+
+    bootInfo->targetAddr = reinterpret_cast<u64>(entryPoint64Bits);
+
+    // Copy the AP startup code to the apStartupCodeFrame. We must do this
+    // because currently this code resides in higher-half mapping which is of
+    // course inaccessible from real-mode. We cannot modify the linking of the
+    // boot-code to be loaded by the bootloader at the desired address as we are
+    // effectively overwriting the bootloader.
+    VirAddr const codeStart(&apStartup);
+    VirAddr const codeEnd(&apStartupEnd);
+    ASSERT(codeStart < codeEnd);
+    u64 const codeLen(codeEnd - codeStart);
+    Util::memcpy(apStartupCodeFrame.toVir().ptr<void>(),
+                 codeStart.ptr<void>(),
+                 codeLen);
+
+    // Wake the AP.
+    wakeApplicationProcessor(id, apStartupCodeFrame);
+
+    // Wait for the AP to be online.
+    // TODO: Wait on a flag to detect when the AP has booted.
+    Timer::LapicTimer::delay(Timer::Duration::Secs(1));
 }
 
 }
