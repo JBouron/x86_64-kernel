@@ -119,6 +119,13 @@ void Logger::printValue<i8>(i8 const& val, FmtOption const& fmtOption) {
 }
 
 template<>
+void Logger::printValue<bool>(
+    bool const& val,
+    __attribute__((unused)) FmtOption const& fmtOption) {
+    printNoNewLine(val ? "true" : "false");
+}
+
+template<>
 void Logger::printValue<Error>(Error const& val,
     __attribute__((unused)) FmtOption const& fmtOption) {
     printNoNewLine(errorToString(val));

@@ -10,6 +10,15 @@ namespace Smp {
 // we don't yet support x2APIC.
 class Id : public SubRange<Id, 0, 255> {};
 
+// Indicates whether or not the current cpu with is the BootStrap Processor
+// (BSP), aka. BSC (BootStrap Core) in AMD's documentation.
+// @return: true if this cpu is the BSP, false otherwise.
+bool isBsp();
+
+// Get the SMP ID of the current core.
+// @return: The ID of the cpu making the call.
+Id id();
+
 // Startup an application processor, that is:
 //  1. Wake the processor and transition from real-mode to 64-bit mode.
 //  2. Use the same GDT and page table as the calling processor.

@@ -8,6 +8,24 @@
 
 namespace Smp {
 
+// Indicates whether or not the current cpu with is the BootStrap Processor
+// (BSP), aka. BSC (BootStrap Core) in AMD's documentation.
+// @return: true if this cpu is the BSP, false otherwise.
+bool isBsp() {
+    return !!(Cpu::rdmsr(Cpu::Msr::IA32_APIC_BASE) & (1 << 8));
+}
+
+// Get the SMP ID of the current core.
+// @return: The ID of the cpu making the call.
+Id id() {
+    // FIXME: For now we are using CPUID to read the ID. This is however a very
+    // inefficient way to do so as this serializes the instruction stream.
+    // Eventually we should "cache" the cpu ids in per-cpu data structures.
+    Cpu::CpuidResult const res(Cpu::cpuid(0x01));
+    u64 const id(res.ebx >> 24);
+    return Id(id);
+}
+
 // Send an INIT IPI to a remote CPU. This function takes care of checking if the
 // INIT IPI was successfully delivered and re-try the IPI if necessary.
 // @param id: The ID of the target cpu.
