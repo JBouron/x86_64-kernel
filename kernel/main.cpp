@@ -20,6 +20,7 @@
 #include <timers/lapictimer.hpp>
 #include <interrupts/vectormap.hpp>
 #include <smp/smp.hpp>
+#include <memory/stack.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -73,16 +74,8 @@ static void apTarget() {
     }
 }
 
-// C++ entry point of the kernel. Called by the assembly entry point
-// `kernelEntry` after calling all global constructors.
-// @param bootStruct: Pointer to the BootStruct as given by the bootloader when
-// jumping to the kernel's assembly entry point.
-extern "C" void kernelMain(BootStruct const * const bootStruct) {
-    Log::info("=== Kernel C++ Entry point ===");
-
-    Log::debug("Bootstruct is @{x}", reinterpret_cast<u64>(bootStruct));
-    dumpBootStruct(*bootStruct);
-
+// Initialize the kernel.
+static void initKernel(BootStruct const * const bootStruct) {
     Memory::Segmentation::Init();
     FrameAlloc::Init(*bootStruct);
     Paging::Init(*bootStruct);
@@ -96,7 +89,11 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     FrameAlloc::directMapInitialized();
     HeapAlloc::Init();
     Interrupts::Init();
+}
 
+// Target code after the BSP switches to the new higher-half stack. This
+// function does not return.
+static void stackSwitchTarget() {
     runSelfTests();
 
     Acpi::Info const& acpi(Acpi::parseTables());
@@ -111,4 +108,28 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
         asm("sti");
         asm("hlt");
     }
+}
+
+// C++ entry point of the kernel. Called by the assembly entry point
+// `kernelEntry` after calling all global constructors.
+// @param bootStruct: Pointer to the BootStruct as given by the bootloader when
+// jumping to the kernel's assembly entry point.
+extern "C" void kernelMain(BootStruct const * const bootStruct) {
+    Log::info("=== Kernel C++ Entry point ===");
+
+    Log::debug("Bootstruct is @{x}", reinterpret_cast<u64>(bootStruct));
+    dumpBootStruct(*bootStruct);
+
+    initKernel(bootStruct);
+
+    // Now that the kernel has been initialized, we can switch to a proper stack
+    // instead of staying on the minuscule one that was used throughout the
+    // bootloader.
+    Res<VirAddr> const stackAllocRes(Stack::allocate());
+    if (!stackAllocRes) {
+        PANIC("Cannot allocate a stack for the BSP: {}", stackAllocRes.error());
+    }
+    Stack::switchToStack(stackAllocRes.value(), stackSwitchTarget);
+
+    UNREACHABLE
 }
