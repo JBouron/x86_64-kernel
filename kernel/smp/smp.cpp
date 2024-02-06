@@ -345,7 +345,7 @@ extern "C" void finalizeApplicationProcessorStartup(
     Res<VirAddr> const stackAllocRes(Stack::allocate());
     if (!stackAllocRes) {
         Log::crit("Could not allocate a stack for AP {}, reason: {}",
-            Smp::id(), stackAllocRes.error());
+            Smp::id().raw(), stackAllocRes.error());
         PANIC("Un-recoverable error");
     }
 

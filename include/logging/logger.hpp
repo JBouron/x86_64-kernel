@@ -3,6 +3,8 @@
 #pragma once
 
 #include <util/util.hpp>
+#include <util/error.hpp>
+#include <util/addr.hpp>
 #include <util/cstring.hpp>
 
 namespace Logging {
@@ -102,40 +104,39 @@ private:
     // formatted strings within "{}".
     using FmtOption = char;
 
-    // Print a value of type T in the output device.
-    // @param val: the value to output to the device.
-    template<typename T>
-    void printValue(__attribute__((unused)) T const& val,
-                    __attribute__((unused)) FmtOption const& fmtOption) {
-        printNoNewLine("(Unsupported value type)");
-    }
-
-    // Print a char const* in the output device. Need to be manually defined
-    // here as otherwise the pointer versions of printValue<T> will be called
-    // when passing a char const*.
-    // @param str: The string to print.
-    // @param fmtOption: Ignored.
-    void printValue(char const* const& val,
-                    __attribute__((unused)) FmtOption const& fmtOption) {
-        printNoNewLine(val);
-    }
+    // All overloads of printValue(T).
+    void printValue(u64 const& val, FmtOption const& fmtOption);
+    void printValue(u32 const& val, FmtOption const& fmtOption);
+    void printValue(u16 const& val, FmtOption const& fmtOption);
+    void printValue(u8 const& val, FmtOption const& fmtOption);
+    void printValue(i64 const& val, FmtOption const& fmtOption);
+    void printValue(int const& val, FmtOption const& fmtOption);
+    void printValue(i16 const& val, FmtOption const& fmtOption);
+    void printValue(i8 const& val, FmtOption const& fmtOption);
+    void printValue(bool const& val, FmtOption const& fmtOption);
+    void printValue(Error const& val, FmtOption const& fmtOption);
+    void printValue(VirAddr const& val, FmtOption const& fmtOption);
+    void printValue(PhyAddr const& val, FmtOption const& fmtOption);
+    void printValue(char const* const& val, FmtOption const& fmtOption);
 
     // Print a const pointer of T in the output device.
     // @param ptr: the pointer to output to the device.
+    // @param fmtOption: Ignored.
     template<typename T>
     void printValue(T const* ptr,
                     __attribute__((unused)) FmtOption const& fmtOption) {
         printNoNewLine("v:");
-        printValue<u64>(reinterpret_cast<u64>(ptr), 'x');
+        printValue(reinterpret_cast<u64>(ptr), 'x');
     }
 
     // Print a pointer of T in the output device.
     // @param ptr: the pointer to output to the device.
+    // @param fmtOption: Ignored.
     template<typename T>
     void printValue(T* ptr,
                     __attribute__((unused)) FmtOption const& fmtOption) {
         printNoNewLine("v:");
-        printValue<u64>(reinterpret_cast<u64>(ptr), 'x');
+        printValue(reinterpret_cast<u64>(ptr), 'x');
     }
 };
 

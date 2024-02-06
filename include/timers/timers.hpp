@@ -1,6 +1,7 @@
 // Some code common between timer implementations.
 #pragma once
 #include <util/subrange.hpp>
+#include <selftests/selftests.hpp>
 
 namespace Timer {
 // Type for a frequency in Hz.

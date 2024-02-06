@@ -1,6 +1,5 @@
 // Error enum definition.
 #pragma once
-#include <util/panic.hpp>
 
 // Indicate an error condition. Mostly used by the Res<T> class.
 enum class Error {
@@ -31,6 +30,6 @@ inline char const * errorToString(Error const value) {
         // -Wall and -Werror make sure that all values of Error must appear
         // here.
     }
-    UNREACHABLE
+    __builtin_unreachable();
 #undef CASE
 }

@@ -26,7 +26,7 @@ static constexpr u64 DEFAULT_STACK_PAGES = 4;
 // allocated stacks to "return" to this function instead of returning to an
 // arbitrary address.
 static void limbo() {
-    PANIC("Cpu {} attempted a return on an empty stack", Smp::id());
+    PANIC("Cpu {} attempted a return on an empty stack", Smp::id().raw());
 }
 
 // Allocate a new stack in kernel virtual memory to be used by a CPU.

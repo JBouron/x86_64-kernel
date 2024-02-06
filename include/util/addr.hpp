@@ -3,7 +3,6 @@
 #pragma once
 
 #include <util/ints.hpp>
-#include <selftests/selftests.hpp>
 
 // The size of a page in bytes. For now this kernel only supports the default
 // size of 4096 bytes pages.
