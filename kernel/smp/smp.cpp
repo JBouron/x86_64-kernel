@@ -120,7 +120,7 @@ void wakeApplicationProcessor(Id const id, PhyAddr const bootStrapRoutine) {
     // Because we assume that we are running on a somewhat recent CPU we will
     // only support the case of _integrated_ APIC, which is much simpler to
     // support/boot anyway.
-    Log::info("Waking cpu {}", id.raw());
+    Log::info("Waking cpu {}", id);
 
     // Check the version register of the LAPIC to confirm that we are dealing
     // with an integrated APIC.
@@ -265,7 +265,7 @@ void startupApplicationProcessor(Id const id, void (*entryPoint64Bits)(void)) {
     // address. Moreover, some addresses lead to invalid vectors when waking an
     // AP (see comment in wakeApplicationProcessor). Hence we re-use frames that
     // were used by the bootloader.
-    Log::debug("Starting application processor {}", id.raw());
+    Log::debug("Starting application processor {}", id);
 
     PhyAddr const apStartupCodeFrame(0x8000);
     PhyAddr const apBootInfoFrame(0x9000);

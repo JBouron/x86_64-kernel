@@ -26,7 +26,7 @@ static constexpr u64 DEFAULT_STACK_PAGES = 4;
 // allocated stacks to "return" to this function instead of returning to an
 // arbitrary address.
 static void limbo() {
-    PANIC("Cpu {} attempted a return on an empty stack", Smp::id().raw());
+    PANIC("Cpu {} attempted a return on an empty stack", Smp::id());
 }
 
 // Allocate a new stack in kernel virtual memory to be used by a CPU.
@@ -79,7 +79,7 @@ extern "C" void _switchToStackAndJumpTo(u64 const newStackTop,
 // @param newStackTop: Virtual address of the new stack to use.
 // @param jmpTarget: Destination of the jump after switching to the new stack.
 void switchToStack(VirAddr const newStackTop, void (*jmpTarget)()) {
-    Log::debug("Cpu {} switching to stack @{}", Smp::id().raw(), newStackTop);
+    Log::debug("Cpu {} switching to stack @{}", Smp::id(), newStackTop);
     _switchToStackAndJumpTo(newStackTop.raw(),
                             reinterpret_cast<u64>(jmpTarget));
 }

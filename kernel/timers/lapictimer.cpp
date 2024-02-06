@@ -102,7 +102,7 @@ static Freq getTimerFreq() {
     Timer::Freq const lapicFreq((N < pitFreq.raw()) ?
         (deltaCount * (pitFreq.raw() / N)) :
         (deltaCount / (N / pitFreq.raw())));
-    Log::info("LAPIC timer frequency = {} Hz", lapicFreq.raw());
+    Log::info("LAPIC timer frequency = {} Hz", lapicFreq);
     return lapicFreq;
 }
 
@@ -121,7 +121,7 @@ void init(Freq const freq) {
     }
     // Check that the requested frequency is supported by the LAPIC timer.
     if (LapicTimerBaseFreq < freq) {
-        PANIC("Frequency is too high for the LAPIC timer: {}", freq.raw());
+        PANIC("Frequency is too high for the LAPIC timer: {}", freq);
     }
     LapicTimerCurrFreq = freq;
 }

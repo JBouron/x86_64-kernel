@@ -1,6 +1,6 @@
 // Definition of the SubRange type.
 #pragma once
-#include <util/panic.hpp>
+#include <util/assert.hpp>
 #include <util/addr.hpp>
 
 // Inspired by Pascal, a SubRange is type capable of holding only values
@@ -54,9 +54,7 @@ public:
     // those, a Panic is raised.
     // @param value: The value to be stored by this instance.
     SubRange(UnderlyingType const value) : m_value(value) {
-        if (value < Min || Max < value) {
-            PANIC("Value is not in range [{};{}]", Min, Max);
-        }
+        ASSERT(Min <= value && value <= Max);
     }
 
     // "Copy constructor" with another Impl. This constructor cannot panic as
@@ -99,12 +97,7 @@ public:
     // PANIC if the value becomes > Max.
     Impl& operator++() {
         u64 const newValue(m_value + 1);
-        if (newValue < Min || Max < newValue) {
-            // FIXME: Keeping the value < Min check saves us in case of
-            // overflow, although this is not tested and therefore not
-            // supported.
-            PANIC("Value is not in range [{};{}]", Min, Max);
-        }
+        ASSERT(Min <= newValue && newValue <= Max);
         m_value = newValue;
         return *static_cast<Impl*>(this);
     }

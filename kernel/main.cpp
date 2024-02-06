@@ -66,7 +66,7 @@ static void dumpBootStruct(BootStruct const& bootStruct) {
 // Placeholder function that is the target for booting-up application
 // processors.
 static void apTarget() {
-    Log::info("CPU {} online", Smp::id().raw());
+    Log::info("CPU {} online", Smp::id());
 
     while (true) {
         asm("sti");

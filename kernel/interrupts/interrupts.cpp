@@ -235,8 +235,7 @@ void deregisterHandler(Vector const vector) {
 // @param vector: The vector to map the IRQ to.
 void mapIrq(Irq const irq, Vector const vector) {
     Acpi::Gsi const gsi(irq.toGsi());
-    Log::debug("Mapping IRQ {} (GSI = {}) to Vector {}", irq.raw(), gsi.raw(),
-               vector.raw());
+    Log::debug("Mapping IRQ {} (GSI = {}) to Vector {}", irq, gsi, vector);
     Acpi::Info const& acpiInfo(Acpi::parseTables());
     Acpi::Info::IrqDesc const& irqDesc(acpiInfo.irqDesc[irq.raw()]);
     IoApic& ioApic(ioApicForGsi(gsi));
@@ -282,7 +281,7 @@ void mapIrq(Irq const irq, Vector const vector) {
 // @param irq: The IRQ to unmap.
 void unmapIrq(Irq const irq) {
     Acpi::Gsi const gsi(irq.toGsi());
-    Log::debug("Unmapping IRQ {} (GSI = {})", irq.raw(), gsi.raw());
+    Log::debug("Unmapping IRQ {} (GSI = {})", irq, gsi);
     // Simply mask the interrupt source at the I/O APIC level.
     maskIrq(irq);
 }
@@ -292,7 +291,7 @@ void unmapIrq(Irq const irq) {
 // @param irq: The IRQ to mask.
 void maskIrq(Irq const irq) {
     Acpi::Gsi const gsi(irq.toGsi());
-    Log::debug("Masking IRQ {} (GSI = {})", irq.raw(), gsi.raw());
+    Log::debug("Masking IRQ {} (GSI = {})", irq, gsi);
     Acpi::Info const& acpiInfo(Acpi::parseTables());
     IoApic& ioApic(ioApicForGsi(gsi));
     // Configure the redirection entry of the I/O APIC for the associated input

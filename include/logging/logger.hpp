@@ -6,6 +6,7 @@
 #include <util/error.hpp>
 #include <util/addr.hpp>
 #include <util/cstring.hpp>
+#include <util/subrange.hpp>
 
 namespace Logging {
 
@@ -137,6 +138,16 @@ private:
                     __attribute__((unused)) FmtOption const& fmtOption) {
         printNoNewLine("v:");
         printValue(reinterpret_cast<u64>(ptr), 'x');
+    }
+
+    // Print a SubRange type.
+    template<typename Impl,
+             u64 Min,
+             u64 Max,
+             u64 Default>
+    void printValue(SubRange<Impl, Min, Max, Default> const& val,
+                    FmtOption const& fmtOption) {
+        printValue(val.raw(), fmtOption);
     }
 };
 
