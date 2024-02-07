@@ -2,6 +2,7 @@
 #include <datastruct/datastruct.hpp>
 #include <datastruct/freelist.hpp>
 #include <util/assert.hpp>
+#include "./vectortests.hpp"
 
 namespace DataStruct {
 
@@ -257,5 +258,17 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, embeddedFreeListInsertTest);
     RUN_TEST(runner, embeddedFreeListAllocFreeTest);
     RUN_TEST(runner, embeddedFreeListAllocMinSizeTest);
+    RUN_TEST(runner, vectorDefaultConstructionTest);
+    RUN_TEST(runner, vectorConstructorSizeDefaultValueTest);
+    RUN_TEST(runner, vectorConstructorSizeWithValueTest);
+    RUN_TEST(runner, vectorDestructorTest);
+    RUN_TEST(runner, vectorAccessorTest);
+    RUN_TEST(runner, vectorClearTest);
+    RUN_TEST(runner, vectorPushBackTest);
+    RUN_TEST(runner, vectorPopBackTest);
+    RUN_TEST(runner, vectorInsertFrontTest);
+    RUN_TEST(runner, vectorInsertMiddleTest);
+    RUN_TEST(runner, vectorEraseTest);
+    RUN_TEST(runner, vectorIteratorTest);
 }
 }
