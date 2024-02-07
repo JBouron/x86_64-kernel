@@ -24,6 +24,8 @@
 
 #include "interrupts/ioapic.hpp"
 
+#include <util/panic.hpp>
+
 static void runSelfTests() {
     Log::info("Running self-tests:");
     SelfTests::TestRunner runner;

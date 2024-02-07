@@ -1,7 +1,7 @@
 // Data structure tests.
 #include <datastruct/datastruct.hpp>
 #include <datastruct/freelist.hpp>
-#include <util/assert.hpp>
+#include <selftests/macros.hpp>
 #include "./vectortests.hpp"
 
 namespace DataStruct {

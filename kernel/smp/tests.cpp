@@ -2,6 +2,7 @@
 #include <smp/smp.hpp>
 #include <paging/paging.hpp>
 #include <timers/lapictimer.hpp>
+#include <selftests/macros.hpp>
 
 // Used by wakeApplicationProcessorTest.
 // This code starts with a 4-bytes NOP-slides to real-mode code that replaces
@@ -12,7 +13,8 @@ extern "C" void wakeApplicationProcessorTestBootCodeEnd();
 namespace Smp {
 
 // Defined in smp.cpp but not accessible through smp.hpp.
-extern void wakeApplicationProcessor(Id const id, PhyAddr const bootStrapRoutine);
+extern void wakeApplicationProcessor(Id const id,
+                                     PhyAddr const bootStrapRoutine);
 
 // Test waking-up an application processor.
 SelfTests::TestResult wakeApplicationProcessorTest() {

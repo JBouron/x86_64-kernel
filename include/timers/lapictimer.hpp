@@ -1,7 +1,6 @@
 // Functions to interact with and configure the LAPIC timer.
 #pragma once
 #include <timers/timers.hpp>
-#include <interrupts/lapic.hpp>
 
 namespace Timer::LapicTimer {
 

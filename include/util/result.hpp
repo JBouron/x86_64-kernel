@@ -1,7 +1,7 @@
 // Definition of the Res<T> template class.
 #pragma once
 
-#include <util/panic.hpp>
+#include <util/assert.hpp>
 #include <util/error.hpp>
 #include <selftests/selftests.hpp>
 
@@ -60,7 +60,7 @@ public:
     // @return: The error contained in this Res<T>.
     Error error() const {
         if (ok()) {
-            PANIC("Attempt to call error() on Res<T> with ok() == true");
+            ASSERT(!"Attempt to call error() on Res<T> with ok() == true");
         }
         return m_error;
     }
@@ -70,7 +70,7 @@ public:
     // @return: A reference to the value contained in this Res<T>.
     T& value() {
         if (!ok()) {
-            PANIC("Attempt to call value() on Res<T> with ok() == false");
+            ASSERT(!"Attempt to call value() on Res<T> with ok() == false");
         }
         return m_value;
     }
@@ -80,7 +80,7 @@ public:
     // @return: A const reference to the value contained in this Res<T>.
     T const& value() const {
         if (!ok()) {
-            PANIC("Attempt to call value() on Res<T> with ok() == false");
+            ASSERT(!"Attempt to call value() on Res<T> with ok() == false");
         }
         return m_value;
     }
@@ -91,7 +91,7 @@ public:
     // @return: A reference to the value contained in this Res<T>.
     T& operator*() {
         if (!ok()) {
-            PANIC("Attempt to call value() on Res<T> with ok() == false");
+            ASSERT(!"Attempt to call value() on Res<T> with ok() == false");
         }
         return m_value;
     }
@@ -102,7 +102,7 @@ public:
     // @return: A const reference to the value contained in this Res<T>.
     T const& operator*() const {
         if (!ok()) {
-            PANIC("Attempt to call operator*() on Res<T> with ok() == false");
+            ASSERT(!"Attempt to call operator*() on Res<T> with ok() == false");
         }
         return m_value;
     }
@@ -113,7 +113,7 @@ public:
     // @return: A pointer to the value contained in this Res<T>.
     T* operator->() {
         if (!ok()) {
-            PANIC("Attempt to call operator->() on Res<T> with ok() == false");
+            ASSERT(!"Attempt to call operator->() on Res<T> with ok()==false");
         }
         return &m_value;
     }
@@ -124,7 +124,7 @@ public:
     // @return: A const pointer to the value contained in this Res<T>.
     T const* operator->() const {
         if (!ok()) {
-            PANIC("Attempt to call operator->() on Res<T> with ok() == false");
+            ASSERT(!"Attempt to call operator->() on Res<T> with ok()==false");
         }
         return &m_value;
     }

@@ -1,5 +1,6 @@
 // Tests for segmentation.
 #include <memory/segmentation.hpp>
+#include <selftests/macros.hpp>
 
 namespace Memory::Segmentation {
 

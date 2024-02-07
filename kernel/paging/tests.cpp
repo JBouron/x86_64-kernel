@@ -2,7 +2,7 @@
 #include <paging/paging.hpp>
 #include <framealloc/framealloc.hpp>
 #include <interrupts/interrupts.hpp>
-#include <util/assert.hpp>
+#include <selftests/macros.hpp>
 
 namespace Paging {
 

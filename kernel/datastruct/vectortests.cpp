@@ -1,5 +1,6 @@
 #include "./vectortests.hpp"
 #include <datastruct/vector.hpp>
+#include <selftests/macros.hpp>
 
 struct Counter {
     u64 defaultConstructor;

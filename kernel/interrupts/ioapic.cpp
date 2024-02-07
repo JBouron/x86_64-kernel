@@ -1,6 +1,7 @@
 // Functions related to I/O APIC.
 #include "ioapic.hpp"
 #include <util/assert.hpp>
+#include <util/panic.hpp>
 #include <paging/paging.hpp>
 
 namespace Interrupts {

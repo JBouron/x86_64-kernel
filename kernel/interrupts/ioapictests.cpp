@@ -1,7 +1,7 @@
 // Tests related to I/O APIC support.
 #include <framealloc/framealloc.hpp>
 #include <paging/paging.hpp>
-#include <util/assert.hpp>
+#include <selftests/macros.hpp>
 
 #include "ioapic.hpp"
 

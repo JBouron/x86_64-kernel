@@ -1,7 +1,6 @@
 // Functions related to multi-processor initialization.
 #pragma once
 #include <util/subrange.hpp>
-#include <util/addr.hpp>
 #include <selftests/selftests.hpp>
 
 namespace Smp {

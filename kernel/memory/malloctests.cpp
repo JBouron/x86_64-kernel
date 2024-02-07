@@ -1,6 +1,6 @@
 // Tests for the heap allocation functions.
 #include "heapallocator.hpp"
-#include <util/assert.hpp>
+#include <selftests/macros.hpp>
 
 namespace HeapAlloc {
 

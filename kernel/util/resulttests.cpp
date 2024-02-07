@@ -1,5 +1,6 @@
 // Tests for the Res<T> type.
 #include <util/result.hpp>
+#include <selftests/macros.hpp>
 
 namespace Result {
 

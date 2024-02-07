@@ -6,6 +6,7 @@
 #include <memory/segmentation.hpp>
 #include <util/assert.hpp>
 #include <memory/stack.hpp>
+#include <util/panic.hpp>
 
 namespace Smp {
 

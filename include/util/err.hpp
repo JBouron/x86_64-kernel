@@ -1,7 +1,8 @@
 // Definition of the Err type.
 #pragma once
 
-#include <util/result.hpp>
+#include <util/assert.hpp>
+#include <util/error.hpp>
 #include <selftests/selftests.hpp>
 
 struct Ok_t {};
@@ -39,7 +40,7 @@ public:
     // @return: The contained Error.
     Error error() const {
         if (!m_isError) {
-            PANIC("Attempt to call error() on an Err with m_isError == false");
+            ASSERT(!"Attempt to call error() on an Err with m_isError==false");
         }
         return m_error;
     }

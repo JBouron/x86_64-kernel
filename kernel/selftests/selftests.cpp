@@ -1,5 +1,6 @@
 // Kernel runtime self-tests.
 #include <selftests/selftests.hpp>
+#include <logging/log.hpp>
 
 namespace SelfTests {
 

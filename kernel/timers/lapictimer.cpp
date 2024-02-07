@@ -2,6 +2,9 @@
 #include <timers/lapictimer.hpp>
 #include <timers/pit.hpp>
 #include <interrupts/vectormap.hpp>
+#include <interrupts/lapic.hpp>
+#include <logging/log.hpp>
+#include <util/panic.hpp>
 
 namespace Timer::LapicTimer {
 

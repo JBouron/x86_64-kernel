@@ -4,6 +4,7 @@
 #include <framealloc/framealloc.hpp>
 #include <logging/log.hpp>
 #include <util/assert.hpp>
+#include <util/panic.hpp>
 #include <cpu/cpu.hpp>
 
 namespace Paging {

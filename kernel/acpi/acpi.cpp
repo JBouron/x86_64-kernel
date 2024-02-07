@@ -2,6 +2,9 @@
 #include <acpi/acpi.hpp>
 #include <paging/paging.hpp>
 #include <util/assert.hpp>
+#include <util/result.hpp>
+#include <util/panic.hpp>
+#include <logging/log.hpp>
 #include "tables.hpp"
 
 namespace Acpi {

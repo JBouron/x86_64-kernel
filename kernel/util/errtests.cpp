@@ -1,5 +1,6 @@
 // Tests for the Err type.
 #include <util/err.hpp>
+#include <selftests/macros.hpp>
 
 namespace ErrType {
 

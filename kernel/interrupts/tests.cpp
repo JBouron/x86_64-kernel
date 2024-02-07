@@ -1,7 +1,7 @@
 // Interrupt related tests.
 #include <interrupts/interrupts.hpp>
 #include <interrupts/lapic.hpp>
-#include <util/assert.hpp>
+#include <selftests/macros.hpp>
 #include "ioapic.hpp"
 
 namespace Interrupts {

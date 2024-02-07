@@ -2,6 +2,8 @@
 #include <framealloc/framealloc.hpp>
 #include <smp/smp.hpp>
 #include <util/assert.hpp>
+#include <logging/log.hpp>
+#include <util/panic.hpp>
 
 namespace Stack {
 

@@ -1,6 +1,8 @@
 #include <memory/malloc.hpp>
 #include <util/assert.hpp>
 #include "heapallocator.hpp"
+#include <logging/log.hpp>
+#include <util/panic.hpp>
 
 namespace HeapAlloc {
 // Defined in linker script, address of the very last byte of the kernel in the

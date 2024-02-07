@@ -3,7 +3,7 @@
 // bootloader/stage1/bootstruct.asm.
 #pragma once
 
-#include <util/util.hpp>
+#include <util/ints.hpp>
 
 struct BootStruct {
     // Entry in the e820 memory map. This defines a physical memory region in

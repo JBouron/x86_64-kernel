@@ -1,5 +1,6 @@
 // Tests for the Cpu namespace.
 #include <cpu/cpu.hpp>
+#include <selftests/macros.hpp>
 
 namespace Cpu {
 

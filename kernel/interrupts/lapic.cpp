@@ -2,6 +2,7 @@
 // Controller (LAPIC).
 #include <interrupts/lapic.hpp>
 #include <util/assert.hpp>
+#include <util/panic.hpp>
 #include <paging/paging.hpp>
 
 namespace Interrupts {

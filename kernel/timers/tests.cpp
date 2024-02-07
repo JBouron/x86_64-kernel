@@ -2,6 +2,7 @@
 #include <timers/pit.hpp>
 #include <timers/lapictimer.hpp>
 #include <interrupts/vectormap.hpp>
+#include <selftests/macros.hpp>
 
 namespace Timer {
 

@@ -1,6 +1,6 @@
 // Test for FrameAlloc namespace.
 #include <framealloc/framealloc.hpp>
-#include <util/assert.hpp>
+#include <selftests/macros.hpp>
 #include <bootstruct.hpp>
 #include "allocator.hpp"
 
@@ -90,14 +90,14 @@ SelfTests::TestResult embeddedFreeListAllocatorTest() {
                     break;
                 }
             }
-            // If this assert fails then the allocator returned a frame that was not
-            // inserted when we built it. This prob means the allocator allocates
-            // random frames.
+            // If this assert fails then the allocator returned a frame that was
+            // not inserted when we built it. This prob means the allocator
+            // allocates random frames.
             TEST_ASSERT(found);
         }
 
-        // Trying to allocate one more frame should fail since there should not be
-        // any more free frames.
+        // Trying to allocate one more frame should fail since there should not
+        // be any more free frames.
         TEST_ASSERT(!frameAllocator.alloc().ok());
 
         // Free all even frames.

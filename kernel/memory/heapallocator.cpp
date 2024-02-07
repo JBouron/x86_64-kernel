@@ -2,6 +2,8 @@
 #include <framealloc/framealloc.hpp>
 #include <paging/paging.hpp>
 #include <util/assert.hpp>
+#include <logging/log.hpp>
+#include <util/panic.hpp>
 
 namespace HeapAlloc {
 

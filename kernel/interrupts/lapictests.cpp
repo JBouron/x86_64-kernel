@@ -2,7 +2,7 @@
 #include <interrupts/lapic.hpp>
 #include <paging/paging.hpp>
 #include <framealloc/framealloc.hpp>
-#include <util/assert.hpp>
+#include <selftests/macros.hpp>
 
 namespace Interrupts {
 
