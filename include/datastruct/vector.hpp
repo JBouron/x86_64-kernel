@@ -53,6 +53,19 @@ public:
         m_size = size;
     }
 
+    // Create a copy of a vector.
+    // @param other: The vector to copy.
+    Vector(Vector const& other) : Vector() {
+        u64 const size(other.size());
+        if (size) {
+            growArray(size);
+            for (u64 i(0); i < size; ++i) {
+                constructAt(m_array + i, other[i]);
+            }
+            m_size = size;
+        }
+    }
+
     // Destroy the vector. This calls the destructor on all elements of the
     // vector.
     ~Vector() {
@@ -61,6 +74,34 @@ public:
                 m_array[i].~T();
             }
             HeapAlloc::free(m_array);
+        }
+    }
+
+    // Copy the content of another vector into this vector.
+    // @param other: The vector to copy the content from.
+    void operator=(Vector const& other) {
+        // This may not be the most efficient, but this is clearly the easier
+        // way to handle assignment.
+        clear();
+        for (T const& elem : other) {
+            pushBack(elem);
+        }
+    }
+
+    // Compare the content of this vector against another.
+    // @param other: The other vector to compare against.
+    // @return: true if both vectors have the same size and if all elements are
+    // equal between the two vectors (and they appear in the same order).
+    bool operator==(Vector const& other) const {
+        if (size() != other.size()) {
+            return false;
+        } else {
+            for (u64 i(0); i < size(); ++i) {
+                if (m_array[i] != other.m_array[i]) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 

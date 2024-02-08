@@ -497,4 +497,90 @@ SelfTests::TestResult vectorIteratorTest() {
 
     return SelfTests::TestResult::Success;
 }
+
+SelfTests::TestResult vectorCopyTest() {
+    u64 const numElems(128);
+    Vector<Obj> vec1;
+    for (u64 i(0); i < numElems; ++i) {
+        vec1.pushBack(Obj(i));
+    }
+
+    counter.reset();
+    Vector<Obj> vec2(vec1);
+    TEST_ASSERT(vec2.size() == vec1.size());
+
+    // "No destructor in sight, only values enjoying the copy-constructor".
+    TEST_ASSERT(counter.defaultConstructor == 0);
+    TEST_ASSERT(counter.userConstructor == 0);
+    TEST_ASSERT(counter.copyConstructor == numElems);
+    TEST_ASSERT(counter.moveConstructor == 0);
+    TEST_ASSERT(counter.assignment == 0);
+    TEST_ASSERT(counter.destructor == 0);
+
+    for (u64 i(0); i < numElems; ++i) {
+        TEST_ASSERT(vec1[i] == vec2[i]);
+    }
+
+    return SelfTests::TestResult::Success;
+}
+
+SelfTests::TestResult vectorAssignTest() {
+    u64 const numElems(128);
+    Vector<Obj> vec1;
+    Vector<Obj> vec2;
+    for (u64 i(0); i < numElems; ++i) {
+        vec1.pushBack(Obj(i));
+        vec2.pushBack(Obj(numElems - i));
+    }
+
+    Vector<Obj> vec3;
+    TEST_ASSERT(vec3.size() == 0);
+
+    vec3 = vec1;
+    TEST_ASSERT(vec3.size() == vec1.size());
+    for (u64 i(0); i < vec3.size(); ++i) {
+        TEST_ASSERT(vec3[i] == vec1[i]);
+    }
+    vec3 = vec2;
+    TEST_ASSERT(vec3.size() == vec2.size());
+    for (u64 i(0); i < vec3.size(); ++i) {
+        TEST_ASSERT(vec3[i] == vec2[i]);
+    }
+    return SelfTests::TestResult::Success;
+}
+
+SelfTests::TestResult vectorComparisonTest() {
+    u64 const numElems(128);
+
+    // Case #1: Copy construction.
+    Vector<Obj> vec1;
+    for (u64 i(0); i < numElems; ++i) {
+        vec1.pushBack(Obj(i));
+    }
+    Vector<Obj> vec2(vec1);
+    TEST_ASSERT(vec1 == vec2);
+    TEST_ASSERT(vec2 == vec1);
+
+    // Case #2: Assignment.
+    Vector<Obj> vec3;
+    TEST_ASSERT(vec1 != vec3);
+    TEST_ASSERT(vec3 != vec1);
+    vec3 = vec1;
+    TEST_ASSERT(vec1 == vec3);
+    TEST_ASSERT(vec3 == vec1);
+
+    // Case #3: Different values.
+    vec3[0].value = 100;
+    TEST_ASSERT(vec1 != vec3);
+    TEST_ASSERT(vec3 != vec1);
+
+    // Case #4: Different sizes.
+    vec2.insert(0, 100);
+    TEST_ASSERT(vec1 != vec2);
+    TEST_ASSERT(vec2 != vec1);
+    vec2.erase(0);
+    TEST_ASSERT(vec1 == vec2);
+    TEST_ASSERT(vec2 == vec1);
+    return SelfTests::TestResult::Success;
+}
 }

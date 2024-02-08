@@ -14,5 +14,7 @@ SelfTests::TestResult vectorInsertFrontTest();
 SelfTests::TestResult vectorInsertMiddleTest();
 SelfTests::TestResult vectorEraseTest();
 SelfTests::TestResult vectorIteratorTest();
-
+SelfTests::TestResult vectorCopyTest();
+SelfTests::TestResult vectorAssignTest();
+SelfTests::TestResult vectorComparisonTest();
 }

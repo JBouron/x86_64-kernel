@@ -270,5 +270,8 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, vectorInsertMiddleTest);
     RUN_TEST(runner, vectorEraseTest);
     RUN_TEST(runner, vectorIteratorTest);
+    RUN_TEST(runner, vectorCopyTest);
+    RUN_TEST(runner, vectorAssignTest);
+    RUN_TEST(runner, vectorComparisonTest);
 }
 }
