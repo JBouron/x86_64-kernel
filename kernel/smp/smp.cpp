@@ -7,6 +7,7 @@
 #include <util/assert.hpp>
 #include <memory/stack.hpp>
 #include <util/panic.hpp>
+#include <concurrency/atomic.hpp>
 
 namespace Smp {
 
@@ -238,15 +239,24 @@ struct ApBootInfo {
 } __attribute__((packed));
 static_assert(sizeof(ApBootInfo) <= PAGE_SIZE);
 
+// Start and end addresses of the AP startup code. Note that this code resides
+// in higher-half addresses and needs to be copied an appropriate address in
+// physical memory.
 extern "C" u8 apStartup;
 extern "C" u8 apStartupEnd;
+
+// Flag used by APs to notify the waking cpu that they are online. The waking
+// cpu waits on this flag before returning from startupApplicationProcessor.
+Atomic<u8> apStartFlag;
 
 // Startup an application processor, that is:
 //  1. Wake the processor and transition from real-mode to 64-bit mode.
 //  2. Use the same GDT and page table as the calling processor.
 //  3. Allocate a stack for the application processor.
 //  4. Branch execution to a specified location.
-// This function returns once all four steps have completed.
+// This function returns once all four steps have completed. Due to the inherent
+// nature of multi-threading, this function may return a slight amount of time
+// before the AP actually jumps to the specified location.
 // @param id: The ID of the application processor to start.
 // @param entryPoint: The 64-bit entry point to which the application processor
 // branches to once awaken.
@@ -315,11 +325,13 @@ void startupApplicationProcessor(Id const id, void (*entryPoint64Bits)(void)) {
                  codeLen);
 
     // Wake the AP.
+    apStartFlag = 0;
     wakeApplicationProcessor(id, apStartupCodeFrame);
 
     // Wait for the AP to be online.
-    // TODO: Wait on a flag to detect when the AP has booted.
-    Timer::LapicTimer::delay(Timer::Duration::Secs(1));
+    while (!apStartFlag) {
+        asm("pause");
+    }
 }
 
 // Function called by an application processor during the startup routine, after
@@ -349,6 +361,9 @@ extern "C" void finalizeApplicationProcessorStartup(
             Smp::id().raw(), stackAllocRes.error());
         PANIC("Un-recoverable error");
     }
+
+    // Notify the cpu waking this AP that it is online.
+    apStartFlag = 1;
 
     // Switch to the new stack and jump to the target.
     Stack::switchToStack(stackAllocRes.value(),
