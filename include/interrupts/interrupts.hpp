@@ -42,6 +42,9 @@ static_assert(sizeof(Descriptor) == 16);
 // Initialize interrupts.
 void Init();
 
+// Configure the current cpu to use the kernel-wide IDT allocated during Init().
+void switchToKernelIdt();
+
 // Only 256 possible interrupt vectors per x86's architecture.
 class Vector : public SubRange<Vector, 0, 255> {
 public:

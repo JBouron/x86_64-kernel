@@ -1,6 +1,7 @@
 // Functions related to multi-processor initialization.
 #include <smp/smp.hpp>
 #include <acpi/acpi.hpp>
+#include <interrupts/interrupts.hpp>
 #include <interrupts/lapic.hpp>
 #include <timers/lapictimer.hpp>
 #include <memory/segmentation.hpp>
@@ -229,10 +230,6 @@ struct ApBootInfo {
     // The page-table to be used by the AP when switching to 64-bit mode. This
     // is the same as used by the Boot-strap processor (BSP).
     u32 pageTable;
-    // Virtual address and size of the GDT to be used once 64-bit mode has been
-    // enabled.
-    u16 finalGdtLimit;
-    u64 finalGdtBase;
     // The virtual address to jump to after 64-bit has been enabled and the GDT
     // setup.
     u64 targetAddr;
@@ -305,10 +302,6 @@ void startupApplicationProcessor(Id const id, void (*entryPoint64Bits)(void)) {
 
     bootInfo->pageTable = Cpu::cr3();
 
-    Cpu::TableDesc const longModeGdt(Cpu::sgdt());
-    bootInfo->finalGdtBase = longModeGdt.base();
-    bootInfo->finalGdtLimit = longModeGdt.limit();
-
     bootInfo->targetAddr = reinterpret_cast<u64>(entryPoint64Bits);
 
     // Copy the AP startup code to the apStartupCodeFrame. We must do this
@@ -347,12 +340,10 @@ extern "C" void finalizeApplicationProcessorStartup(
     ApBootInfo const * const info) {
 
     // Switch to the final GDT that will be used until reset.
-    Cpu::TableDesc const gdtDesc(info->finalGdtBase, info->finalGdtLimit);
-    Cpu::lgdt(gdtDesc);
-    // FIXME: The segments registers are not reloaded, ie. we are still using
-    // the shadow values. This is due to the fact that we don't have access to
-    // the selectors to be used. We should call Segmentation::Init().  instead
-    // of initializing the GDT ourselves here.
+    Memory::Segmentation::switchToKernelGdt();
+
+    // Load the kernel-wide IDT.
+    Interrupts::switchToKernelIdt();
 
     // Allocate a stack for this cpu.
     Res<VirAddr> const stackAllocRes(Stack::allocate());

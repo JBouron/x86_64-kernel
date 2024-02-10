@@ -124,4 +124,9 @@ void Init();
 // Run segmentation tests.
 void Test(SelfTests::TestRunner& runner);
 
+// Configure the current cpu to use the kernel-wide GDT allocated during Init().
+// This both configures the GDTR and updates all segment registers to use the
+// new segments.
+void switchToKernelGdt();
+
 }

@@ -76,13 +76,19 @@ static Descriptor GDT[] = {
 // Initialize segmentation. Create a GDT and load it in GDTR.
 void Init() {
     Log::debug("Segmentation: Init");
+    // The GDT is already configured at this point, simply use it.
+    switchToKernelGdt();
+}
+
+// Configure the current cpu to use the kernel-wide GDT allocated during Init().
+// This both configures the GDTR and updates all segment registers to use the
+// new segments.
+void switchToKernelGdt() {
     u64 const gdtBase(reinterpret_cast<u64>(GDT));
     u16 const gdtLimit(sizeof(GDT) - 1);
 
-    Log::info("Loading GDT, base = {x}, limit = {}", gdtBase, gdtLimit);
     Cpu::TableDesc const desc(gdtBase, gdtLimit);
     Cpu::lgdt(desc);
-    Log::debug("GDT loaded");
     
     Cpu::SegmentSel const codeSel(1, Cpu::PrivLevel::Ring0);
     Cpu::SegmentSel const dataSel(2, Cpu::PrivLevel::Ring0);
@@ -92,8 +98,6 @@ void Init() {
     Cpu::writeSegmentReg(Cpu::SegmentReg::Fs, dataSel);
     Cpu::writeSegmentReg(Cpu::SegmentReg::Gs, dataSel);
     Cpu::writeSegmentReg(Cpu::SegmentReg::Ss, dataSel);
-    Log::debug("Setting segment registers");
-
 }
 
 }

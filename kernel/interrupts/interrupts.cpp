@@ -159,12 +159,15 @@ void Init() {
         }
     }
 
+    switchToKernelIdt();
+}
+
+// Configure the current cpu to use the kernel-wide IDT allocated during Init().
+void switchToKernelIdt() {
     u64 const base(reinterpret_cast<u64>(IDT));
     u16 const limit(sizeof(IDT) - 1);
     Cpu::TableDesc const idtDesc(base, limit);
-    Log::info("Loading IDT, base = {x}, limit = {}", base, limit);
     Cpu::lidt(idtDesc);
-    Log::debug("IDT loaded");
 }
 
 // Some interrupt vectors in the x86 architecture are reserved and not used.
