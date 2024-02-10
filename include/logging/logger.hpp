@@ -7,6 +7,7 @@
 #include <util/addr.hpp>
 #include <util/cstring.hpp>
 #include <util/subrange.hpp>
+#include <datastruct/vector.hpp>
 
 namespace Logging {
 
@@ -148,6 +149,19 @@ private:
     void printValue(SubRange<Impl, Min, Max, Default> const& val,
                     FmtOption const& fmtOption) {
         printValue(val.raw(), fmtOption);
+    }
+
+    template<typename T>
+    void printValue(Vector<T> const& vec, FmtOption const& fmtOption) {
+        printNoNewLine("[");
+        u64 const size(vec.size());
+        for (u64 i(0); i < size; ++i) {
+            printValue(vec[i], fmtOption);
+            if (i < size - 1) {
+                printNoNewLine(", ");
+            }
+        }
+        printNoNewLine("]");
     }
 };
 
