@@ -73,16 +73,34 @@ Res<VirAddr> allocate() {
 // Implemented in assembly.
 // @param newStackTop: Virtual address of the new stack to use.
 // @param jmpTarget: Destination of the jump after switching to the new stack.
+// @param arg: Argument to pass to the jmpTarget function pointer.
 extern "C" void _switchToStackAndJumpTo(u64 const newStackTop,
-                                        u64 const jmpTarget);
+                                        u64 const jmpTarget,
+                                        u64 const arg);
 
 // Change the stack pointer to the new top and jump to the given location. This
 // function does NOT return.
 // @param newStackTop: Virtual address of the new stack to use.
 // @param jmpTarget: Destination of the jump after switching to the new stack.
+// @param arg: Argument to pass to the jmpTarget function pointer.
 void switchToStack(VirAddr const newStackTop, void (*jmpTarget)()) {
     Log::debug("Cpu {} switching to stack @{}", Smp::id(), newStackTop);
+    // Pass dummy argument.
     _switchToStackAndJumpTo(newStackTop.raw(),
-                            reinterpret_cast<u64>(jmpTarget));
+                            reinterpret_cast<u64>(jmpTarget), 0);
+}
+
+// Change the stack pointer to the new top and jump to the given location. This
+// function does NOT return.
+// @param newStackTop: Virtual address of the new stack to use.
+// @param jmpTarget: Destination of the jump after switching to the new stack.
+// @param arg: Argument to pass to the jmpTarget function pointer.
+void switchToStack(VirAddr const newStackTop,
+                   void (*jmpTarget)(u64),
+                   u64 const arg) {
+    Log::debug("Cpu {} switching to stack @{}", Smp::id(), newStackTop);
+    _switchToStackAndJumpTo(newStackTop.raw(),
+                            reinterpret_cast<u64>(jmpTarget),
+                            arg);
 }
 }

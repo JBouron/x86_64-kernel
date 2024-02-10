@@ -348,17 +348,35 @@ extern "C" void finalizeApplicationProcessorStartup(
     // Allocate a stack for this cpu.
     Res<VirAddr> const stackAllocRes(Stack::allocate());
     if (!stackAllocRes) {
-        Log::crit("Could not allocate a stack for AP {}, reason: {}",
-            Smp::id().raw(), stackAllocRes.error());
-        PANIC("Un-recoverable error");
+        PANIC("Could not allocate a stack for AP {}, reason: {}",
+            Smp::id(), stackAllocRes.error());
     }
 
-    // Notify the cpu waking this AP that it is online.
-    apStartFlag = 1;
+    // Use a trampoline to avoid a race condition when waking APs one after the
+    // others. This trampoline makes sure that the AP writes into apStartFlag
+    // _after_ switching to its new stack. Without a trampoline there would be a
+    // small window of time between the time apStartFlag = 1 and the time when
+    // the AP switch to the new stack where the AP still uses the old stack used
+    // for the startup code. If another AP is awaken during that time, both AP
+    // end-up using the same stack!
+    auto const trampoline([](u64 const arg) {
+        // We need to read the ApBootInfo _before_ setting the apStartFlag to 1,
+        // as ApBootInfo, more importantly its targetAddr might get overwritten
+        // after setting the flag!
+        ApBootInfo const * const info(reinterpret_cast<ApBootInfo const*>(arg));
+        void (*target)() = reinterpret_cast<void(*)()>(info->targetAddr);
+
+        // Notify the cpu waking this AP that it is online.
+        apStartFlag = 1;
+
+        target();
+        PANIC("Cpu {} returned from the target passed in wakeAP!");
+    });
 
     // Switch to the new stack and jump to the target.
     Stack::switchToStack(stackAllocRes.value(),
-                         reinterpret_cast<void(*)()>(info->targetAddr));
+                         trampoline,
+                         reinterpret_cast<u64>(info));
     UNREACHABLE
 }
 }
