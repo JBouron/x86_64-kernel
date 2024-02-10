@@ -7,3 +7,4 @@ bootloader/stage1/stage1
 bootloader/stage1/stage1Syms
 bootloader/.qemu.pid
 bootloader/kernel
+TODO.txt
