@@ -10,6 +10,7 @@
 
 #pragma once
 #include <logging/logger.hpp>
+#include <concurrency/lock.hpp>
 
 namespace Log {
 
@@ -27,7 +28,11 @@ void fmtWithPrefixAndColor(Logging::Logger::Color const color,
     // Declared extern here so that code including this file don't have access
     // to loggerInstance().
     extern Logging::Logger& loggerInstance();
+    extern Concurrency::Lock& loggerLock();
+
+    Concurrency::LockGuard lg(loggerLock());
     Logging::Logger& logger(loggerInstance());
+
     logger.setColor(color);
     logger.printNoNewLine(prefix);
     logger.printf(fmt, args...);

@@ -6,6 +6,9 @@
 
 namespace Log {
 
+// Lock for all Log::* function to avoid having cpus garbling the output.
+static Concurrency::SpinLock logLock;
+
 // Return the global Logger singleton instance.
 Logging::Logger& loggerInstance() {
     // This is where the global Logger instance is created.
@@ -20,6 +23,10 @@ Logging::Logger& loggerInstance() {
 #endif
     static Logging::Logger globalLogger(outDev);
     return globalLogger;
+}
+
+Concurrency::Lock& loggerLock() {
+    return logLock;
 }
 
 }
