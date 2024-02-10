@@ -21,6 +21,7 @@
 #include <interrupts/vectormap.hpp>
 #include <smp/smp.hpp>
 #include <memory/stack.hpp>
+#include <concurrency/tests.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -41,6 +42,7 @@ static void runSelfTests() {
     HeapAlloc::Test(runner);
     Timer::Test(runner);
     Smp::Test(runner);
+    Concurrency::Test(runner);
 
     runner.printSummary();
 }

@@ -131,7 +131,7 @@ public:
     // @param val: The value to add to the variable.
     // @return: The new value of the variable after the modification.
     T operator-=(T const& val) volatile {
-        return _fetchAdd(&m_value, val);
+        return _fetchAdd(&m_value, -val);
     }
 
 private:
