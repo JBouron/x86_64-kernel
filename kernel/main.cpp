@@ -22,6 +22,7 @@
 #include <smp/smp.hpp>
 #include <memory/stack.hpp>
 #include <concurrency/tests.hpp>
+#include <smp/percpu.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -92,6 +93,7 @@ static void initKernel(BootStruct const * const bootStruct) {
     // to the proper frame allocator.
     FrameAlloc::directMapInitialized();
     HeapAlloc::Init();
+    Smp::PerCpu::Init();
     Interrupts::Init();
 }
 
