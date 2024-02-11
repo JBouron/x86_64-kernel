@@ -31,6 +31,13 @@ Id id() {
     return Id(id);
 }
 
+// Get the number of cpus in the system.
+// @param: The number of cpus in the system, including the BSP.
+u64 ncpus() {
+    Acpi::Info const& acpi(Acpi::parseTables());
+    return acpi.processorDescSize;
+}
+
 // Send an INIT IPI to a remote CPU. This function takes care of checking if the
 // INIT IPI was successfully delivered and re-try the IPI if necessary.
 // @param id: The ID of the target cpu.

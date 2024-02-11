@@ -18,6 +18,10 @@ bool isBsp();
 // @return: The ID of the cpu making the call.
 Id id();
 
+// Get the number of cpus in the system.
+// @param: The number of cpus in the system, including the BSP.
+u64 ncpus();
+
 // Startup an application processor, that is:
 //  1. Wake the processor and transition from real-mode to 64-bit mode.
 //  2. Use the same GDT and page table as the calling processor.
