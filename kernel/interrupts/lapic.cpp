@@ -4,6 +4,8 @@
 #include <util/assert.hpp>
 #include <util/panic.hpp>
 #include <paging/paging.hpp>
+#include <smp/smp.hpp>
+#include <datastruct/vector.hpp>
 
 namespace Interrupts {
 
@@ -26,13 +28,13 @@ Lapic::Lapic(PhyAddr const base) : m_base(base) {
         PANIC("Could not map local APIC to virtual memory");
     }
 
-    Log::debug("Enabling APIC");
+    Log::debug("Enabling APIC on cpu {}", Smp::id());
     // Enabling the APIC by setting the APIC Global Enable bit in the
     // IA32_APIC_BASE MSR.
     u64 const apicBaseMsr(Cpu::rdmsr(Cpu::Msr::IA32_APIC_BASE));
     u64 const newApicBaseMsr(apicBaseMsr | (1 << 11));
     Cpu::wrmsr(Cpu::Msr::IA32_APIC_BASE, newApicBaseMsr);
-    Log::info("APIC enabled");
+    Log::info("APIC enabled on cpu {}", Smp::id());
 }
 
 // Extract the value in bits hiBit ... lowBit from `value`.
@@ -493,15 +495,26 @@ void Lapic::writeRegister(Register const reg,
     *ptr = newValue;
 }
 
-// Pointer to the global instance of Lapic.
-// TODO: Once we have multi-cores this should be per CPU.
-static Lapic* LOCAL_APIC = nullptr;
+// Each cpu's local apic interface. Although this could be put into the
+// PerCpu::Data struct, it does not make much sense to expose this interface to
+// other cpus as a cpu can only interact with its own LAPIC. Hence keep it
+// hidden here, the only way to access the Lapic interface of a cpu is by
+// calling lapic().
+static ::Vector<Lapic*> LocalApics;
+
+// Initialize all the Lapic interfaces for all cpus in the system.
+void InitLapic() {
+    for (u8 i(0); i < Smp::ncpus(); ++i) {
+        LocalApics.pushBack(nullptr);
+    }
+}
 
 // Get a reference to the Local APIC of this cpu.
 // @return: Reference to the local APIC of this cpu.
 Lapic& lapic() {
-	if (!LOCAL_APIC) {
-        Log::info("Initializing local APIC");
+    Smp::Id const id(Smp::id());
+	if (!LocalApics[id.raw()]) {
+        Log::info("Initializing local APIC on cpu {}", id);
         // Get the local APIC's base.
         u64 const apicBaseMsr(Cpu::rdmsr(Cpu::Msr::IA32_APIC_BASE));
         // FIXME: Technically we should mask the bits 63:(MAX_PHY_BITS) here.
@@ -509,10 +522,9 @@ Lapic& lapic() {
         Log::info("Local APIC base = {}", localApicBase);
         ASSERT(localApicBase.isPageAligned());
 
-        static Lapic instance(localApicBase);
-        LOCAL_APIC = &instance;
-        Log::info("Local APIC initialization done");
+        LocalApics[id.raw()] = new Lapic(localApicBase);
+        Log::info("Local APIC initialization on cpu {} done", id);
     }
-    return *LOCAL_APIC;
+    return *LocalApics[id.raw()];
 }
 }

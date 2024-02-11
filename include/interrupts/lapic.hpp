@@ -464,6 +464,9 @@ private:
                        WriteMask const mask = WriteMask::AllBits);
 };
 
+// Initialize all the Lapic interfaces for all cpus in the system.
+void InitLapic();
+
 // Get a reference to the Local APIC of this cpu.
 // @return: Reference to the local APIC of this cpu.
 Lapic& lapic();

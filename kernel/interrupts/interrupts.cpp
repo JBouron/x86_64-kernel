@@ -147,8 +147,8 @@ void Init() {
     // Disable the legacy PIC, only use APIC.
     disablePic();
 
-    // Enable the APIC.
-    Interrupts::lapic();
+    // Enable the LAPIC interfaces.
+    Interrupts::InitLapic();
 
     initIoApics();
 
