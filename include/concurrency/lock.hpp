@@ -1,6 +1,7 @@
 // Locking related types and functions.
 #pragma once
 #include <concurrency/atomic.hpp>
+#include <util/assert.hpp>
 
 namespace Concurrency {
 
