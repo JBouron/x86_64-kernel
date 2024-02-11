@@ -9,6 +9,7 @@
 #include <memory/stack.hpp>
 #include <util/panic.hpp>
 #include <concurrency/atomic.hpp>
+#include <paging/paging.hpp>
 
 namespace Smp {
 
@@ -340,10 +341,13 @@ extern "C" void finalizeApplicationProcessorStartup(
     ApBootInfo const * const info) {
 
     // Switch to the final GDT that will be used until reset.
-    Memory::Segmentation::switchToKernelGdt();
+    Memory::Segmentation::InitCurrCpu();
 
     // Load the kernel-wide IDT.
-    Interrupts::switchToKernelIdt();
+    Interrupts::InitCurrCpu();
+
+    // Finish paging configuration.
+    Paging::InitCurrCpu();
 
     // Allocate a stack for this cpu.
     Res<VirAddr> const stackAllocRes(Stack::allocate());

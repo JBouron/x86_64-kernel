@@ -77,13 +77,14 @@ static Descriptor GDT[] = {
 void Init() {
     Log::debug("Segmentation: Init");
     // The GDT is already configured at this point, simply use it.
-    switchToKernelGdt();
+    InitCurrCpu();
 }
 
 // Configure the current cpu to use the kernel-wide GDT allocated during Init().
 // This both configures the GDTR and updates all segment registers to use the
 // new segments.
-void switchToKernelGdt() {
+// Automatically called by Init() for the BSP.
+void InitCurrCpu() {
     u64 const gdtBase(reinterpret_cast<u64>(GDT));
     u16 const gdtLimit(sizeof(GDT) - 1);
 

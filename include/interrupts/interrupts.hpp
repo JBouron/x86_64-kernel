@@ -43,7 +43,8 @@ static_assert(sizeof(Descriptor) == 16);
 void Init();
 
 // Configure the current cpu to use the kernel-wide IDT allocated during Init().
-void switchToKernelIdt();
+// Automatically called by Init() for the BSP.
+void InitCurrCpu();
 
 // Only 256 possible interrupt vectors per x86's architecture.
 class Vector : public SubRange<Vector, 0, 255> {

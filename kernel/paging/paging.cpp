@@ -95,6 +95,12 @@ void Init(BootStruct const& bootStruct) {
     initializeDirectMap(DIRECT_MAP_START_VADDR, phyMemBytes);
     Log::debug("Direct map initialized");
 
+    InitCurrCpu();
+}
+
+// Configure paging for the current cpu (set control regs, ...).
+// Automatically called by Init() for the BSP.
+void InitCurrCpu() {
     // Enable the Write-Protect bit on CR0 to catch writes on read-only pages
     // originating from ring 0.
     Cpu::writeCr0(Cpu::cr0() | (1 << 16));

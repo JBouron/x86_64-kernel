@@ -20,6 +20,10 @@ static constexpr u64 DIRECT_MAP_START_VADDR = 0xffff800000000000;
 // This function creates the direct map.
 void Init(BootStruct const& bootStruct);
 
+// Configure paging for the current cpu (set control regs, ...).
+// Automatically called by Init() for the BSP.
+void InitCurrCpu();
+
 // Run paging tests.
 void Test(SelfTests::TestRunner& runner);
 

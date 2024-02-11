@@ -159,11 +159,12 @@ void Init() {
         }
     }
 
-    switchToKernelIdt();
+    InitCurrCpu();
 }
 
 // Configure the current cpu to use the kernel-wide IDT allocated during Init().
-void switchToKernelIdt() {
+// Automatically called by Init() for the BSP.
+void InitCurrCpu() {
     u64 const base(reinterpret_cast<u64>(IDT));
     u16 const limit(sizeof(IDT) - 1);
     Cpu::TableDesc const idtDesc(base, limit);
