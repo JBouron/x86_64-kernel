@@ -89,6 +89,7 @@ static Freq getTimerFreq() {
     Log::debug("Wait for N = {} PIT ticks ({} ms)", N, waitTime);
     while (numPitTicks < N);
     Cpu::disableInterrupts();
+    Pit::disable();
     Log::debug("Wait over");
 
     u32 const lapicTimerCurrCount(Interrupts::lapic().timerCurrentCount());
