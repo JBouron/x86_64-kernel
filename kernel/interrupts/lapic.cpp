@@ -29,11 +29,11 @@ Lapic::Lapic(PhyAddr const base) : m_base(base) {
     }
 
     Log::debug("Enabling APIC on cpu {}", Smp::id());
-    // Enabling the APIC by setting the APIC Global Enable bit in the
-    // IA32_APIC_BASE MSR.
-    u64 const apicBaseMsr(Cpu::rdmsr(Cpu::Msr::IA32_APIC_BASE));
-    u64 const newApicBaseMsr(apicBaseMsr | (1 << 11));
-    Cpu::wrmsr(Cpu::Msr::IA32_APIC_BASE, newApicBaseMsr);
+    // Use the spurious interrupt register instead of the IA32_APIC_BASE MSR as
+    // the latter does not seem to work for APs.
+    SpuriousInterrupt svt(spuriousInterrupt());
+    svt.apicSoftwareEnable = true;
+    setSpuriousInterrupt(svt);
     Log::info("APIC enabled on cpu {}", Smp::id());
 }
 
