@@ -23,10 +23,30 @@
 #include <memory/stack.hpp>
 #include <concurrency/tests.hpp>
 #include <smp/percpu.hpp>
+#include <interrupts/ipi.hpp>
 
 #include "interrupts/ioapic.hpp"
 
 #include <util/panic.hpp>
+
+// Wake up all Application Processor and put them in a while(true) { halt() }
+// loop.
+static void wakeAps() {
+    // Target for the APs.
+    auto const apTarget([]() {
+        Log::info("CPU {} online", Smp::id());
+        while (true) {
+            asm("sti");
+            asm("hlt");
+        }
+    });
+
+    u32 const numCpus(Smp::ncpus());
+    Log::info("Waking all {} AP(s) in the system", numCpus-1);
+    for (Smp::Id id(1); id < numCpus; ++id) {
+        Smp::startupApplicationProcessor(id, apTarget);
+    }
+}
 
 static void runSelfTests() {
     Log::info("Running self-tests:");
@@ -44,6 +64,15 @@ static void runSelfTests() {
     Timer::Test(runner);
     Smp::Test(runner);
     Concurrency::Test(runner);
+
+    if (Smp::ncpus() > 1) {
+        Log::info("Running multi-cpus tests:");
+        wakeAps();
+
+        Interrupts::Ipi::Test(runner);
+    } else {
+        Log::warn("Skipping multi-cpus tests due to having a single core");
+    }
 
     runner.printSummary();
 }
@@ -65,17 +94,6 @@ static void dumpBootStruct(BootStruct const& bootStruct) {
     while (!!curr) {
         Log::debug("  {} frames starting @{x}", curr->numFrames, curr->base);
         curr = curr->next;
-    }
-}
-
-// Placeholder function that is the target for booting-up application
-// processors.
-static void apTarget() {
-    Log::info("CPU {} online", Smp::id());
-
-    while (true) {
-        asm("sti");
-        asm("hlt");
     }
 }
 
@@ -101,14 +119,6 @@ static void initKernel(BootStruct const * const bootStruct) {
 // function does not return.
 static void stackSwitchTarget() {
     runSelfTests();
-
-    Acpi::Info const& acpi(Acpi::parseTables());
-    u8 const numCpus(acpi.processorDescSize);
-    Log::info("{} processor(s) in the system", numCpus);
-
-    for (u8 i(1); i < numCpus; ++i) {
-        Smp::startupApplicationProcessor(Smp::Id(i), apTarget);
-    }
 
     while (true) {
         asm("sti");

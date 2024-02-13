@@ -169,6 +169,9 @@ void InitCurrCpu() {
     u16 const limit(sizeof(IDT) - 1);
     Cpu::TableDesc const idtDesc(base, limit);
     Cpu::lidt(idtDesc);
+
+    // Initialize the LAPIC.
+    Interrupts::lapic();
 }
 
 // Some interrupt vectors in the x86 architecture are reserved and not used.

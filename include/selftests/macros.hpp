@@ -3,6 +3,7 @@
 
 #include <logging/log.hpp>
 #include <util/panic.hpp>
+#include <timers/lapictimer.hpp>
 
 // Run a single test function with the TestRunner.
 // @param testRunner: Reference to the TestRunner instance under which the test
