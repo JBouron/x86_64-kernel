@@ -4,6 +4,7 @@
 #include <logging/log.hpp>
 #include <util/panic.hpp>
 #include <timers/lapictimer.hpp>
+#include <interrupts/interrupts.hpp>
 
 // Run a single test function with the TestRunner.
 // @param testRunner: Reference to the TestRunner instance under which the test
@@ -47,3 +48,24 @@
             return SelfTests::TestResult::Failure;                            \
         }                                                                     \
     } while (0)
+
+// RAII class to temporarily register an interrupt handler for a vector and
+// automatically deregister it upon leaving the scope/destruction.
+class TemporaryInterruptHandlerGuard {
+public:
+    // Create a TemporaryInterruptHandlerGuard. Register the handler `handler`
+    // for the given vector.
+    // @param vector: The vector for which to register a handler.
+    // @param handler: The handler to register for `vector`.
+    TemporaryInterruptHandlerGuard(Interrupts::Vector const vector,
+        Interrupts::InterruptHandler const& handler) : m_vector(vector) {
+        Interrupts::registerHandler(m_vector, handler);
+    }
+
+    // Deregister the handler upon destruction.
+    ~TemporaryInterruptHandlerGuard() {
+        Interrupts::deregisterHandler(m_vector);
+    }
+private:
+    Interrupts::Vector const m_vector;
+};

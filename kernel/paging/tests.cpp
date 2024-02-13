@@ -84,7 +84,8 @@ SelfTests::TestResult mapAttrsTest() {
         ASSERT(!Paging::map(vaddr, paddr, attrs, 1));
         Log::debug("Set page as writable");
     });
-    Interrupts::registerHandler(Interrupts::Vector(14), pageFaultHandler);
+    TemporaryInterruptHandlerGuard guard(Interrupts::Vector(14),
+                                         pageFaultHandler);
 
     // Trigger the page-fault.
     u8* const ptr(vaddr.ptr<u8>());
@@ -95,9 +96,6 @@ SelfTests::TestResult mapAttrsTest() {
 
     // Unmap the test page.
     Paging::unmap(vaddr, 1);
-
-    // Remove the temp page-fault handler.
-    Interrupts::deregisterHandler(Interrupts::Vector(14));
 
     // Free the frame.
     FrameAlloc::free(*allocRes);
@@ -154,7 +152,8 @@ SelfTests::TestResult unmapTest() {
         ASSERT(!Paging::map(vaddr, paddr, attrs, 1));
         Log::debug("Set page as writable");
     });
-    Interrupts::registerHandler(Interrupts::Vector(14), pageFaultHandler);
+    TemporaryInterruptHandlerGuard guard(Interrupts::Vector(14),
+                                         pageFaultHandler);
 
     // Write to the page, no page fault expected since it is mapped and
     // writable.
@@ -175,9 +174,6 @@ SelfTests::TestResult unmapTest() {
 
     // Unmap the test page.
     Paging::unmap(vaddr, 1);
-
-    // Remove the temp page-fault handler.
-    Interrupts::deregisterHandler(Interrupts::Vector(14));
 
     // Free the frame.
     FrameAlloc::free(*allocRes);

@@ -90,9 +90,8 @@ SelfTests::TestResult interruptRegistersSavedTest() {
                                     __attribute__((unused)) Frame const& f) {
         clobberCallerSavedRegisters();
     });
-    Interrupts::registerHandler(Vector(1), clobberingHandler);
+    TemporaryInterruptHandlerGuard guard(Vector(1), clobberingHandler);
     TEST_ASSERT(interruptRegistersSavedTestRun());
-    Interrupts::deregisterHandler(Vector(1));
     return SelfTests::TestResult::Success;
 }
 
@@ -116,7 +115,7 @@ SelfTests::TestResult interruptHandlerRegistrationTest() {
         gotInterrupt = true;
     });
 
-    Interrupts::registerHandler(testVector, testHandler);
+    TemporaryInterruptHandlerGuard guard(testVector, testHandler);
 
     // Raise interrupt. Unfortunately the value of the interrupt is hardcoded
     // here.
@@ -125,10 +124,6 @@ SelfTests::TestResult interruptHandlerRegistrationTest() {
     // The testHandler should have been called and set the gotInterrupt to 1.
     TEST_ASSERT(gotInterrupt);
     TEST_ASSERT(gotVector == testVector);
-
-    // Deregister the handler. Unfortunately we don't really have a way to test
-    // that the handler is not called after this.
-    Interrupts::deregisterHandler(testVector);
     return SelfTests::TestResult::Success;
 }
 
@@ -192,13 +187,10 @@ SelfTests::TestResult interruptHandlerFrameTest() {
         ASSERT(frame.rflags == interruptHandlerFrameTestExpectedRflags);
     });
 
-    registerHandler(testVector, testHandler);
+    TemporaryInterruptHandlerGuard guard(testVector, testHandler);
 
     interruptHandlerFrameTestRun();
     TEST_ASSERT(gotInterrupt);
-
-    deregisterHandler(testVector);
-
     return SelfTests::TestResult::Success;
 }
 

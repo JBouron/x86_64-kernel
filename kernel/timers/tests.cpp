@@ -32,7 +32,7 @@ SelfTests::TestResult pitBasicTest() {
     });
     // FIXME: Need a way to register a handler that does not care about the
     // vector and / or the frame.
-    Interrupts::registerHandler(vector, handler);
+    TemporaryInterruptHandlerGuard guard(vector, handler);
 
     // Map the PIT IRQ to the test vector. After this function the handler will
     // be invoked.
@@ -64,8 +64,6 @@ SelfTests::TestResult pitBasicTest() {
         asm("pause");
     }
     TEST_ASSERT(numTicks == numTicksBefore);
-
-    Interrupts::deregisterHandler(vector);
     return SelfTests::TestResult::Success;
 }
 
@@ -97,7 +95,7 @@ SelfTests::TestResult lapicBasicTest() {
     });
     // FIXME: Need a way to register a handler that does not care about the
     // vector and / or the frame.
-    Interrupts::registerHandler(vector, handler);
+    TemporaryInterruptHandlerGuard guard(vector, handler);
 
     // Start the LAPIC timer.
     LapicTimer::start();
@@ -128,8 +126,6 @@ SelfTests::TestResult lapicBasicTest() {
         asm("pause");
     }
     TEST_ASSERT(numTicks == numTicksBefore);
-
-    Interrupts::deregisterHandler(vector);
     return SelfTests::TestResult::Success;
 }
 

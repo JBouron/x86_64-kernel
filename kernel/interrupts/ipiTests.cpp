@@ -1,7 +1,7 @@
 // IPI tests.
 #include <interrupts/ipi.hpp>
 #include <selftests/macros.hpp>
-#include <interrupts/lapic.hpp>
+#include <interrupts/vectormap.hpp>
 
 namespace Interrupts::Ipi {
 
@@ -18,7 +18,7 @@ static void sendIpiTestIntHandler(__attribute__((unused)) Vector const v,
 
 SelfTests::TestResult sendIpiTest() {
     Vector const ipiVec(Interrupts::VectorMap::TestVector);
-    registerHandler(ipiVec, sendIpiTestIntHandler);
+    TemporaryInterruptHandlerGuard guard(ipiVec, sendIpiTestIntHandler);
 
     // Send an IPI to each AP. Wait for the AP to set the sendIpiTestRemoteCpuId
     // and sendIpiTestFlag.
@@ -29,9 +29,6 @@ SelfTests::TestResult sendIpiTest() {
         TEST_WAIT_FOR(!!sendIpiTestFlag, 5000);
         TEST_ASSERT(sendIpiTestRemoteCpuId == id);
     }
-
-    deregisterHandler(ipiVec);
-
     return SelfTests::TestResult::Success;
 }
 
