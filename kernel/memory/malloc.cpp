@@ -3,6 +3,7 @@
 #include "heapallocator.hpp"
 #include <logging/log.hpp>
 #include <util/panic.hpp>
+#include <concurrency/lock.hpp>
 
 namespace HeapAlloc {
 // Defined in linker script, address of the very last byte of the kernel in the
@@ -26,6 +27,9 @@ static u64 const HEAP_MAX_SIZE = 512 * PAGE_SIZE;
 // The global heap allocator.
 static HeapAllocator* HEAP_ALLOCATOR = nullptr;
 
+// Lock to use the global heap allocator.
+static Concurrency::SpinLock HEAP_ALLOC_LOCK;
+
 // Initialize the heap allocator. Must be called before calling alloc() and
 // free() for the first and must be called after both paging and the frame
 // allocator have been initialized.
@@ -48,6 +52,7 @@ void Init() {
 // @return: On success a void pointer to the allocated memory, otherwise returns
 // an error.
 Res<void*> malloc(u64 const size) {
+    Concurrency::LockGuard guard(HEAP_ALLOC_LOCK);
     if (!HEAP_ALLOCATOR) {
         PANIC("Attempt to call HeapAlloc::malloc() before HeapAlloc::Init()");
     }
@@ -57,6 +62,7 @@ Res<void*> malloc(u64 const size) {
 // Free memory from the heap that was allocated with a call to malloc().
 // @param ptr: The pointer to be freed.
 void free(void const * const ptr) {
+    Concurrency::LockGuard guard(HEAP_ALLOC_LOCK);
     if (!HEAP_ALLOCATOR) {
         PANIC("Attempt to call HeapAlloc::free() before HeapAlloc::Init()");
     }
