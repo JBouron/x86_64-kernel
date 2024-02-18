@@ -49,7 +49,7 @@ extern "C" void interruptHandler33();   extern "C" void interruptHandler34();
     Descriptor(Cpu::SegmentSel(1, Cpu::PrivLevel::Ring0), \
                reinterpret_cast<u64>(interruptHandler ## vector), \
                Cpu::PrivLevel::Ring0, \
-               Descriptor::Type::InterruptGate)
+               Descriptor::Type::TrapGate)
 
 // The kernel-wide IDT.
 static const Descriptor IDT[] = {
@@ -317,6 +317,11 @@ void maskIrq(Irq const irq) {
 // @param vector: The vector of the current interrupt.
 extern "C" void genericInterruptHandler(u8 const _vector,
                                         Frame const * const frame) {
+    // Since we are using Trap Gates to keep interrupts enabled in the interrupt
+    // handlers, we are always ready to serve interrupts again, hence ack the
+    // interrupt with the LAPIC as soon as possible.
+    lapic().endOfInterrupt();
+
     Vector const vector(_vector);
     if (vector.isReserved()) {
         // This should never happen, unless the code jumping to this function
@@ -338,6 +343,5 @@ extern "C" void genericInterruptHandler(u8 const _vector,
         Log::warn("Ignoring spurious interrupt #{} with no handler",
                   vector.raw());
     }
-    lapic().endOfInterrupt();
 }
 }
