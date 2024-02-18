@@ -2,6 +2,7 @@
 #include <selftests/macros.hpp>
 #include <concurrency/tests.hpp>
 #include <concurrency/atomic.hpp>
+#include <concurrency/lock.hpp>
 
 namespace Concurrency {
 
@@ -50,9 +51,67 @@ SelfTests::TestResult atomicBasicOperatorsTest() {
     return SelfTests::TestResult::Success;
 }
 
+// Very basic test for locks.
+SelfTests::TestResult spinLockBasicTest() {
+    bool const irqFlagSaved(Cpu::interruptsEnabled());
+    Cpu::enableInterrupts();
+
+    SpinLock lock;
+
+    // Case #1: Manually calling lock/unlock with disabledIrq = false.
+    lock.lock(false);
+    TEST_ASSERT(lock.isLocked());
+    TEST_ASSERT(Cpu::interruptsEnabled());
+    lock.unlock();
+    TEST_ASSERT(!lock.isLocked());
+    TEST_ASSERT(Cpu::interruptsEnabled());
+
+    // Case #2: Manually calling lock/unlock with disabledIrq = false.
+    lock.lock();
+    TEST_ASSERT(lock.isLocked());
+    TEST_ASSERT(!Cpu::interruptsEnabled());
+    lock.unlock();
+    TEST_ASSERT(!lock.isLocked());
+    TEST_ASSERT(Cpu::interruptsEnabled());
+
+    Cpu::setInterruptFlag(irqFlagSaved);
+    return SelfTests::TestResult::Success;
+}
+
+// Check that LockGuard acquires and releases the lock as intended.
+SelfTests::TestResult lockGuardTest() {
+    bool const irqFlagSaved(Cpu::interruptsEnabled());
+    Cpu::enableInterrupts();
+
+    SpinLock lock;
+
+    // Case #1: Using a lock guard with disableIrq = false.
+    {
+        LockGuard guard(lock, false);
+        TEST_ASSERT(lock.isLocked());
+        TEST_ASSERT(Cpu::interruptsEnabled());
+    }
+    TEST_ASSERT(!lock.isLocked());
+    TEST_ASSERT(Cpu::interruptsEnabled());
+
+    // Case #2: Using a lock guard with disableIrq = true.
+    {
+        LockGuard guard(lock);
+        TEST_ASSERT(lock.isLocked());
+        TEST_ASSERT(!Cpu::interruptsEnabled());
+    }
+    TEST_ASSERT(!lock.isLocked());
+    TEST_ASSERT(Cpu::interruptsEnabled());
+
+    Cpu::setInterruptFlag(irqFlagSaved);
+    return SelfTests::TestResult::Success;
+}
+
 // Run concurrency related tests.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, atomicBasicOperatorsTest);
+    RUN_TEST(runner, spinLockBasicTest);
+    RUN_TEST(runner, lockGuardTest);
 }
 
 }

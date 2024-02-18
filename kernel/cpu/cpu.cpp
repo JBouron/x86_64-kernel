@@ -305,4 +305,13 @@ void setInterruptFlag(bool const ifValue) {
         disableInterrupts();
     }
 }
+
+// Read the value of the RFLAGS register. Written in assembly.
+extern "C" u64 _readRflags();
+
+// Check if the interrupts are enabled in the RFLAGS of this cpu.
+// @return: true if the interrupts are enabled, false otherwise.
+bool interruptsEnabled() {
+    return !!(_readRflags() & (1 << 9));
+}
 }

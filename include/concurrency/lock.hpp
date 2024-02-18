@@ -1,7 +1,6 @@
 // Locking related types and functions.
 #pragma once
 #include <concurrency/atomic.hpp>
-#include <util/assert.hpp>
 
 namespace Concurrency {
 
@@ -9,14 +8,27 @@ namespace Concurrency {
 class Lock {
 public:
     // Acquire the lock. Only return once the lock has been acquired.
-    virtual void lock() = 0;
+    // @param disableIrq: If true, interrupts are disabled on the cpu until the
+    // lock is released. The default is conservative and disables interrupts.
+    void lock(bool const disableIrq = true);
 
     // Check if this lock is currently locked.
     // @return: true if locked, false otherwise.
-    virtual bool locked() const = 0;
+    virtual bool isLocked() const = 0;
 
     // Unlock the lock. Must be called by the owner of the lock.
-    virtual void unlock() = 0;
+    void unlock();
+
+private:
+    // Implementation of the lock and unlock operations. To be implemented by
+    // the sub-type.
+    virtual void doLock() = 0;
+    virtual void doUnlock() = 0;
+
+    // True if the interrupts were disabled while holding the lock.
+    bool volatile m_disableIrq;
+    // The value of the interrupt flag on the cpu before acquiring the lock.
+    bool volatile m_savedIrqFlag;
 };
 
 // RAII-style class to automatically lock and unlock a lock within a scope.
@@ -25,8 +37,10 @@ public:
     // Construct a LockGuard around a lock. This constructor automatically
     // acquires the lock.
     // @param lock: The lock to automatically acquire and release.
-    LockGuard(Lock& lock) : m_lock(lock) {
-        m_lock.lock();
+    // @param disableIrq: If true, interrupts are disabled on the cpu until the
+    // lock is released.
+    LockGuard(Lock& lock, bool const disableIrq = true) : m_lock(lock) {
+        m_lock.lock(disableIrq);
     }
 
     // Upon destruction, automatically unlock the lock that was acquired during
@@ -43,25 +57,11 @@ private:
 // Spinlock implementation.
 class SpinLock : public Lock {
 public:
-    void lock() {
-        while (!m_flag.compareAndExchange(0, 1)) {
-            asm("pause");
-        }
-    }
-
-    bool locked() const {
-        return m_flag == 1;
-    }
-
-    void unlock() {
-        // FIXME: Add better check that it is the owner that unlocks the lock.
-        ASSERT(locked());
-        // Using cmpxchg instead of a simple write makes sure that we are
-        // serializing the instruction stream.
-        m_flag.compareAndExchange(1, 0);
-    }
-
+    virtual bool isLocked() const;
 private:
+    virtual void doLock();
+    virtual void doUnlock();
+
     Atomic<u8> m_flag;
 };
 

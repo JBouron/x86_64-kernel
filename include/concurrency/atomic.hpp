@@ -1,5 +1,6 @@
 // Definition of the Atomic<T> type.
 #pragma once
+#include <util/ints.hpp>
 #include <util/concepts.hpp>
 
 // NOT TO BE USED DIRECTLY!

@@ -267,3 +267,10 @@ _rdtsc:
     shl     rdx, 32
     or      rax, rdx
     ret
+
+; extern "C" u64 _readRflags();
+GLOBAL  _readRflags:function
+_readRflags:
+    pushfq
+    pop     rax
+    ret

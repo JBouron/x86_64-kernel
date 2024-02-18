@@ -217,5 +217,8 @@ void disableInterrupts();
 void enableInterrupts();
 // Set the value of the Interrupt Flag (IF) in RFLAGS.
 void setInterruptFlag(bool const ifValue);
+// Check if the interrupts are enabled in the RFLAGS of this cpu.
+// @return: true if the interrupts are enabled, false otherwise.
+bool interruptsEnabled();
 
 }
