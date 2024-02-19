@@ -3,6 +3,8 @@
 #include <util/assert.hpp>
 #include <util/panic.hpp>
 #include <paging/paging.hpp>
+#include <datastruct/vector.hpp>
+#include <util/ptr.hpp>
 
 namespace Interrupts {
 
@@ -267,20 +269,17 @@ void IoApic::writeRedirectionTable(u8 const entryIndex,
 static bool IsInitialized = false;
 
 // Array of IoApic. One such instance per I/O APIC in the system.
-static IoApic ** IO_APICS = nullptr;
-static u8 NUM_IO_APICS = 0;
+static ::Vector<Ptr<IoApic>> IoApics;
 
 // Initialize the I/O APIC(s).
 void InitIoApics() {
     Acpi::Info const& acpiInfo(Acpi::parseTables());
     u8 const numIoApics(acpiInfo.ioApicDescSize);
     Log::info("{} I/O APIC(s) present in the system", numIoApics);
-    NUM_IO_APICS = numIoApics;
-    IO_APICS = new IoApic*[numIoApics];
     for (u8 i(0); i < numIoApics; ++i) {
         PhyAddr const base(acpiInfo.ioApicDesc[i].address);
         Log::info("Initializing I/O APIC with base {}", base);
-        IO_APICS[i] = new IoApic(base);
+        IoApics.pushBack(Ptr<IoApic>::New(base));
     }
     IsInitialized = true;
 }
@@ -291,8 +290,8 @@ void InitIoApics() {
 IoApic& ioApicForGsi(Acpi::Gsi const gsi) {
     ASSERT(IsInitialized);
     Acpi::Info const& acpiInfo(Acpi::parseTables());
-    for (u8 i(0); i < NUM_IO_APICS; ++i) {
-        IoApic& ioApic(*IO_APICS[i]);
+    for (u8 i(0); i < IoApics.size(); ++i) {
+        IoApic& ioApic(*IoApics[i]);
         // The smallest GSI handled by this IO APIC.
         Acpi::Gsi const gsiStart(acpiInfo.ioApicDesc[i].interruptBase);
         // The highest GSI handled by this IO APIC.

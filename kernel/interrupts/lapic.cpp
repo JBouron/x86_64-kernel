@@ -6,6 +6,7 @@
 #include <paging/paging.hpp>
 #include <smp/smp.hpp>
 #include <datastruct/vector.hpp>
+#include <util/ptr.hpp>
 
 namespace Interrupts {
 
@@ -504,12 +505,12 @@ static bool IsInitialized = false;
 // other cpus as a cpu can only interact with its own LAPIC. Hence keep it
 // hidden here, the only way to access the Lapic interface of a cpu is by
 // calling lapic().
-static ::Vector<Lapic*> LocalApics;
+static ::Vector<Ptr<Lapic>> LocalApics;
 
 // Initialize all the Lapic interfaces for all cpus in the system.
 void InitLapic() {
     for (u8 i(0); i < Smp::ncpus(); ++i) {
-        LocalApics.pushBack(nullptr);
+        LocalApics.pushBack(Ptr<Lapic>());
     }
     IsInitialized = true;
 }
@@ -528,7 +529,7 @@ Lapic& lapic() {
         Log::info("Local APIC base = {}", localApicBase);
         ASSERT(localApicBase.isPageAligned());
 
-        LocalApics[id.raw()] = new Lapic(localApicBase);
+        LocalApics[id.raw()] = Ptr<Lapic>::New(localApicBase);
         Log::info("Local APIC initialization on cpu {} done", id);
     }
     return *LocalApics[id.raw()];
