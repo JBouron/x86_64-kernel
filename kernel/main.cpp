@@ -25,6 +25,7 @@
 #include <smp/percpu.hpp>
 #include <interrupts/ipi.hpp>
 #include <smp/remotecall.hpp>
+#include <util/ptr.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -72,6 +73,7 @@ static void runSelfTests() {
         Interrupts::Ipi::Test(runner);
         Smp::RemoteCall::Test(runner);
         Concurrency::Test(runner);
+        SmartPtr::Test(runner);
     } else {
         Log::warn("Skipping multi-cpus tests due to having a single core");
     }
