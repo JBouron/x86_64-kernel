@@ -158,13 +158,13 @@ SelfTests::TestResult smartPtrConcurrentRefTest() {
         TEST_ASSERT(counter.numDestruct == 0);
 
         Atomic<u64> flag;
-        Vector<Smp::RemoteCall::CallResult<void>*> results;
+        Vector<Ptr<Smp::RemoteCall::CallResult<void>>> results;
 
         for (Smp::Id id(0); id < Smp::ncpus(); ++id) {
             if (id == Smp::id()) {
                 continue;
             }
-            Smp::RemoteCall::CallResult<void>* const call(
+            Ptr<Smp::RemoteCall::CallResult<void>> const call(
                 Smp::RemoteCall::invokeOn(id, [&]() {
                 Vector<Ptr<A>> refVec;
                 for (u64 i(0); i < numRefPerCore; ++i) {
@@ -191,7 +191,6 @@ SelfTests::TestResult smartPtrConcurrentRefTest() {
 
         for (u64 i(0); i < results.size(); ++i) {
             results[i]->wait();
-            delete results[i];
         }
 
         TEST_ASSERT(obj.refCount() == 1);

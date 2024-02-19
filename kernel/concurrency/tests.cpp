@@ -64,12 +64,12 @@ SelfTests::TestResult atomicAtomicityTest() {
     Atomic<u64> addOpVal;
     Atomic<u64> subOpVal(targetVal);
 
-    Vector<Smp::RemoteCall::CallResult<void>*> results;
+    Vector<Ptr<Smp::RemoteCall::CallResult<void>>> results;
     for (Smp::Id id(0); id < Smp::ncpus(); ++id) {
         if (id == Smp::id()) {
             continue;
         }
-        Smp::RemoteCall::CallResult<void>* res(Smp::RemoteCall::invokeOn(id,
+        Ptr<Smp::RemoteCall::CallResult<void>> res(Smp::RemoteCall::invokeOn(id,
             [&]() {
                 for (u64 i(0); i < updatePerCpus; ++i) {
                     postIncVal++;
@@ -85,7 +85,6 @@ SelfTests::TestResult atomicAtomicityTest() {
 
     for (u64 i(0); i < results.size(); ++i) {
         results[i]->wait();
-        delete results[i];
     }
     TEST_ASSERT(postIncVal == targetVal);
     TEST_ASSERT(preIncVal == targetVal);
@@ -162,12 +161,12 @@ SelfTests::TestResult spinLockMutualExclusionTest() {
     u64 val1(0);
     u64 val2(targetVal);
 
-    Vector<Smp::RemoteCall::CallResult<void>*> results;
+    Vector<Ptr<Smp::RemoteCall::CallResult<void>>> results;
     for (Smp::Id id(0); id < Smp::ncpus(); ++id) {
         if (id == Smp::id()) {
             continue;
         }
-        Smp::RemoteCall::CallResult<void>* res(Smp::RemoteCall::invokeOn(id,
+        Ptr<Smp::RemoteCall::CallResult<void>> res(Smp::RemoteCall::invokeOn(id,
             [&]() {
                 for (u64 i(0); i < updatePerCpus; ++i) {
                     Concurrency::LockGuard guard(lock);
@@ -180,7 +179,6 @@ SelfTests::TestResult spinLockMutualExclusionTest() {
 
     for (u64 i(0); i < results.size(); ++i) {
         results[i]->wait();
-        delete results[i];
     }
     TEST_ASSERT(val1 == targetVal);
     TEST_ASSERT(val2 == 0);

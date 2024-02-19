@@ -5,6 +5,7 @@
 #include <smp/remotecalltypes.hpp>
 #include <interrupts/vectormap.hpp>
 #include <selftests/selftests.hpp>
+#include <util/ptr.hpp>
 
 namespace Smp::RemoteCall {
 
@@ -19,23 +20,28 @@ void Init();
 // @param destCpu: The cpu on which to invoke the function.
 // @param func: The function to invoke.
 // @param args...: The arguments to pass to the function.
-// @return: A pointer to a CallResult<R> where R is the return type of the
+// @return: A smart pointer to a CallResult<R> where R is the return type of the
 // function (potentially void). This CallResult can be used by the caller to
 // wait for the invocation to complete on the remote cpu and retreive the value
-// returned by the invocation. The caller is expected to eventually free/delete
-// this CallResult.
+// returned by the invocation. A caller can safely ignore the returned pointer
+// if it is not interested in either waiting for completion of the call or its
+// result.
 template<typename Func, typename... Args>
 auto invokeOn(Smp::Id const destCpu, Func func, Args&&... args)
-    -> CallResult<decltype(func(args...))>* {
+    -> Ptr<CallResult<decltype(func(args...))>> {
 
-    CallResult<decltype(func(args...))>* const res(
-        new CallResult<decltype(func(args...))>());
+    Ptr<CallResult<decltype(func(args...))>> const res(
+        Ptr<CallResult<decltype(func(args...))>>::New());
 
     // Encapsulate the call to func into a lambda taking no arguments and
     // returning no value. This is so that we only need to support running
     // void(*)(void) functions on remote cpus. See the comments in CallDescImpl.
-    // Note: Using a copy-capture list is mandatory to avoid dangling references
-    // when the remote cpu invokes the lambda.
+    // Note: Using a copy-capture list is mandatory for two reasons:
+    //  1. Avoid dangling references to args... when the remote cpu invokes the
+    //  lambda.
+    //  2. Avoid `res` to be de-allocated. By copying the smart pointer we
+    //  create a new reference/smart-ptr with the same lifetime as the wrapper
+    //  lambda.
     auto const wrapperLambda([=]() {
         if constexpr (!SameAs<decltype(func(args...)), void>) {
             auto const returnVal(func(args...));
@@ -48,7 +54,8 @@ auto invokeOn(Smp::Id const destCpu, Func func, Args&&... args)
 
     // Enqueue a CallDesc into the remoteCallQueue of the destination cpu. The
     // remote cpu will free this object once the invocation returns.
-    auto const callDesc(new CallDescImpl(wrapperLambda));
+    auto const callDesc(
+        Ptr<CallDescImpl<decltype(wrapperLambda)>>::New(wrapperLambda));
     {
         Smp::PerCpu::Data& data(Smp::PerCpu::data(destCpu));
         Concurrency::LockGuard guard(data.remoteCallQueueLock);

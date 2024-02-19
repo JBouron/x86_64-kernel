@@ -1,6 +1,7 @@
 // Execute a function on a remote CPU.
 #pragma once
 #include <concurrency/atomic.hpp>
+#include <util/ptr.hpp>
 
 namespace Smp::RemoteCall {
 
@@ -81,7 +82,7 @@ private:
     // m_done and m_returnValue.
     template<typename Func, typename... Args>
     friend auto invokeOn(Smp::Id const destCpu, Func func, Args&&... args)
-        -> CallResult<decltype(func(args...))>*;
+        -> Ptr<CallResult<decltype(func(args...))>>;
 };
 
 // Specialization of CallResult for a function that does not return a value,
@@ -114,6 +115,6 @@ private:
     // m_done.
     template<typename Func, typename... Args>
     friend auto invokeOn(Smp::Id const destCpu, Func func, Args&&... args)
-        -> CallResult<decltype(func(args...))>*;
+        -> Ptr<CallResult<decltype(func(args...))>>;
 };
 }

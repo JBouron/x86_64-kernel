@@ -20,13 +20,12 @@ static void handleRemoteCallInterrupt(
 
     data.remoteCallQueueLock.lock();
     while (data.remoteCallQueue.size()) {
-        CallDesc* const desc(data.remoteCallQueue[0]);
+        Ptr<CallDesc> const desc(data.remoteCallQueue[0]);
         data.remoteCallQueue.erase(0);
 
         data.remoteCallQueueLock.unlock();
 
         desc->invoke();
-        delete desc;
 
         data.remoteCallQueueLock.lock();
     }

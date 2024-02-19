@@ -5,6 +5,7 @@
 #include <datastruct/vector.hpp>
 #include <interrupts/ipi.hpp>
 #include <concurrency/lock.hpp>
+#include <util/ptr.hpp>
 
 namespace Smp::PerCpu {
 
@@ -17,7 +18,7 @@ struct Data {
     // Queue of remote calls to be executed on this cpu.
     // FIXME: Vector is obviously bad for a queue due to insert/erase at index 0
     // being O(n).
-    Vector<Smp::RemoteCall::CallDesc*> remoteCallQueue;
+    Vector<Ptr<Smp::RemoteCall::CallDesc>> remoteCallQueue;
     // Used to avoid nested processing of the remoteCallQueue, see
     // handleRemoteCallInterrupt() in smp/remotecall.cpp.
     bool isProcessingRemoteCallQueue = false;
