@@ -141,6 +141,7 @@ SelfTests::TestResult smartPtrInheritanceTest() {
 
 // Check that reference counting in Ptr<T> is thread-safe.
 SelfTests::TestResult smartPtrConcurrentRefTest() {
+    TEST_REQUIRES_MULTICORE();
     u64 const numRepeat(10);
     u64 const numRefPerCore(1000);
     // Repeat the test case multiple times to catch any eventual intermittent

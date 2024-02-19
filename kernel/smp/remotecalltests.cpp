@@ -6,6 +6,7 @@ namespace Smp::RemoteCall {
 
 // Check that a remote call executes on the remote cpu.
 SelfTests::TestResult remoteCallBasicTest() {
+    TEST_REQUIRES_MULTICORE();
     for (Smp::Id id(0); id < Smp::ncpus(); ++id) {
         if (id == Smp::id()) {
             continue;
@@ -19,6 +20,7 @@ SelfTests::TestResult remoteCallBasicTest() {
 // Check that specifying a capture list on the lambda passed to invokeOn behaves
 // as expected.
 SelfTests::TestResult remoteCallCaptureListTest() {
+    TEST_REQUIRES_MULTICORE();
     for (Smp::Id id(0); id < Smp::ncpus(); ++id) {
         if (id == Smp::id()) {
             continue;
@@ -40,6 +42,7 @@ SelfTests::TestResult remoteCallCaptureListTest() {
 
 // Check passing arguments to a remote call.
 SelfTests::TestResult remoteCallArgsTest() {
+    TEST_REQUIRES_MULTICORE();
     for (Smp::Id id(0); id < Smp::ncpus(); ++id) {
         if (id == Smp::id()) {
             continue;
@@ -56,6 +59,7 @@ SelfTests::TestResult remoteCallArgsTest() {
 }
 
 SelfTests::TestResult remoteCallWaitTest() {
+    TEST_REQUIRES_MULTICORE();
     Smp::Id const destCpu((Smp::id().raw() + 1) % Smp::ncpus());
     Atomic<u8> flag;
     Ptr<CallResult<void>> const call(invokeOn(destCpu, [&]() {
@@ -76,6 +80,7 @@ SelfTests::TestResult remoteCallWaitTest() {
 // Check that remote calls are enqueued at the destination and called in the
 // order they were enqueued.
 SelfTests::TestResult remoteCallQueueTest() {
+    TEST_REQUIRES_MULTICORE();
     // Repeat the test case multiple times to catch any eventual intermittent
     // bugs.
     u64 const numRepeat(10);

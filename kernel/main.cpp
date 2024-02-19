@@ -66,17 +66,12 @@ static void runSelfTests() {
     Timer::Test(runner);
     Smp::Test(runner);
 
-    if (Smp::ncpus() > 1) {
-        Log::info("Running multi-cpus tests:");
-        wakeAps();
+    wakeAps();
 
-        Interrupts::Ipi::Test(runner);
-        Smp::RemoteCall::Test(runner);
-        Concurrency::Test(runner);
-        SmartPtr::Test(runner);
-    } else {
-        Log::warn("Skipping multi-cpus tests due to having a single core");
-    }
+    Interrupts::Ipi::Test(runner);
+    Smp::RemoteCall::Test(runner);
+    Concurrency::Test(runner);
+    SmartPtr::Test(runner);
 
     runner.printSummary();
 }

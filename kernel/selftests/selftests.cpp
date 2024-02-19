@@ -14,13 +14,17 @@ TestRunner::TestRunner() : m_numTestsRan(0), m_numTestsPassed(0) {}
 // @param testFunc: The test function to run.
 void TestRunner::_runTest(char const * const testName,
                           TestFunction const& testFunc) {
-    bool const isPassing(testFunc() == TestResult::Success);
+    TestResult const result(testFunc());
     m_numTestsRan++;
-    if (isPassing) {
+    if (result == TestResult::Success) {
         m_numTestsPassed++;
         Log::info("  [ OK ] {}", testName);
-    } else {
+    } else if (result == TestResult::Failure) {
         Log::crit("  [FAIL] {}", testName);
+    } else {
+        // result == TestResult::Skip.
+        m_numTestsSkipped++;
+        Log::warn("  [SKIP] {}", testName);
     }
 }
 
@@ -30,8 +34,15 @@ void TestRunner::printSummary() const {
     if (allPassed) {
         Log::info("All {} tests passed!", m_numTestsRan);
     } else {
-        u64 const numFailed(m_numTestsRan - m_numTestsPassed);
-        Log::crit("{} / {} tests failed!", numFailed, m_numTestsRan);
+        u64 const numFail(m_numTestsRan - m_numTestsPassed - m_numTestsSkipped);
+        if (numFail) {
+            Log::crit("{} tests passed, {} tests failed, {} tests skipped",
+                      m_numTestsPassed, numFail, m_numTestsSkipped);
+        } else {
+            // Some tests were skipped but all the others passed.
+            Log::info("{} tests passed, {} tests skipped", m_numTestsPassed,
+                      m_numTestsSkipped);
+        }
     }
 }
 }

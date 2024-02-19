@@ -6,6 +6,17 @@
 #include <timers/lapictimer.hpp>
 #include <interrupts/interrupts.hpp>
 
+// Check that the current machine has multiple cores. If not, print a warning
+// message and skip the test.
+#define TEST_REQUIRES_MULTICORE()                                              \
+    do {                                                                       \
+        if (Smp::ncpus() == 1) {                                               \
+            Log::warn("Skipping {} due to running on a single-core machine",   \
+                      __FUNCTION__);                                           \
+            return SelfTests::TestResult::Skip;                                \
+        }                                                                      \
+    } while (0)
+
 // Run a single test function with the TestRunner.
 // @param testRunner: Reference to the TestRunner instance under which the test
 // should be ran.

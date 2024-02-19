@@ -54,6 +54,7 @@ SelfTests::TestResult atomicBasicOperatorsTest() {
 
 // Check that Atomic<T> is indeed atomic.
 SelfTests::TestResult atomicAtomicityTest() {
+    TEST_REQUIRES_MULTICORE();
     u64 const updatePerCpus(1000000);
     u64 const targetVal((Smp::ncpus() - 1) * updatePerCpus);
 
@@ -154,6 +155,7 @@ SelfTests::TestResult lockGuardTest() {
 
 // Check that SpinLock implements mutual exclusion.
 SelfTests::TestResult spinLockMutualExclusionTest() {
+    TEST_REQUIRES_MULTICORE();
     u64 const updatePerCpus(1000000);
     u64 const targetVal((Smp::ncpus() - 1) * updatePerCpus);
 

@@ -18,6 +18,7 @@ extern void wakeApplicationProcessor(Id const id,
 
 // Test waking-up an application processor.
 SelfTests::TestResult wakeApplicationProcessorTest() {
+    TEST_REQUIRES_MULTICORE();
     // FIXME: We don't really have a way to allocate a Frame that is under the
     // 1MiB limit, so for now we simply use a page that is used by the
     // bootloader, it won't mind.

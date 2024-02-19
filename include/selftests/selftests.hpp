@@ -7,8 +7,12 @@ namespace SelfTests {
 
 // The result of a test run.
 enum class TestResult {
+    // The test was successful.
     Success,
+    // The test was _not_ successful.
     Failure,
+    // The test was skipped.
+    Skip,
 };
 
 // Forward decl for TestFunction.
@@ -39,5 +43,7 @@ private:
     u64 m_numTestsRan;
     // The total number of tests that passed so far.
     u64 m_numTestsPassed;
+    // The total number of tests that were skipped so far.
+    u64 m_numTestsSkipped;
 };
 }

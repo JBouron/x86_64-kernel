@@ -17,6 +17,7 @@ static void sendIpiTestIntHandler(__attribute__((unused)) Vector const v,
 }
 
 SelfTests::TestResult sendIpiTest() {
+    TEST_REQUIRES_MULTICORE();
     Vector const ipiVec(Interrupts::VectorMap::TestVector);
     TemporaryInterruptHandlerGuard guard(ipiVec, sendIpiTestIntHandler);
 
