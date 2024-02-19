@@ -147,6 +147,17 @@ static IoApic& ioApicForGsi(Acpi::Gsi const gsi) {
     PANIC("Could not find I/O APIC for GSI = {}", gsi.raw());
 }
 
+// The mapping vector -> InterruptHandler. A nullptr in this collection
+// indicates that no handler is registered for a particular vector, in which
+// case interrupts of that vector are ignored.
+// FIXME: For now there can only be a single InterruptHandler per vector.
+// Eventually, we may want to be able to have more.
+static InterruptHandler INT_HANDLERS[256] = {nullptr};
+
+// Has Init() been called already? Used to assert that cpus are not trying to
+// use the namespace before its initialization.
+static bool IsInitialized = false;
+
 // Initialize interrupts.
 void Init() {
     // Disable the legacy PIC, only use APIC.
@@ -160,11 +171,12 @@ void Init() {
     // Initialize the interrupt handlers for the non-user-defined vectors.
     for (Vector v(0); v < 32; ++v) {
         if (!v.isReserved()) {
-            registerHandler(v, defaultHandler);
+            INT_HANDLERS[v.raw()] = defaultHandler;
         }
     }
 
     InitCurrCpu();
+    IsInitialized = true;
 }
 
 // Configure the current cpu to use the kernel-wide IDT allocated during Init().
@@ -200,13 +212,6 @@ Acpi::Gsi Irq::toGsi() const {
     return acpiInfo.irqDesc[raw()].gsiVector;
 }
 
-// The mapping vector -> InterruptHandler. A nullptr in this collection
-// indicates that no handler is registered for a particular vector, in which
-// case interrupts of that vector are ignored.
-// FIXME: For now there can only be a single InterruptHandler per vector.
-// Eventually, we may want to be able to have more.
-static InterruptHandler INT_HANDLERS[256] = {nullptr};
-
 // Register an interrupt handler for a particular vector. After this call, any
 // interrupt with vector `vector` triggers a call to `handler`. It is an error
 // to attempt to add a handler for a vector that is reserved per the x86
@@ -215,6 +220,7 @@ static InterruptHandler INT_HANDLERS[256] = {nullptr};
 // @param handler: The function to be called everytime an interrupt with vector
 // `vector` is raised.
 void registerHandler(Vector const vector, InterruptHandler const& handler) {
+    ASSERT(IsInitialized);
     if (vector >= IDT_SIZE) {
         PANIC("IDT does not contain an entry for the target vector");
     } else if (vector.isReserved()) {
@@ -229,6 +235,7 @@ void registerHandler(Vector const vector, InterruptHandler const& handler) {
 // will trigger a PANIC.
 // @param vector: The vector for which to remove the handler.
 void deregisterHandler(Vector const vector) {
+    ASSERT(IsInitialized);
     if (vector.isUserDefined()) {
         // For user-defined vector simply set the handler to nullptr. The
         // genericInterruptHandler knows to ignore such handlers.
@@ -246,6 +253,7 @@ void deregisterHandler(Vector const vector) {
 // @param irq: The IRQ to map.
 // @param vector: The vector to map the IRQ to.
 void mapIrq(Irq const irq, Vector const vector) {
+    ASSERT(IsInitialized);
     Acpi::Gsi const gsi(irq.toGsi());
     Log::debug("Mapping IRQ {} (GSI = {}) to Vector {}", irq, gsi, vector);
     Acpi::Info const& acpiInfo(Acpi::parseTables());
@@ -292,6 +300,7 @@ void mapIrq(Irq const irq, Vector const vector) {
 // operation done in map(irq, vec).
 // @param irq: The IRQ to unmap.
 void unmapIrq(Irq const irq) {
+    ASSERT(IsInitialized);
     Acpi::Gsi const gsi(irq.toGsi());
     Log::debug("Unmapping IRQ {} (GSI = {})", irq, gsi);
     // Simply mask the interrupt source at the I/O APIC level.
@@ -302,6 +311,7 @@ void unmapIrq(Irq const irq) {
 // subsequent interrupts for this IRQ.
 // @param irq: The IRQ to mask.
 void maskIrq(Irq const irq) {
+    ASSERT(IsInitialized);
     Acpi::Gsi const gsi(irq.toGsi());
     Log::debug("Masking IRQ {} (GSI = {})", irq, gsi);
     Acpi::Info const& acpiInfo(Acpi::parseTables());

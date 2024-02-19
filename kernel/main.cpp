@@ -103,9 +103,6 @@ static void initKernel(BootStruct const * const bootStruct) {
     Paging::Init(*bootStruct);
     // Interrupts must be initialized _after_ paging since the APIC
     // initialization requires Paging::map().
-    // FIXME: We really need a way to enforce initialization order. It is hard
-    // to track down issues due to initialization being performed in the wrong
-    // order.
     // Now that paging and the direct map have been initialized, we can switch
     // to the proper frame allocator.
     FrameAlloc::directMapInitialized();

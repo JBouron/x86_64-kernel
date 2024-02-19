@@ -34,13 +34,21 @@ static void handleRemoteCallInterrupt(
     data.isProcessingRemoteCallQueue = false;
 }
 
+// Has Init() been called already? Used to assert that cpus are not trying to
+// use the namespace before its initialization.
+static bool IsInitialized = false;
+
 // Initialize the RemoteCall subsystem.
 void Init() {
-    static bool remoteCallInitialized = false;
-    if (!remoteCallInitialized) {
-        Interrupts::registerHandler(Interrupts::VectorMap::RemoteCallVector,
-                                    handleRemoteCallInterrupt);
-    }
+    Interrupts::registerHandler(Interrupts::VectorMap::RemoteCallVector,
+                                handleRemoteCallInterrupt);
+    IsInitialized = true;
+}
+
+// Check if the Smp::RemoteCall namespace has been initialized. This is only
+// meant to be used by internal functions.
+bool _isInitialized() {
+    return IsInitialized;
 }
 
 }

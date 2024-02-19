@@ -73,11 +73,16 @@ static Descriptor GDT[] = {
     Descriptor64(Cpu::PrivLevel::Ring0, Descriptor::Type::DataReadWrite),
 };
 
+// Has Init() been called already? Used to assert that cpus are not trying to
+// use the namespace before its initialization.
+static bool IsInitialized = false;
+
 // Initialize segmentation. Create a GDT and load it in GDTR.
 void Init() {
     Log::debug("Segmentation: Init");
     // The GDT is already configured at this point, simply use it.
     InitCurrCpu();
+    IsInitialized = true;
 }
 
 // Configure the current cpu to use the kernel-wide GDT allocated during Init().

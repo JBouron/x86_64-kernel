@@ -22,6 +22,10 @@ PhyAddr Frame::addr() const {
 // The current instance of the global frame allocator.
 static Allocator* GLOBAL_ALLOCATOR = nullptr;
 
+// Has Init() been called already? Used to assert that cpus are not trying to
+// use the namespace before its initialization.
+static bool IsInitialized = false;
+
 // Initialize the frame allocator.
 // @param bootStruct: The bootStruct passed by the bootloader. The frame
 // allocator is initialized from the bootStruct's physical frame free list.
@@ -33,10 +37,12 @@ void Init(BootStruct const& bootStruct) {
     static EarlyAllocator earlyAllocator(bootStruct);
     GLOBAL_ALLOCATOR = &earlyAllocator;
     Log::debug("Initialized early frame allocator");
+    IsInitialized = true;
 }
 
 // Notify the frame allocator that the direct map has been initialized.
 void directMapInitialized() {
+    ASSERT(IsInitialized);
     static bool embAllocatorInit = false;
     if (embAllocatorInit) {
         Log::warn("FrameAlloc::directMapInitialized called twice, skipping");
@@ -55,18 +61,14 @@ void directMapInitialized() {
 // @return: The Frame describing the allocated frame. If the allocation failed
 // return an error instead.
 Res<Frame> alloc() {
-    if (!GLOBAL_ALLOCATOR) {
-        PANIC("Attempt to call FrameAlloc::alloc() before calling Init()!");
-    }
+    ASSERT(IsInitialized);
     return GLOBAL_ALLOCATOR->alloc();
 }
 
 // Free an allocated physical frame.
 // @param Frame: A Frame describing the physical frame to be freed.
 void free(Frame const& frame) {
-    if (!GLOBAL_ALLOCATOR) {
-        PANIC("Attempt to call FrameAlloc::free() before calling Init()!");
-    }
+    ASSERT(IsInitialized);
     GLOBAL_ALLOCATOR->free(frame);
 }
 

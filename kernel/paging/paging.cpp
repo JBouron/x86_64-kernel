@@ -85,6 +85,10 @@ static u64 getPhysicalMemorySize(BootStruct const& bootStruct) {
     PANIC("Cannot determine physical memory size: e820 memory map is empty");
 }
 
+// Has Init() been called already? Used to assert that cpus are not trying to
+// use the namespace before its initialization.
+static bool IsInitialized = false;
+
 // Initialize paging.
 // This function creates the direct map.
 void Init(BootStruct const& bootStruct) {
@@ -96,6 +100,7 @@ void Init(BootStruct const& bootStruct) {
     Log::debug("Direct map initialized");
 
     InitCurrCpu();
+    IsInitialized = true;
 }
 
 // Configure paging for the current cpu (set control regs, ...).
@@ -320,6 +325,7 @@ Err map(VirAddr const vaddrStart,
         PhyAddr const paddrStart,
         PageAttr const pageAttr,
         u64 const nPages) {
+    ASSERT(IsInitialized);
     ASSERT(vaddrStart.isPageAligned());
     ASSERT(paddrStart.isPageAligned());
     ASSERT(!!nPages);
@@ -349,6 +355,7 @@ Err map(VirAddr const vaddrStart,
 // @param addrStart: The address to start unmapping from.
 // @param nPages: The number of pages to unmap.
 void unmap(VirAddr const addrStart, u64 const nPages) {
+    ASSERT(IsInitialized);
     ASSERT(addrStart.isPageAligned());
     ASSERT(nPages > 0);
     Log::debug("Unmapping {} ({} pages)", addrStart, nPages);

@@ -12,6 +12,10 @@ namespace Smp::RemoteCall {
 // Initialize the RemoteCall subsystem.
 void Init();
 
+// Check if the Smp::RemoteCall namespace has been initialized. This is only
+// meant to be used by internal functions.
+bool _isInitialized();
+
 // Invoke a function on a remote cpu. The function may be a static function or a
 // lamdba with or without a capture list. Optionally the function may take
 // arguments and return a value.
@@ -29,6 +33,7 @@ void Init();
 template<typename Func, typename... Args>
 auto invokeOn(Smp::Id const destCpu, Func func, Args&&... args)
     -> Ptr<CallResult<decltype(func(args...))>> {
+    ASSERT(_isInitialized());
 
     Ptr<CallResult<decltype(func(args...))>> const res(
         Ptr<CallResult<decltype(func(args...))>>::New());
