@@ -356,6 +356,9 @@ extern "C" void finalizeApplicationProcessorStartup(
     // Finish paging configuration.
     Paging::InitCurrCpu();
 
+    // Configure this cpu's LAPIC.
+    Interrupts::lapic();
+
     // Allocate a stack for this cpu.
     Res<VirAddr> const stackAllocRes(Stack::allocate());
     if (!stackAllocRes) {

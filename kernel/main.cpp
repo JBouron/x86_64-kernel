@@ -6,6 +6,7 @@
 #include <selftests/selftests.hpp>
 #include <cpu/cpu.hpp>
 #include <interrupts/interrupts.hpp>
+#include <interrupts/lapic.hpp>
 #include <bootstruct.hpp>
 #include <framealloc/framealloc.hpp>
 #include <paging/paging.hpp>
@@ -98,17 +99,27 @@ static void dumpBootStruct(BootStruct const& bootStruct) {
 
 // Initialize the kernel.
 static void initKernel(BootStruct const * const bootStruct) {
+    // While the GDT and segment registers coming from the bootloader are still
+    // valid, switch to our own GDT as the former may get overwritten at some
+    // point.
     Memory::Segmentation::Init();
+    // Initialize interrupts as soon as possible to catch any issue when
+    // intializing the rest of the kernel.
+    Interrupts::Init();
+    // Initializing paging and the direct map requires being able to allocate
+    // physical frames. Hence initialize the early boot frame allocator before
+    // initializing paging.
     FrameAlloc::Init(*bootStruct);
     Paging::Init(*bootStruct);
-    // Interrupts must be initialized _after_ paging since the APIC
-    // initialization requires Paging::map().
     // Now that paging and the direct map have been initialized, we can switch
-    // to the proper frame allocator.
+    // to the final frame allocator.
     FrameAlloc::directMapInitialized();
+    // Initialize heap allocation as soon as possible, as other initialization
+    // procedures may require dynamic allocations.
     HeapAlloc::Init();
+    Interrupts::InitLapic();
+    Interrupts::InitIoApics();
     Smp::PerCpu::Init();
-    Interrupts::Init();
     Smp::RemoteCall::Init();
 }
 

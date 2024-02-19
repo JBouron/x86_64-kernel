@@ -495,6 +495,10 @@ void Lapic::writeRegister(Register const reg,
     *ptr = newValue;
 }
 
+// Has Init() been called already? Used to assert that cpus are not trying to
+// use the namespace before its initialization.
+static bool IsInitialized = false;
+
 // Each cpu's local apic interface. Although this could be put into the
 // PerCpu::Data struct, it does not make much sense to expose this interface to
 // other cpus as a cpu can only interact with its own LAPIC. Hence keep it
@@ -507,11 +511,13 @@ void InitLapic() {
     for (u8 i(0); i < Smp::ncpus(); ++i) {
         LocalApics.pushBack(nullptr);
     }
+    IsInitialized = true;
 }
 
 // Get a reference to the Local APIC of this cpu.
 // @return: Reference to the local APIC of this cpu.
 Lapic& lapic() {
+    ASSERT(IsInitialized);
     Smp::Id const id(Smp::id());
 	if (!LocalApics[id.raw()]) {
         Log::info("Initializing local APIC on cpu {}", id);

@@ -261,4 +261,47 @@ void IoApic::writeRedirectionTable(u8 const entryIndex,
     writeRegister(regLow, newRaw & 0xffffffff);
     writeRegister(regHigh, newRaw >> 32);
 }
+
+// Has Init() been called already? Used to assert that cpus are not trying to
+// use the namespace before its initialization.
+static bool IsInitialized = false;
+
+// Array of IoApic. One such instance per I/O APIC in the system.
+static IoApic ** IO_APICS = nullptr;
+static u8 NUM_IO_APICS = 0;
+
+// Initialize the I/O APIC(s).
+void InitIoApics() {
+    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    u8 const numIoApics(acpiInfo.ioApicDescSize);
+    Log::info("{} I/O APIC(s) present in the system", numIoApics);
+    NUM_IO_APICS = numIoApics;
+    IO_APICS = new IoApic*[numIoApics];
+    for (u8 i(0); i < numIoApics; ++i) {
+        PhyAddr const base(acpiInfo.ioApicDesc[i].address);
+        Log::info("Initializing I/O APIC with base {}", base);
+        IO_APICS[i] = new IoApic(base);
+    }
+    IsInitialized = true;
+}
+
+// Find the I/O APIC receiving the interrupts associated with a given GSI.
+// @param gsi: The GSI for which to get the I/O APIC.
+// @return: Reference to the interface of the I/O APIC handling the GSI.
+IoApic& ioApicForGsi(Acpi::Gsi const gsi) {
+    ASSERT(IsInitialized);
+    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    for (u8 i(0); i < NUM_IO_APICS; ++i) {
+        IoApic& ioApic(*IO_APICS[i]);
+        // The smallest GSI handled by this IO APIC.
+        Acpi::Gsi const gsiStart(acpiInfo.ioApicDesc[i].interruptBase);
+        // The highest GSI handled by this IO APIC.
+        Acpi::Gsi const gsiEnd(gsiStart.raw()+ioApic.numInterruptSources() - 1);
+        if (gsiStart <= gsi && gsi <= gsiEnd) {
+            return ioApic;
+        }
+    }
+    PANIC("Could not find I/O APIC for GSI = {}", gsi.raw());
+}
+
 }

@@ -111,42 +111,6 @@ static void disablePic() {
     Log::info("PIC disabled");
 }
 
-// Array of IoApic. One such instance per I/O APIC in the system.
-static IoApic ** IO_APICS = nullptr;
-static u8 NUM_IO_APICS = 0;
-
-// Create one IoApic interface for each I/O APIC present in the system.
-static void initIoApics() {
-    Acpi::Info const& acpiInfo(Acpi::parseTables());
-    u8 const numIoApics(acpiInfo.ioApicDescSize);
-    Log::info("{} I/O APIC(s) present in the system", numIoApics);
-    NUM_IO_APICS = numIoApics;
-    IO_APICS = new IoApic*[numIoApics];
-    for (u8 i(0); i < numIoApics; ++i) {
-        PhyAddr const base(acpiInfo.ioApicDesc[i].address);
-        Log::info("Initializing I/O APIC with base {}", base);
-        IO_APICS[i] = new IoApic(base);
-    }
-}
-
-// Find the I/O APIC receiving the interrupts associated with a given GSI.
-// @param gsi: The GSI for which to get the I/O APIC.
-// @return: Reference to the interface of the I/O APIC handling the GSI.
-static IoApic& ioApicForGsi(Acpi::Gsi const gsi) {
-    Acpi::Info const& acpiInfo(Acpi::parseTables());
-    for (u8 i(0); i < NUM_IO_APICS; ++i) {
-        IoApic& ioApic(*IO_APICS[i]);
-        // The smallest GSI handled by this IO APIC.
-        Acpi::Gsi const gsiStart(acpiInfo.ioApicDesc[i].interruptBase);
-        // The highest GSI handled by this IO APIC.
-        Acpi::Gsi const gsiEnd(gsiStart.raw()+ioApic.numInterruptSources() - 1);
-        if (gsiStart <= gsi && gsi <= gsiEnd) {
-            return ioApic;
-        }
-    }
-    PANIC("Could not find I/O APIC for GSI = {}", gsi.raw());
-}
-
 // The mapping vector -> InterruptHandler. A nullptr in this collection
 // indicates that no handler is registered for a particular vector, in which
 // case interrupts of that vector are ignored.
@@ -162,11 +126,6 @@ static bool IsInitialized = false;
 void Init() {
     // Disable the legacy PIC, only use APIC.
     disablePic();
-
-    // Enable the LAPIC interfaces.
-    Interrupts::InitLapic();
-
-    initIoApics();
 
     // Initialize the interrupt handlers for the non-user-defined vectors.
     for (Vector v(0); v < 32; ++v) {
@@ -186,9 +145,6 @@ void InitCurrCpu() {
     u16 const limit(sizeof(IDT) - 1);
     Cpu::TableDesc const idtDesc(base, limit);
     Cpu::lidt(idtDesc);
-
-    // Initialize the LAPIC.
-    Interrupts::lapic();
 }
 
 // Some interrupt vectors in the x86 architecture are reserved and not used.

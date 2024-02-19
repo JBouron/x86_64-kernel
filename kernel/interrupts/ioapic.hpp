@@ -271,4 +271,12 @@ protected:
     // indicated in the IOREGSEL.
     u32 volatile * m_ioWin;
 };
+
+// Initialize the I/O APIC(s).
+void InitIoApics();
+
+// Find the I/O APIC receiving the interrupts associated with a given GSI.
+// @param gsi: The GSI for which to get the I/O APIC.
+// @return: Reference to the interface of the I/O APIC handling the GSI.
+IoApic& ioApicForGsi(Acpi::Gsi const gsi);
 }
