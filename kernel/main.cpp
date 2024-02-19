@@ -64,7 +64,6 @@ static void runSelfTests() {
     HeapAlloc::Test(runner);
     Timer::Test(runner);
     Smp::Test(runner);
-    Concurrency::Test(runner);
 
     if (Smp::ncpus() > 1) {
         Log::info("Running multi-cpus tests:");
@@ -72,6 +71,7 @@ static void runSelfTests() {
 
         Interrupts::Ipi::Test(runner);
         Smp::RemoteCall::Test(runner);
+        Concurrency::Test(runner);
     } else {
         Log::warn("Skipping multi-cpus tests due to having a single core");
     }

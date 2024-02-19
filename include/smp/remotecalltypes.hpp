@@ -45,6 +45,8 @@ private:
 template<typename T>
 class CallResult {
 public:
+    // FIXME: This type be non-copyable?
+
     // Check if the remote call associated with this instance was executed and
     // completed on the remote cpu.
     // @return: true if the call was completed, ie. the function was called and

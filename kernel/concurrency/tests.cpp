@@ -3,6 +3,7 @@
 #include <concurrency/tests.hpp>
 #include <concurrency/atomic.hpp>
 #include <concurrency/lock.hpp>
+#include <smp/remotecall.hpp>
 
 namespace Concurrency {
 
@@ -47,6 +48,51 @@ SelfTests::TestResult atomicBasicOperatorsTest() {
     TEST_ASSERT(a == 15);
     a -= 7;
     TEST_ASSERT(a == 8);
+
+    return SelfTests::TestResult::Success;
+}
+
+// Check that Atomic<T> is indeed atomic.
+SelfTests::TestResult atomicAtomicityTest() {
+    u64 const updatePerCpus(1000000);
+    u64 const targetVal((Smp::ncpus() - 1) * updatePerCpus);
+
+    Atomic<u64> postIncVal;
+    Atomic<u64> preIncVal;
+    Atomic<u64> postDecVal(targetVal);
+    Atomic<u64> preDecVal(targetVal);
+    Atomic<u64> addOpVal;
+    Atomic<u64> subOpVal(targetVal);
+
+    Vector<Smp::RemoteCall::CallResult<void>*> results;
+    for (Smp::Id id(0); id < Smp::ncpus(); ++id) {
+        if (id == Smp::id()) {
+            continue;
+        }
+        Smp::RemoteCall::CallResult<void>* res(Smp::RemoteCall::invokeOn(id,
+            [&]() {
+                for (u64 i(0); i < updatePerCpus; ++i) {
+                    postIncVal++;
+                    ++preIncVal;
+                    postDecVal--;
+                    --preDecVal;
+                    addOpVal += 1;
+                    subOpVal -= 1;
+                }
+        }));
+        results.pushBack(res);
+    }
+
+    for (u64 i(0); i < results.size(); ++i) {
+        results[i]->wait();
+        delete results[i];
+    }
+    TEST_ASSERT(postIncVal == targetVal);
+    TEST_ASSERT(preIncVal == targetVal);
+    TEST_ASSERT(postDecVal == 0);
+    TEST_ASSERT(preDecVal == 0);
+    TEST_ASSERT(addOpVal == targetVal);
+    TEST_ASSERT(subOpVal == 0);
 
     return SelfTests::TestResult::Success;
 }
@@ -107,11 +153,48 @@ SelfTests::TestResult lockGuardTest() {
     return SelfTests::TestResult::Success;
 }
 
+// Check that SpinLock implements mutual exclusion.
+SelfTests::TestResult spinLockMutualExclusionTest() {
+    u64 const updatePerCpus(1000000);
+    u64 const targetVal((Smp::ncpus() - 1) * updatePerCpus);
+
+    SpinLock lock;
+    u64 val1(0);
+    u64 val2(targetVal);
+
+    Vector<Smp::RemoteCall::CallResult<void>*> results;
+    for (Smp::Id id(0); id < Smp::ncpus(); ++id) {
+        if (id == Smp::id()) {
+            continue;
+        }
+        Smp::RemoteCall::CallResult<void>* res(Smp::RemoteCall::invokeOn(id,
+            [&]() {
+                for (u64 i(0); i < updatePerCpus; ++i) {
+                    Concurrency::LockGuard guard(lock);
+                    val1 += 1;
+                    val2 -= 1;
+                }
+        }));
+        results.pushBack(res);
+    }
+
+    for (u64 i(0); i < results.size(); ++i) {
+        results[i]->wait();
+        delete results[i];
+    }
+    TEST_ASSERT(val1 == targetVal);
+    TEST_ASSERT(val2 == 0);
+
+    return SelfTests::TestResult::Success;
+}
+
 // Run concurrency related tests.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, atomicBasicOperatorsTest);
+    RUN_TEST(runner, atomicAtomicityTest);
     RUN_TEST(runner, spinLockBasicTest);
     RUN_TEST(runner, lockGuardTest);
+    RUN_TEST(runner, spinLockMutualExclusionTest);
 }
 
 }
