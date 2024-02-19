@@ -34,8 +34,8 @@ Id id() {
 // Get the number of cpus in the system.
 // @param: The number of cpus in the system, including the BSP.
 u64 ncpus() {
-    Acpi::Info const& acpi(Acpi::parseTables());
-    return acpi.processorDescSize;
+    Acpi::Info const& acpi(Acpi::info());
+    return acpi.processorDesc.size();
 }
 
 // Send an INIT IPI to a remote CPU. This function takes care of checking if the
@@ -183,10 +183,10 @@ void wakeApplicationProcessor(Id const id, PhyAddr const bootStrapRoutine) {
 
     // Check that the id is referring to an existing cpu and that this cpu can
     // be woken up per the ACPI tables.
-    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    Acpi::Info const& acpiInfo(Acpi::info());
     // Was the cpu found in the ACPI tables?
     bool cpuFound(false);
-    for (u64 i(0); i < acpiInfo.processorDescSize; ++i) {
+    for (u64 i(0); i < acpiInfo.processorDesc.size(); ++i) {
         Acpi::Info::ProcessorDesc const& cpuDesc(acpiInfo.processorDesc[i]);
         if (id != cpuDesc.id) {
             // Not this cpu.

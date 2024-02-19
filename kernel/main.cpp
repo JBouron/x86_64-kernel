@@ -117,6 +117,9 @@ static void initKernel(BootStruct const * const bootStruct) {
     // Initialize heap allocation as soon as possible, as other initialization
     // procedures may require dynamic allocations.
     HeapAlloc::Init();
+    // ACPI info must be parsed before initializing LAPIC and I/O APIC(s) as it
+    // contains info about them.
+    Acpi::Init();
     Interrupts::InitLapic();
     Interrupts::InitIoApics();
     Smp::PerCpu::Init();

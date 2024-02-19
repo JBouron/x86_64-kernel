@@ -273,8 +273,8 @@ static ::Vector<Ptr<IoApic>> IoApics;
 
 // Initialize the I/O APIC(s).
 void InitIoApics() {
-    Acpi::Info const& acpiInfo(Acpi::parseTables());
-    u8 const numIoApics(acpiInfo.ioApicDescSize);
+    Acpi::Info const& acpiInfo(Acpi::info());
+    u8 const numIoApics(acpiInfo.ioApicDesc.size());
     Log::info("{} I/O APIC(s) present in the system", numIoApics);
     for (u8 i(0); i < numIoApics; ++i) {
         PhyAddr const base(acpiInfo.ioApicDesc[i].address);
@@ -289,7 +289,7 @@ void InitIoApics() {
 // @return: Reference to the interface of the I/O APIC handling the GSI.
 IoApic& ioApicForGsi(Acpi::Gsi const gsi) {
     ASSERT(IsInitialized);
-    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    Acpi::Info const& acpiInfo(Acpi::info());
     for (u8 i(0); i < IoApics.size(); ++i) {
         IoApic& ioApic(*IoApics[i]);
         // The smallest GSI handled by this IO APIC.

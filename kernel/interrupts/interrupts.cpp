@@ -164,7 +164,7 @@ bool Vector::isUserDefined() const {
 // This requires parsing the ACPI tables to find the mapping IRQ <-> GSI.
 // @return: The GSI associated with this IRQ.
 Acpi::Gsi Irq::toGsi() const {
-    Acpi::Info const acpiInfo(Acpi::parseTables());
+    Acpi::Info const acpiInfo(Acpi::info());
     return acpiInfo.irqDesc[raw()].gsiVector;
 }
 
@@ -212,7 +212,7 @@ void mapIrq(Irq const irq, Vector const vector) {
     ASSERT(IsInitialized);
     Acpi::Gsi const gsi(irq.toGsi());
     Log::debug("Mapping IRQ {} (GSI = {}) to Vector {}", irq, gsi, vector);
-    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    Acpi::Info const& acpiInfo(Acpi::info());
     Acpi::Info::IrqDesc const& irqDesc(acpiInfo.irqDesc[irq.raw()]);
     IoApic& ioApic(ioApicForGsi(gsi));
     // Configure the redirection entry of the I/O APIC for the associated input
@@ -270,7 +270,7 @@ void maskIrq(Irq const irq) {
     ASSERT(IsInitialized);
     Acpi::Gsi const gsi(irq.toGsi());
     Log::debug("Masking IRQ {} (GSI = {})", irq, gsi);
-    Acpi::Info const& acpiInfo(Acpi::parseTables());
+    Acpi::Info const& acpiInfo(Acpi::info());
     IoApic& ioApic(ioApicForGsi(gsi));
     // Configure the redirection entry of the I/O APIC for the associated input
     // pin.

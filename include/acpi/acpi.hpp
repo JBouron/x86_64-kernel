@@ -1,6 +1,7 @@
 // Functions to parse the ACPI tables.
 #pragma once
 #include <util/subrange.hpp>
+#include <datastruct/vector.hpp>
 
 namespace Acpi {
 
@@ -68,11 +69,8 @@ struct Info {
         // connected to. Only valid if hasNmiSource == true!
         u8 nmiLint = 0;
     };
-    // The size of the processorDesc array, incidentally the number of
-    // processors in the system.
-    u32 processorDescSize = 0;
     // ProcessorDesc for each processor in the system.
-    ProcessorDesc* processorDesc = nullptr;
+    Vector<ProcessorDesc> processorDesc;
 
     // ISA IRQ mapping, polarity and trigger mode
     // ------------------------------------------
@@ -123,10 +121,8 @@ struct Info {
         // number of input pins on this I/O APIC.
         Gsi interruptBase;
     };
-    // The size of the ioApicDesc array.
-    u8 ioApicDescSize = 0;
     // One IoApicDesc per I/O APIC present in the system.
-    IoApicDesc* ioApicDesc = nullptr;
+    Vector<IoApicDesc> ioApicDesc;
 
     // Non-Maskable-Interrupt
     // ----------------------
@@ -144,15 +140,15 @@ struct Info {
         // The GSI vector to which this NMI source is mapped.
         Gsi gsiVector;
     };
-    // The size of the nmiSourceDesc array.
-    u8 nmiSourceDescSize = 0;
     // One NmiSourceDesc per NMI source.
-    NmiSourceDesc* nmiSourceDesc = nullptr;
+    Vector<NmiSourceDesc> nmiSourceDesc;
 };
 
 // Parse the ACPI tables found in BIOS memory.
+void Init();
+
+// Retrieve the ACPI info parsed from BIOS memory.
 // @return: Reference to an Info struct containing the info parsed from the ACPI
-// tables. Calling this function multiple times always return the same
-// reference.
-Info const& parseTables();
+// tables.
+Info const& info();
 }

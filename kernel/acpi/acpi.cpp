@@ -13,21 +13,8 @@ namespace Acpi {
 // parse structs from raw memory. I should really take the time to double check
 // everything here...
 
-
-// FIXME: The following constants define the maximum size of the various arrays
-// of the Info struct. Those are are needed because we don't have dynamically
-// sized arrays yet and use statically sized arrays instead. Eventually, once we
-// have dynamic arrays, we won't need those anymore.
-static constexpr u64 MAX_IO_APIC = 4;
-static constexpr u64 MAX_CPUS = 256;
-static constexpr u64 MAX_NMI_SOURCES = 4;
-
 // The Info struct parsed from the ACPI tables.
 static Info AcpiInfo;
-
-// Indicate if the ACPI info was already parsed. Used to avoid parsing the ACPI
-// tables multiple times.
-static bool Parsed = false;
 
 // Compare two signatures. Note: both signatures MUST be of the same length as
 // specified by signatureLen.
@@ -141,16 +128,14 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             u32 const flags(entry->read<u32>(4));
             Log::info("      [{}]: LAPIC: CPU ID = {} APIC ID = {} flags = {}",
                       idx, procId, apicId, flags);
-            if (procId >= MAX_CPUS) {
-                PANIC("More cpus than currently supported. Change MAX_CPUS");
-            }
-            Info::ProcessorDesc& desc(AcpiInfo.processorDesc[procId]);
-            desc.id = procId;
-            desc.apicId = apicId;
-            desc.isEnabled = !!(flags & 0x1);
-            desc.isOnlineCapable = !!(flags & 0x2);
-            desc.hasNmiSource = false;
-            AcpiInfo.processorDescSize++;
+            Info::ProcessorDesc const desc({
+                .id = procId,
+                .apicId = apicId,
+                .isEnabled = !!(flags & 0x1),
+                .isOnlineCapable = !!(flags & 0x2),
+                .hasNmiSource = false,
+            });
+            AcpiInfo.processorDesc.pushBack(desc);
             break;
         }
         case Madt::Entry::Type::IoApic: {
@@ -159,14 +144,12 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             u32 const intBase(entry->read<u32>(8));
             Log::info("      [{}]: IO APIC: IO APIC ID = {} IO APIC addr = {x}"
                       " int base = {}", idx, ioApicId, ioApicAddr, intBase);
-            if (ioApicId >= MAX_IO_APIC) {
-                PANIC("More I/O APICs than supported. Change MAX_IO_APIC");
-            }
-            Info::IoApicDesc& desc(AcpiInfo.ioApicDesc[ioApicId]);
-            desc.id = ioApicId;
-            desc.address = ioApicAddr;
-            desc.interruptBase = Gsi(intBase);
-            AcpiInfo.ioApicDescSize++;
+            Info::IoApicDesc const desc({
+                .id = ioApicId,
+                .address = ioApicAddr,
+                .interruptBase = Gsi(intBase),
+            });
+            AcpiInfo.ioApicDesc.pushBack(desc);
             break;
         }
         case Madt::Entry::Type::InterruptSourceOverride: {
@@ -191,15 +174,12 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             u8 const gsi(entry->read<u8>(5));
             Log::info("      [{}]: NMI src: src = {} flags = {} gsi = {}",
                       idx, nmiSource, flags, gsi);
-            if (AcpiInfo.nmiSourceDescSize >= MAX_NMI_SOURCES) {
-                PANIC("More NMI sources than supported. Change MAX_NMI_SOURCE");
-            }
-            u8 const idx(AcpiInfo.nmiSourceDescSize);
-            Info::NmiSourceDesc& desc(AcpiInfo.nmiSourceDesc[idx]);
-            desc.polarity = mpsIntiFlagsToPolarity(flags);
-            desc.triggerMode = mpsIntiFlagsToTriggerMode(flags);
-            desc.gsiVector = Gsi(gsi);
-            AcpiInfo.nmiSourceDescSize++;
+            Info::NmiSourceDesc const desc({
+                .polarity = mpsIntiFlagsToPolarity(flags),
+                .triggerMode = mpsIntiFlagsToTriggerMode(flags),
+                .gsiVector = Gsi(gsi),
+            });
+            AcpiInfo.nmiSourceDesc.pushBack(desc);
             break;
         }
         case Madt::Entry::Type::LocalApicNMI: {
@@ -208,14 +188,22 @@ static void parseMadtEntry(u64 const idx, Madt::Entry const * const entry) {
             u8 const lint(entry->read<u8>(5));
             Log::info("      [{}]: LAPIC NMI : cpuID = {} flags = {} LINT = {}",
                       idx, procId, flags, lint);
-            if (procId >= MAX_CPUS) {
-                PANIC("Proc ID from LocalApicNMI is out of bounds");
+            if (procId == 0xff) {
+                // The entry applies to all cpus.
+                for (Info::ProcessorDesc& desc : AcpiInfo.processorDesc) {
+                    desc.hasNmiSource = true;
+                    desc.nmiPolarity = mpsIntiFlagsToPolarity(flags);
+                    desc.nmiTriggerMode = mpsIntiFlagsToTriggerMode(flags);
+                    desc.nmiLint = lint;
+                }
+            } else {
+                // Only one cpu is affected.
+                Info::ProcessorDesc& desc(AcpiInfo.processorDesc[procId]);
+                desc.hasNmiSource = true;
+                desc.nmiPolarity = mpsIntiFlagsToPolarity(flags);
+                desc.nmiTriggerMode = mpsIntiFlagsToTriggerMode(flags);
+                desc.nmiLint = lint;
             }
-            Info::ProcessorDesc& desc(AcpiInfo.processorDesc[procId]);
-            desc.hasNmiSource = true;
-            desc.nmiPolarity = mpsIntiFlagsToPolarity(flags);
-            desc.nmiTriggerMode = mpsIntiFlagsToTriggerMode(flags);
-            desc.nmiLint = lint;
             break;
         }
         case Madt::Entry::Type::LocalApicAddressOverride: {
@@ -242,21 +230,12 @@ static void parseMadt(Madt const * const madt) {
     madt->forEachEntry(parseMadtEntry);
 }
 
+// Has Init() been called already? Used to assert that cpus are not trying to
+// use the namespace before its initialization.
+static bool IsInitialized = false;
+
 // Parse the ACPI tables found in BIOS memory.
-Info const& parseTables() {
-    if (Parsed) {
-        // Tables were already parsed, don't parse them again.
-        return AcpiInfo;
-    }
-
-    // FIXME: This won't be thread-safe eventually
-    Parsed = true;
-
-    // Prepare the arrays in the Info struct.
-    AcpiInfo.processorDesc = new Info::ProcessorDesc[MAX_CPUS];
-    AcpiInfo.ioApicDesc = new Info::IoApicDesc[MAX_IO_APIC];
-    AcpiInfo.nmiSourceDesc = new Info::NmiSourceDesc[MAX_NMI_SOURCES];
-
+void Init() {
     // Set all IRQs to be ID-mapped, edge-triggered and active-high (e.g. they
     // standard behaviour).
     for (u8 irq(0); irq < 15; ++irq) {
@@ -308,6 +287,14 @@ Info const& parseTables() {
             Log::info("    Ignored by this kernel");
         }
     }
+    IsInitialized = true;
+}
+
+// Retrieve the ACPI info parsed from BIOS memory.
+// @return: Reference to an Info struct containing the info parsed from the ACPI
+// tables.
+Info const& info() {
+    ASSERT(IsInitialized);
     return AcpiInfo;
 }
 }

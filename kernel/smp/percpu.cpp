@@ -1,7 +1,6 @@
 // Per-cpu data.
 #include <smp/percpu.hpp>
 #include <datastruct/vector.hpp>
-#include <acpi/acpi.hpp>
 #include <logging/log.hpp>
 #include <cpu/cpu.hpp>
 
@@ -16,8 +15,7 @@ static Vector<Data> perCpuDataVec;
 // Initialize per-cpu data structures. This allocates one Data per cpu in the
 // system. Requires the heap allocator.
 void Init() {
-    Acpi::Info const& acpi(Acpi::parseTables());
-    u8 const numCpus(acpi.processorDescSize);
+    u8 const numCpus(Smp::ncpus());
     Log::info("Init PerCpu");
     Log::debug("Allocating {} PerCpu::Data", numCpus);
     for (u8 i(0); i < numCpus; ++i) {
