@@ -92,6 +92,53 @@ SelfTests::TestResult smartPtrTest() {
     return SelfTests::TestResult::Success;
 }
 
+class Base {
+public:
+    Base() { counter.numConstruct++; }
+    virtual ~Base() { counter.numDestruct++; }
+    virtual u64 foo() const = 0;
+};
+
+class Derived : public Base {
+public:
+    virtual u64 foo() const { return 1337; }
+};
+
+SelfTests::TestResult smartPtrInheritanceTest() {
+    // Case #1: Copy constructor using a Ptr<Derived>.
+    counter.reset();
+    {
+        Ptr<Base> const basePtr(Ptr<Derived>::New());
+        TEST_ASSERT(counter.numConstruct == 1);
+        TEST_ASSERT(counter.numDestruct == 0);
+        TEST_ASSERT(basePtr.refCount() == 1);
+        TEST_ASSERT(basePtr->foo() == 1337);
+    }
+    TEST_ASSERT(counter.numConstruct == 1);
+    TEST_ASSERT(counter.numDestruct == 1);
+
+    // Case #2: Assignment operator using a Ptr<Derived>.
+    counter.reset();
+    {
+        Ptr<Base> basePtr;
+        TEST_ASSERT(counter.numConstruct == 0);
+        TEST_ASSERT(counter.numDestruct == 0);
+        {
+            basePtr = Ptr<Derived>::New();
+            TEST_ASSERT(counter.numConstruct == 1);
+            TEST_ASSERT(counter.numDestruct == 0);
+            TEST_ASSERT(basePtr.refCount() == 1);
+        }
+        TEST_ASSERT(counter.numConstruct == 1);
+        TEST_ASSERT(counter.numDestruct == 0);
+        TEST_ASSERT(basePtr.refCount() == 1);
+        TEST_ASSERT(basePtr->foo() == 1337);
+    }
+    TEST_ASSERT(counter.numConstruct == 1);
+    TEST_ASSERT(counter.numDestruct == 1);
+    return SelfTests::TestResult::Success;
+}
+
 // Check that reference counting in Ptr<T> is thread-safe.
 SelfTests::TestResult smartPtrConcurrentRefTest() {
     u64 const numRepeat(10);
@@ -155,6 +202,7 @@ SelfTests::TestResult smartPtrConcurrentRefTest() {
 // Run the tests for the Ptr<T> type.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, smartPtrTest);
+    RUN_TEST(runner, smartPtrInheritanceTest);
     RUN_TEST(runner, smartPtrConcurrentRefTest);
 }
 

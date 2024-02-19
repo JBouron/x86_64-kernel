@@ -32,6 +32,14 @@ public:
         (*m_refCount)++;
     }
 
+    // Copy a smart pointer of a subtype of T. This create a new reference to
+    // the pointed U object.
+    // @param other: The pointer to copy.
+    template<typename U>
+    Ptr(Ptr<U> const& other): m_ptr(other.m_ptr), m_refCount(other.m_refCount) {
+        (*m_refCount)++;
+    }
+
     // Destroy a smart pointer. If this was the last reference to the pointed
     // object, the object is de-allocated.
     ~Ptr() {
@@ -45,6 +53,21 @@ public:
     // @param other: The Ptr<T> to copy from.
     // @return: A reference to this Ptr<T>.
     Ptr& operator=(Ptr const& other) {
+        reset();
+        m_ptr = other.m_ptr;
+        m_refCount = other.m_refCount;
+        (*m_refCount)++;
+        return *this;
+    }
+
+    // Assign this Ptr<T> to a Ptr<U> where U is a sub-type of T. This create a
+    // new reference to the object pointed by `other` while deleting the
+    // reference to the current object. If this Ptr<T> was the last reference to
+    // its object, it is de-allocated.
+    // @param other: The Ptr<U> to copy from.
+    // @return: A reference to this Ptr<T>.
+    template<typename U>
+    Ptr& operator=(Ptr<U> const& other) {
         reset();
         m_ptr = other.m_ptr;
         m_refCount = other.m_refCount;
@@ -95,6 +118,10 @@ private:
 
     T* m_ptr;
     Atomic<u64>* m_refCount;
+
+    // Needed to be able to access m_ptr and m_refCount in Ptr(Ptr<U>) and
+    // operator=(Ptr<U>).
+    template<typename> friend class Ptr;
 };
 
 namespace SmartPtr {
