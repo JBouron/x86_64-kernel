@@ -69,6 +69,7 @@ INT_HANDLER 21
 INT_HANDLER 32
 INT_HANDLER 33
 INT_HANDLER 34
+INT_HANDLER 35
 
 ; The common interrupt handler. All per-vector handlers are jumping to this
 ; routine after pushing the vector onto the stack.

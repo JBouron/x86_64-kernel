@@ -6,6 +6,7 @@
 #include <util/panic.hpp>
 #include <util/assert.hpp>
 #include "ioapic.hpp"
+#include <smp/smp.hpp>
 
 namespace Interrupts {
 
@@ -41,6 +42,7 @@ extern "C" void interruptHandler16();   extern "C" void interruptHandler17();
 extern "C" void interruptHandler18();   extern "C" void interruptHandler19();
 extern "C" void interruptHandler21();   extern "C" void interruptHandler32();
 extern "C" void interruptHandler33();   extern "C" void interruptHandler34();
+extern "C" void interruptHandler35();
 
 // Create a Descriptor for the given vector. The descriptor points to the
 // interruptHandler<vector> function.
@@ -89,6 +91,9 @@ static const Descriptor IDT[] = {
     IDT_DESC(32),
     IDT_DESC(33),
     IDT_DESC(34),
+    IDT_DESC(35),
+    // FIXME: Use consts from vectorMap here. This might require making Vector
+    // and SubRange constexpr.
 };
 // The number of elements in the IDT.
 static u64 const IDT_SIZE = sizeof(IDT) / sizeof(*IDT);

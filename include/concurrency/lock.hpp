@@ -57,6 +57,12 @@ private:
 // Spinlock implementation.
 class SpinLock : public Lock {
 public:
+    SpinLock() = default;
+    // Copy-constructor. FIXME: This should be removed, there is no reason to
+    // ever copy a SpinLock. However, this is currently needed because Vector<T>
+    // requires a copy-constructor when growing its array.
+    SpinLock(SpinLock const& other);
+
     virtual bool isLocked() const;
 private:
     virtual void doLock();

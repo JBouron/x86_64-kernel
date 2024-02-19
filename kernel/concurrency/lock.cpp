@@ -2,6 +2,7 @@
 #include <concurrency/lock.hpp>
 #include <cpu/cpu.hpp>
 #include <util/assert.hpp>
+#include <logging/log.hpp>
 
 namespace Concurrency {
 // Acquire the lock. Only return once the lock has been acquired.
@@ -29,6 +30,11 @@ void Lock::unlock() {
     if (irqDisabled) {
         Cpu::setInterruptFlag(savedIrq);
     }
+}
+
+SpinLock::SpinLock(__attribute__((unused)) SpinLock const& other) {
+    Log::warn("Call to SpinLock::SpinLock(SpinLock const&), this should be "
+              "deleted");
 }
 
 bool SpinLock::isLocked() const {

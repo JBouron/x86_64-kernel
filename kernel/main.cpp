@@ -24,6 +24,7 @@
 #include <concurrency/tests.hpp>
 #include <smp/percpu.hpp>
 #include <interrupts/ipi.hpp>
+#include <smp/remotecall.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -70,6 +71,7 @@ static void runSelfTests() {
         wakeAps();
 
         Interrupts::Ipi::Test(runner);
+        Smp::RemoteCall::Test(runner);
     } else {
         Log::warn("Skipping multi-cpus tests due to having a single core");
     }
@@ -113,6 +115,7 @@ static void initKernel(BootStruct const * const bootStruct) {
     HeapAlloc::Init();
     Smp::PerCpu::Init();
     Interrupts::Init();
+    Smp::RemoteCall::Init();
 }
 
 // Target code after the BSP switches to the new higher-half stack. This
