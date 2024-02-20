@@ -10,6 +10,10 @@ namespace Stack {
 // error.
 Res<VirAddr> allocate();
 
+// De-allocate a stack in kernel virtual memory.
+// @param stack: The stack to de-allocate.
+void free(VirAddr const stack);
+
 // Change the stack pointer to the new top and jump to the given location. This
 // function does NOT return.
 // @param newStackTop: Virtual address of the new stack to use.
