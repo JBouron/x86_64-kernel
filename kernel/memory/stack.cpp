@@ -44,7 +44,7 @@ public:
     // @param stack: The stack to de-allocate.
     void free(VirAddr const stack) {
         ASSERT(stack.isPageAligned());
-        m_freeList.free(stack, DEFAULT_STACK_PAGES);
+        m_freeList.free(stack, DEFAULT_STACK_PAGES * PAGE_SIZE);
     }
 
 private:
