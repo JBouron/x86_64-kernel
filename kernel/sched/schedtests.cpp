@@ -49,17 +49,13 @@ SelfTests::TestResult contextSwitchTest() {
     contextSwitchTestSavedContextRsp = 0;
 
     // Allocate a stack for context B.
-    Res<VirAddr> const allocRes(Stack::allocate());
+    Res<Ptr<Memory::Stack>> const allocRes(Memory::Stack::New());
     TEST_ASSERT(allocRes.ok());
+    Ptr<Memory::Stack> const stack(allocRes.value());
 
     // Prepare a stack frame to "return" to contextSwitchTestTarget after the
     // context switch to context B.
-    VirAddr const contextBStack(allocRes.value() + 8);
-    // FIXME: Stack::allocate() return the address of the bottom of the
-    // stack and also pushes a return address onto the new stack. This creates a
-    // headache when free'ing the stack as we need to compute the address of the
-    // top of the stack.
-    VirAddr const contextBStackTop(contextBStack - 4 * 0x1000);
+    VirAddr const contextBStack(stack->highAddress());
     u64* rsp(contextBStack.ptr<u64>());
     // Push the return address.
     rsp -= 1;
@@ -81,7 +77,6 @@ SelfTests::TestResult contextSwitchTest() {
     // Check that the callee-saved registers were not changed.
     TEST_ASSERT(savedRegsOk);
 
-    Stack::free(contextBStackTop);
     return SelfTests::TestResult::Success;
 }
 

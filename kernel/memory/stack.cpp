@@ -6,7 +6,7 @@
 #include <util/panic.hpp>
 #include <datastruct/freelist.hpp>
 
-namespace Stack {
+namespace Memory {
 
 // FIXME: We should only have one such const in the entire code base.
 static constexpr u64 PAGE_SIZE = 0x1000;
@@ -51,8 +51,9 @@ private:
     DataStruct::EmbeddedFreeList m_freeList;
 
     // The current start of the virtual memory area used for stack allocation.
-    // We start at addres 0xffff...ffff + 1 = 0x0.
-    VirAddr m_arenaStart;
+    // Starting at -0x1000 is required because Stack::m_high is inclusive and we
+    // cannot represent address 0x10000000000000000.
+    VirAddr m_arenaStart = -0x1000;
 
     // Grow the virtual memory arena used to allocate stacks.
     // @param numPages: The number of pages to add to the arena.
@@ -79,20 +80,12 @@ private:
     }
 };
 
-// Special function to catch cpus that may attempt to return after switching to
-// a new stack. allocate() craft a special stack frame at the bottom of
-// allocated stacks to "return" to this function instead of returning to an
-// arbitrary address.
-static void limbo() {
-    PANIC("Cpu {} attempted a return on an empty stack", Smp::id());
-}
-
 static Allocator StackAllocator;
 static Concurrency::SpinLock StackAllocatorLock;
 
 // Allocate a new stack in kernel virtual memory to be used by a CPU.
-// @return: The virtual address of the _top_ of the allocated stack.
-Res<VirAddr> allocate() {
+// @return: The low address of the stack.
+static Res<VirAddr> allocate() {
     Concurrency::LockGuard guard(StackAllocatorLock);
     Res<VirAddr> const allocRes(StackAllocator.alloc());
     if (!allocRes) {
@@ -102,23 +95,65 @@ Res<VirAddr> allocate() {
     u64 const stackSize(DEFAULT_STACK_PAGES * PAGE_SIZE);
     VirAddr const stackTop(allocRes.value() + stackSize);
     VirAddr const stackBot(allocRes.value());
-
-    Log::debug("Allocated {} bytes stack {}-{}", stackSize, stackBot, stackTop);
-
-    // Craft a special stack frame at the top of the stack so that if the cpu
-    // using this stack ever returns when it is not supposed to, it jumps to
-    // limbo() instead of a random address.
-    // Return address.
-    *((stackTop - 8).ptr<void(*)()>()) = limbo;
-    return stackTop - 8;
+    Log::debug("Allocated stack {}-{}", stackBot, stackTop);
+    return stackBot;
 }
 
 // De-allocate a stack in kernel virtual memory.
-// @param stack: The stack to de-allocate.
-void free(VirAddr const stack) {
+// @param stack: The stack to de-allocate. This should be the low address of the
+// stack, ie the address that was returned by the allocate call.
+static void free(VirAddr const stack) {
     Concurrency::LockGuard guard(StackAllocatorLock);
     StackAllocator.free(stack);
+    u64 const stackSize(DEFAULT_STACK_PAGES * PAGE_SIZE);
+    VirAddr const stackTop(stack + stackSize);
+    VirAddr const stackBot(stack);
+    Log::debug("De-allocated stack {}-{}", stackBot, stackTop);
 }
+
+// Allocate a new stack in memory.
+// @return: A pointer to the Stack instance associated with the allocated
+// stack or an error, if any.
+Res<Ptr<Stack>> Stack::New() {
+    Res<VirAddr> const allocRes(allocate());
+    if (!allocRes) {
+        return allocRes.error();
+    }
+
+    // FIXME: For now, all stacks have the same hardcoded size.
+    u64 const stackSize(DEFAULT_STACK_PAGES * PAGE_SIZE);
+    VirAddr const low(allocRes.value());
+    VirAddr const high(low + stackSize);
+
+    // FIXME: We need to introduce a shortcut to perform those
+    // if-alloc-ok-else-error schenanigans.
+    Ptr<Stack> const stack(Ptr<Stack>::New(low, high));
+    if (!stack) {
+        return Error::MaxHeapSizeReached;
+    } else {
+        return stack;
+    }
+}
+
+// De-allocate the associated memory upon destruction.
+Stack::~Stack() {
+    free(m_low);
+}
+
+// Get the high address of this stack.
+VirAddr Stack::highAddress() const {
+    return m_high;
+}
+
+// Create a Stack instance.
+// @param low: Low address of the stack.
+// @param high: High address of the stack.
+Stack::Stack(VirAddr const low, VirAddr const high) : m_low(low), m_high(high) {
+    ASSERT(low < high);
+    ASSERT(low.isPageAligned());
+    ASSERT(high.isPageAligned());
+}
+
 
 // Change the stack pointer to the new top and jump to the given location. This
 // function does not return.

@@ -154,11 +154,15 @@ extern "C" void kernelMain(BootStruct const * const bootStruct) {
     // Now that the kernel has been initialized, we can switch to a proper stack
     // instead of staying on the minuscule one that was used throughout the
     // bootloader.
-    Res<VirAddr> const stackAllocRes(Stack::allocate());
+    Res<Ptr<Memory::Stack>> const stackAllocRes(Memory::Stack::New());
     if (!stackAllocRes) {
         PANIC("Cannot allocate a stack for the BSP: {}", stackAllocRes.error());
     }
-    Stack::switchToStack(stackAllocRes.value(), stackSwitchTarget);
+    Ptr<Memory::Stack> const stack(stackAllocRes.value());
+    // Keep a reference to the kernel stack to avoid it being de-allocated.
+    Smp::PerCpu::data().kernelStack = stack;
+
+    Memory::switchToStack(stack->highAddress(), stackSwitchTarget);
 
     UNREACHABLE
 }

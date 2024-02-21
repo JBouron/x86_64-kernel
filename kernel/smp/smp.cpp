@@ -10,6 +10,7 @@
 #include <util/panic.hpp>
 #include <concurrency/atomic.hpp>
 #include <paging/paging.hpp>
+#include <smp/percpu.hpp>
 
 namespace Smp {
 
@@ -360,11 +361,15 @@ extern "C" void finalizeApplicationProcessorStartup(
     Interrupts::lapic();
 
     // Allocate a stack for this cpu.
-    Res<VirAddr> const stackAllocRes(Stack::allocate());
+    Res<Ptr<Memory::Stack>> const stackAllocRes(Memory::Stack::New());
     if (!stackAllocRes) {
         PANIC("Could not allocate a stack for AP {}, reason: {}",
             Smp::id(), stackAllocRes.error());
     }
+    Ptr<Memory::Stack> const stack(stackAllocRes.value());
+
+    // Keep a reference to the kernel stack to avoid it being de-allocated.
+    Smp::PerCpu::data().kernelStack = stack;
 
     // Use a trampoline to avoid a race condition when waking APs one after the
     // others. This trampoline makes sure that the AP writes into apStartFlag
@@ -388,9 +393,9 @@ extern "C" void finalizeApplicationProcessorStartup(
     });
 
     // Switch to the new stack and jump to the target.
-    Stack::switchToStack(stackAllocRes.value(),
-                         trampoline,
-                         reinterpret_cast<u64>(info));
+    Memory::switchToStack(stack->highAddress(),
+                          trampoline,
+                          reinterpret_cast<u64>(info));
     UNREACHABLE
 }
 }

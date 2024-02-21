@@ -2,17 +2,53 @@
 #pragma once
 #include <util/addr.hpp>
 #include <util/result.hpp>
+#include <util/ptr.hpp>
 
-namespace Stack {
+namespace Memory {
 
-// Allocate a new stack in kernel virtual memory to be used by a CPU.
-// @return: The virtual address of the _top_ of the allocated stack, or any
-// error.
-Res<VirAddr> allocate();
+// Describes a stack that has been allocated in kernel virtual memory. This
+// class uses RAII in the sense that the destructor automatically de-allocate
+// the virtual memory used by this stack.
+// A Stack instance has ownership of the memory it covers. As such the type is
+// non-copyable and non-copy-assignable to avoid having multiple Stack instances
+// referring to the same memory.
+class Stack {
+public:
+    // Allocate a new stack in memory.
+    // @return: A pointer to the Stack instance associated with the allocated
+    // stack or an error, if any.
+    static Res<Ptr<Stack>> New();
 
-// De-allocate a stack in kernel virtual memory.
-// @param stack: The stack to de-allocate.
-void free(VirAddr const stack);
+    // De-allocate the associated memory upon destruction.
+    ~Stack();
+
+    // Stacks are not copyable nor assignable. This is to avoid having two
+    // instances claiming ownership of the same memory.
+    Stack(Stack const&) = delete;
+    Stack& operator=(Stack const&) = delete;
+
+    // For now the move constructor and assignment are also deleted as we don't
+    // need them. This might change in the future.
+    Stack(Stack&&) = delete;
+    Stack& operator=(Stack&&) = delete;
+
+    // Get the high address of this stack.
+    VirAddr highAddress() const;
+
+private:
+    // Create a Stack instance.
+    // @param low: Low address of the stack.
+    // @param high: High address of the stack.
+    Stack(VirAddr const low, VirAddr const high);
+
+    // Needed to access private constructor.
+    friend Ptr<Stack>;
+
+    // Lowest address contained in the stack.
+    VirAddr m_low;
+    // Highest address contained in the stack.
+    VirAddr m_high;
+};
 
 // Change the stack pointer to the new top and jump to the given location. This
 // function does NOT return.

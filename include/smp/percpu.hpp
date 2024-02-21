@@ -6,6 +6,7 @@
 #include <interrupts/ipi.hpp>
 #include <concurrency/lock.hpp>
 #include <util/ptr.hpp>
+#include <memory/stack.hpp>
 
 namespace Smp::PerCpu {
 
@@ -13,6 +14,8 @@ namespace Smp::PerCpu {
 // system. Cpus can access their or other cpu's Data through data() and
 // data(id).
 struct Data {
+    // The kernel/boot stack used by this cpu.
+    Ptr<Memory::Stack> kernelStack;
     // Lock for the remoteCallQueue.
     Concurrency::SpinLock remoteCallQueueLock;
     // Queue of remote calls to be executed on this cpu.
