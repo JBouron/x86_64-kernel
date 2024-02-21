@@ -27,6 +27,7 @@
 #include <interrupts/ipi.hpp>
 #include <smp/remotecall.hpp>
 #include <util/ptr.hpp>
+#include <sched/sched.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -73,6 +74,7 @@ static void runSelfTests() {
     Smp::RemoteCall::Test(runner);
     Concurrency::Test(runner);
     SmartPtr::Test(runner);
+    Sched::Test(runner);
 
     runner.printSummary();
 }
