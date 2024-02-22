@@ -3,6 +3,7 @@
 #include <framealloc/framealloc.hpp>
 #include <interrupts/interrupts.hpp>
 #include <selftests/macros.hpp>
+#include <paging/addrspace.hpp>
 
 namespace Paging {
 
@@ -180,11 +181,87 @@ SelfTests::TestResult unmapTest() {
     return SelfTests::TestResult::Success;
 }
 
+// Check that switch between address spaces work as expected.
+SelfTests::TestResult addrSpaceTest() {
+    // This test performs the following steps:
+    //  1. Allocate AddrSpace A.
+    //  2. Switch to A1 and map address X
+    //  3. Switch back to the previous address space.
+    //  4. Attempt to write to X, this should generate a page fault.
+    //  5. In the page-fault handler, switch to address space A and return.
+    //  6. The write should now complete.
+    static Ptr<AddrSpace> addrSpace;
+    addrSpace = AddrSpace::New().value();
+
+    u64 const oldCr3(Cpu::cr3());
+    u64 const pml4Mask(~(PAGE_SIZE - 1));
+    PhyAddr const oldPml4(oldCr3 & pml4Mask);
+
+    // Sanity check, the address space uses a different PML4.
+    TEST_ASSERT(oldPml4 != addrSpace->pml4Address());
+
+    // Switch to the new address space.
+    AddrSpace::switchAddrSpace(addrSpace);
+    TEST_ASSERT((Cpu::cr3() & pml4Mask) == addrSpace->pml4Address().raw());
+
+    // Map the address.
+    Frame const tempFrame(FrameAlloc::alloc().value());
+    // Make sure this is a user address so we don't interfere with the original
+    // address space.
+    static VirAddr const tempAddr(0xcafe000);
+
+    TEST_ASSERT(!Paging::map(tempAddr,
+                             tempFrame.addr(),
+                             Paging::PageAttr::Writable,
+                             1));
+
+    // At this point we should be able to write.
+    *tempAddr.ptr<u64>() = 0xdead;
+
+    // Manually switch back to the previous address space. We cannot use
+    // AddrSpace::switchAddrSpace since we don't have an AddrSpace instance for
+    // the boot address space.
+    AddrSpace::switchAddrSpace(oldPml4);
+
+    static u64 pageFaultAddr;
+
+    auto const pageFaultHandler([](Interrupts::Vector const,
+                                   Interrupts::Frame const&) {
+        pageFaultAddr = Cpu::cr2();
+        Log::debug("Page fault on address {x}, cr3 = {x}", pageFaultAddr,
+                   Cpu::cr3());
+        AddrSpace::switchAddrSpace(addrSpace);
+    });
+    Interrupts::registerHandler(Interrupts::Vector(14), pageFaultHandler);
+
+    // Try to write at the tempAddr. Since we reverted back to the original
+    // address space this should generate a page-fault.
+    TEST_ASSERT((Cpu::cr3() & pml4Mask) != addrSpace->pml4Address().raw());
+    pageFaultAddr = 0;
+    *tempAddr.ptr<u64>() = 0xbeef;
+    // At this point the page fault handler was called and changed our addrses
+    // space so that the write could complete.
+    TEST_ASSERT((Cpu::cr3() & pml4Mask) == addrSpace->pml4Address().raw());
+    TEST_ASSERT(pageFaultAddr == tempAddr.raw());
+    TEST_ASSERT(*tempAddr.ptr<u64>() == 0xbeef);
+
+    // Revert to the original address space before returning.
+    AddrSpace::switchAddrSpace(oldPml4);
+
+    // Make sure the AddrSpace is freed. This will automatically un-map the
+    // mapping above and de-allocate all page-tables that were allocated for
+    // this mapping.
+    addrSpace = Ptr<AddrSpace>();
+
+    return SelfTests::TestResult::Success;
+}
+
 // Run paging tests.
 void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, mapTest);
     RUN_TEST(runner, mapAttrsTest);
     RUN_TEST(runner, unmapTest);
+    RUN_TEST(runner, addrSpaceTest);
 }
 
 }
