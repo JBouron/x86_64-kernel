@@ -274,3 +274,10 @@ _readRflags:
     pushfq
     pop     rax
     ret
+
+; extern "C" u64 rsp()
+GLOBAL  getRsp:function
+getRsp:
+    mov     rax, rsp
+    add     rax, 8
+    ret

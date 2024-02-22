@@ -221,4 +221,9 @@ void setInterruptFlag(bool const ifValue);
 // @return: true if the interrupts are enabled, false otherwise.
 bool interruptsEnabled();
 
+// Get the value of the RSP register.
+// @return: The value of RSP when the call instruction jumping to this function
+// was executed.
+extern "C" u64 getRsp();
+
 }
