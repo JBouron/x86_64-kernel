@@ -32,7 +32,8 @@ public:
     Stack(Stack&&) = delete;
     Stack& operator=(Stack&&) = delete;
 
-    // Get the high address of this stack.
+    // Get the low or high address of this stack.
+    VirAddr lowAddress() const;
     VirAddr highAddress() const;
 
 private:

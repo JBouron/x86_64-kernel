@@ -140,7 +140,11 @@ Stack::~Stack() {
     free(m_low);
 }
 
-// Get the high address of this stack.
+// Get the low or high address of this stack.
+VirAddr Stack::lowAddress() const {
+    return m_low;
+}
+
 VirAddr Stack::highAddress() const {
     return m_high;
 }
