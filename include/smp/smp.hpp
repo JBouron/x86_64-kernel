@@ -32,6 +32,11 @@ u64 ncpus();
 // @param entryPoint: The 64-bit entry point to which the application processor
 // branches to once awaken.
 void startupApplicationProcessor(Id const id, void (*entryPoint64Bits)(void));
+// Overload where the entry point is a small function looking as follows:
+//  while true:
+//      sti
+//      hlt
+void startupApplicationProcessor(Id const id);
 
 // Run SMP tests.
 void Test(SelfTests::TestRunner& runner);

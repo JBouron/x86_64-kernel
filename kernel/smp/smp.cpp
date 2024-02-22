@@ -336,6 +336,18 @@ void startupApplicationProcessor(Id const id, void (*entryPoint64Bits)(void)) {
     }
 }
 
+void startupApplicationProcessor(Id const id) {
+    // Default arget for the APs.
+    auto const apTarget([]() {
+        Log::info("CPU {} online", Smp::id());
+        while (true) {
+            asm("sti");
+            asm("hlt");
+        }
+    });
+    startupApplicationProcessor(id, apTarget);
+}
+
 // Function called by an application processor during the startup routine, after
 // switching to 64-bits mode.
 // This function finalizes the AP configuration, ie. switches to the final GDT,

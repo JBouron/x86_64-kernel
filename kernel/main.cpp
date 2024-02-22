@@ -36,19 +36,10 @@
 // Wake up all Application Processor and put them in a while(true) { halt() }
 // loop.
 static void wakeAps() {
-    // Target for the APs.
-    auto const apTarget([]() {
-        Log::info("CPU {} online", Smp::id());
-        while (true) {
-            asm("sti");
-            asm("hlt");
-        }
-    });
-
     u32 const numCpus(Smp::ncpus());
     Log::info("Waking all {} AP(s) in the system", numCpus-1);
     for (Smp::Id id(1); id < numCpus; ++id) {
-        Smp::startupApplicationProcessor(id, apTarget);
+        Smp::startupApplicationProcessor(id);
     }
 }
 
