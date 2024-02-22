@@ -372,16 +372,23 @@ extern "C" void finalizeApplicationProcessorStartup(
     // Configure this cpu's LAPIC.
     Interrupts::lapic();
 
-    // Allocate a stack for this cpu.
-    Res<Ptr<Memory::Stack>> const stackAllocRes(Memory::Stack::New());
-    if (!stackAllocRes) {
-        PANIC("Could not allocate a stack for AP {}, reason: {}",
-            Smp::id(), stackAllocRes.error());
-    }
-    Ptr<Memory::Stack> const stack(stackAllocRes.value());
+    // Allocate a stack for this cpu. We MUST do this in its own scope in order
+    // to avoid keeping Ptr<Memory::Stack> around when calling switchToStack
+    // further below as otherwise those Ptr will never have their destructor
+    // called leading to the Memory::Stack never being de-allocated.
+    // Why would the stack used by a cpu ever be de-allocated? During testing,
+    // if the cpu was used for a test and restarted.
+    {
+        Res<Ptr<Memory::Stack>> const stackAllocRes(Memory::Stack::New());
+        if (!stackAllocRes) {
+            PANIC("Could not allocate a stack for AP {}, reason: {}",
+                Smp::id(), stackAllocRes.error());
+        }
 
-    // Keep a reference to the kernel stack to avoid it being de-allocated.
-    Smp::PerCpu::data().kernelStack = stack;
+        // Keep a reference to the kernel stack to avoid it being de-allocated.
+        Smp::PerCpu::data().kernelStack = stackAllocRes.value();
+    }
+    VirAddr const stackHighAddr(Smp::PerCpu::data().kernelStack->highAddress());
 
     // Use a trampoline to avoid a race condition when waking APs one after the
     // others. This trampoline makes sure that the AP writes into apStartFlag
@@ -405,7 +412,7 @@ extern "C" void finalizeApplicationProcessorStartup(
     });
 
     // Switch to the new stack and jump to the target.
-    Memory::switchToStack(stack->highAddress(),
+    Memory::switchToStack(stackHighAddr,
                           trampoline,
                           reinterpret_cast<u64>(info));
     UNREACHABLE
