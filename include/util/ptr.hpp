@@ -5,6 +5,9 @@
 #include <selftests/selftests.hpp>
 #include <util/assert.hpp>
 
+// See comment in Ptr<T>::Ptr<T>(T*) for why this is needed.
+extern Atomic<u64> _nullPtrRefCnt;
+
 // A smart pointer to a object of type T allocated on the heap. A Ptr<T> keeps
 // track of the reference count of the object it points to. Copying a Ptr<T>
 // creates a _new_ reference to that object, increasing the reference count.
@@ -104,7 +107,21 @@ public:
     }
 
 private:
-    Ptr(T* ptr) : m_ptr(ptr), m_refCount(new Atomic<u64>(1)) {}
+    // Create a Ptr<T> from a raw pointer. This constructor is private because
+    // we cannot keep track of the references to a random pointer without us
+    // creating it through New().
+    // @param ptr: The pointer.
+    // Note: We use a nice little trick for nullptrs. Instead of allocating an
+    // Atomic<u64>, we use the address of an Atomic<u64> in the .data section.
+    // We don't really care about the value of this refCount since null pointers
+    // are never freed. However, this trick allows us to skip the allocation in
+    // the default constructor Ptr<T>(), therefore global Ptr<T> variables don't
+    // try to allocate memory when their constructor is called long before
+    // kernel init. The other solution to this would be to set the m_refCount
+    // pointer to nullptr as well, however this would mean having to null-check
+    // this refcount everywhere it is used or copied, polluting the impl.
+    Ptr(T* ptr) : m_ptr(ptr),
+                  m_refCount(!!ptr ? (new Atomic<u64>(1)) : &_nullPtrRefCnt) {}
 
     // Reset this Ptr<T> by decrementing the ref count and de-allocating the
     // referenced object if this was the last reference. m_ptr is set to nullptr
