@@ -232,7 +232,7 @@ SelfTests::TestResult addrSpaceTest() {
                    Cpu::cr3());
         AddrSpace::switchAddrSpace(addrSpace);
     });
-    Interrupts::registerHandler(Interrupts::Vector(14), pageFaultHandler);
+    TemporaryInterruptHandlerGuard gd(Interrupts::Vector(14), pageFaultHandler);
 
     // Try to write at the tempAddr. Since we reverted back to the original
     // address space this should generate a page-fault.

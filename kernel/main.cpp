@@ -124,6 +124,7 @@ static void initKernel(BootStruct const * const bootStruct) {
 static void stackSwitchTarget() {
     runSelfTests();
 
+    // This may only work on QEMU.
     Log::info("Shutting down");
     Cpu::outw(0x604, 0x2000);
 
