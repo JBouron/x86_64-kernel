@@ -181,6 +181,17 @@ _outb:
     out     dx, al
     ret
 
+; Implementation of outw() in assembly.
+; @param port: The port to output into.
+; @param value: The word to write to the port.
+; extern "C" void _outw(u16 const port, u16 const value);
+GLOBAL  _outw:function
+_outw:
+    mov     dx, di
+    mov     ax, si
+    out     dx, ax
+    ret
+
 ;  Implementation of inb() in assembly.
 ;  @param port: The port to read from.
 ;  @return: The byte read from the port.

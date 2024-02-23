@@ -206,6 +206,18 @@ void writeCr3(u64 const value) {
 }
 
 
+// Implementation of outw() in assembly.
+// @param port: The port to output into.
+// @param value: The word to write to the port.
+extern "C" void _outw(u32 const port, u16 const value);
+
+// Output a word in an I/O port.
+// @param port: The port to output into.
+// @param value: The word to write to the port.
+void outw(Port const port, u16 const value) {
+    _outw(port, value);
+}
+
 // Implementation of outb() in assembly.
 // @param port: The port to output into.
 // @param value: The byte to write to the port.

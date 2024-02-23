@@ -26,8 +26,8 @@ CXXFLAGS := -ffreestanding -Wall -Wextra -Werror -fno-exceptions -fno-rtti \
 KERNEL_IMG_NAME := kernel.img
 DISK_IMG_NAME := disk.img
 
-QEMU_FLAGS := -drive file=$(DISK_IMG_NAME),format=raw -s -no-shutdown \
-			  -no-reboot -nographic -enable-kvm -smp 4
+QEMU_FLAGS := -drive file=$(DISK_IMG_NAME),format=raw -s -no-reboot -nographic \
+			  -enable-kvm -smp 4
 
 # Source files
 # ============

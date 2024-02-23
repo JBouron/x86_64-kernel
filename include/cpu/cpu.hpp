@@ -162,6 +162,11 @@ using Port = u16;
 // @param value: The byte to write to the port.
 void outb(Port const port, u8 const value);
 
+// Output a word in an I/O port.
+// @param port: The port to output into.
+// @param value: The word to write to the port.
+void outw(Port const port, u16 const value);
+
 // Read a byte from an I/O port.
 // @param port: The port to read from.
 // @return: The byte read from the port.
