@@ -17,7 +17,13 @@ Res<Ptr<Proc>> Proc::New(Id const id) {
     }
     Ptr<Memory::Stack> const kernelStack(stackAllocRes.value());
 
-    Ptr<Proc> const proc(Ptr<Proc>::New(id, kernelStack));
+    Res<Ptr<Paging::AddrSpace>> const addrSpaceAlloc(Paging::AddrSpace::New());
+    if (!addrSpaceAlloc) {
+        return addrSpaceAlloc.error();
+    }
+    Ptr<Paging::AddrSpace> const addrSpace(addrSpaceAlloc.value());
+
+    Ptr<Proc> const proc(Ptr<Proc>::New(id, addrSpace, kernelStack));
     if (!proc) {
         return Error::MaxHeapSizeReached;
     } else {
@@ -76,8 +82,11 @@ Proc::Id Proc::id() const {
 // Create a process.
 // @param id: The unique identifier of the process.
 // @param kernelStack: The kernel stack to be used by this process.
-Proc::Proc(Id const id, Ptr<Memory::Stack> const kernelStack) :
+Proc::Proc(Id const id,
+           Ptr<Paging::AddrSpace> const& addrSpace,
+           Ptr<Memory::Stack> const& kernelStack) :
     m_id(id),
+    m_addrSpace(addrSpace),
     m_kernelStack(kernelStack),
     m_savedKernelStackPointer(kernelStack->highAddress()) {}
 
@@ -90,14 +99,17 @@ void Proc::jumpToContext(Ptr<Proc> const& to) {
     // Save the current stack pointer on a dummy variable, we will _NOT_ return
     // to this stack ever.
     u64 dummy;
+    Paging::AddrSpace::switchAddrSpace(to->m_addrSpace);
     Sched::contextSwitch(to->m_savedKernelStackPointer, &dummy);
 }
 
-// Switch from the current context to another process' context.
+// Switch from the current context to another process' context and address
+// space.
 // @param curr: The Proc associated with the current context. This function
 // saves the current context in this Proc.
 // @param to: The process to switch execution to.
 void Proc::contextSwitch(Ptr<Proc> const& curr, Ptr<Proc> const& to) {
+    Paging::AddrSpace::switchAddrSpace(to->m_addrSpace);
     Sched::contextSwitch(to->m_savedKernelStackPointer,
                          &curr->m_savedKernelStackPointer);
 }

@@ -4,6 +4,7 @@
 #include <util/addr.hpp>
 #include <memory/stack.hpp>
 #include <selftests/selftests.hpp>
+#include <paging/addrspace.hpp>
 
 namespace Sched {
 
@@ -37,7 +38,8 @@ public:
     // @param to: The process to switch to.
     static void jumpToContext(Ptr<Proc> const& to);
 
-    // Switch from the current context to another process' context.
+    // Switch from the current context to another process' context and address
+    // space.
     // @param curr: The Proc associated with the current context. This function
     // saves the current context in this Proc.
     // @param to: The process to switch execution to.
@@ -46,8 +48,11 @@ public:
 protected:
     // Create a process.
     // @param id: The unique identifier of the process.
+    // @param addrSpace: The address space of the process.
     // @param kernelStack: The kernel stack to be used by this process.
-    Proc(Id const id, Ptr<Memory::Stack> const kernelStack);
+    Proc(Id const id,
+         Ptr<Paging::AddrSpace> const& addrSpace,
+         Ptr<Memory::Stack> const& kernelStack);
 
     // Needed to invoke the constructor.
     friend Ptr<Proc>;
@@ -56,6 +61,8 @@ protected:
 
     // The unique identifier of this process.
     Id m_id;
+    // The address space of this process.
+    Ptr<Paging::AddrSpace> m_addrSpace;
     // The kernel stack used by the process.
     Ptr<Memory::Stack> m_kernelStack;
     // The saved RSP of this process during the last context switch.

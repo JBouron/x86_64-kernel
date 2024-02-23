@@ -97,6 +97,9 @@ SelfTests::TestResult procCreationAndJumpTest() {
     // Set to the value of the RSP register at the beginning of procFunc. Used
     // to assert that the stack indeed switched.
     static u64 procFuncRsp;
+    // Set to the address of the loaded PML4 at the beginning of procFunc. Used
+    // to assert that the address space indeed switched.
+    static u64 procFuncPml4;
     // The code executed by the test process. Set the procFuncRsp and
     // procFuncExecutedFlag and halt forever.
     // The function cannot return, hence put the cpu into an infinite halt
@@ -105,12 +108,15 @@ SelfTests::TestResult procCreationAndJumpTest() {
         Log::debug("Running process context on cpu {}", Smp::id());
         procFuncRsp = Cpu::getRsp();
         Log::debug("RSP = {x}", procFuncRsp);
+        procFuncPml4 = Cpu::cr3() & ~(PAGE_SIZE - 1);
+        Log::debug("PML4 = {x}", procFuncPml4);
         procFuncExecutedFlag = true;
         while (true) {
             asm("hlt");
         }
     });
     procFuncRsp = 0;
+    procFuncPml4 = 0;
     procFuncExecutedFlag = false;
 
     // Proc is static so that destCpu can access it further below.
@@ -137,9 +143,12 @@ SelfTests::TestResult procCreationAndJumpTest() {
 
     // Check that the stack pointer when running in the process context was
     // within the process' kernel stack.
+    // FIXME: Phy/VirAddr cannot be directly compared with u64s.
     Ptr<Memory::Stack> const procStack(proc->m_kernelStack);
     TEST_ASSERT(procStack->lowAddress() <= procFuncRsp
                 && procFuncRsp < procStack->highAddress().raw());
+    // Check that the address space changed when switching to the process.
+    TEST_ASSERT(procFuncPml4 == proc->m_addrSpace->pml4Address().raw());
     // As a sanity check, we also check that the stack pointer is not contained
     // in the remote cpu's boot stack.
     Ptr<Memory::Stack> const destCpuStack(
