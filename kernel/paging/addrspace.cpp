@@ -8,6 +8,27 @@
 #include <logging/log.hpp>
 
 namespace Paging {
+
+static bool IsInitialized = false;
+
+// The address space that was used on boot. This address space comes all the way
+// from the bootloader. The boot cpu create this AddrSpace from the value of the
+// cr3 it got from the bootloader.
+static Ptr<AddrSpace> BootAddrSpace;
+
+// Initialize the kernel AddrSpace.
+void InitAddrSpace() {
+    PhyAddr const pml4(Cpu::cr3() & ~(PAGE_SIZE - 1));
+    BootAddrSpace = Ptr<AddrSpace>::New(pml4);
+    IsInitialized = true;
+}
+
+// Get a pointer to the AddrSpace used by cores during boot.
+Ptr<AddrSpace> bootAddrSpace() {
+    ASSERT(IsInitialized);
+    return BootAddrSpace;
+}
+
 // Create a new address space. The new address space shares the mapping of
 // kernel addresses used by the current address space. The user addresses are
 // un-mapped.

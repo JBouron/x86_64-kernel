@@ -11,6 +11,7 @@
 #include <concurrency/atomic.hpp>
 #include <paging/paging.hpp>
 #include <smp/percpu.hpp>
+#include <paging/addrspace.hpp>
 
 namespace Smp {
 
@@ -368,6 +369,9 @@ extern "C" void finalizeApplicationProcessorStartup(
 
     // Finish paging configuration.
     Paging::InitCurrCpu();
+
+    // Switch to the boot address space.
+    Paging::AddrSpace::switchAddrSpace(Paging::bootAddrSpace());
 
     // Configure this cpu's LAPIC.
     Interrupts::lapic();

@@ -28,6 +28,7 @@
 #include <smp/remotecall.hpp>
 #include <util/ptr.hpp>
 #include <sched/sched.hpp>
+#include <paging/addrspace.hpp>
 
 #include "interrupts/ioapic.hpp"
 
@@ -110,6 +111,7 @@ static void initKernel(BootStruct const * const bootStruct) {
     // Initialize heap allocation as soon as possible, as other initialization
     // procedures may require dynamic allocations.
     HeapAlloc::Init();
+    Paging::InitAddrSpace();
     // ACPI info must be parsed before initializing LAPIC and I/O APIC(s) as it
     // contains info about them.
     Acpi::Init();

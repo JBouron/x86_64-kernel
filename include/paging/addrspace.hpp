@@ -7,6 +7,9 @@
 
 namespace Paging {
 
+// Initialize the boot AddrSpace.
+void InitAddrSpace();
+
 // Represents an address space. This RAII-style object takes care of allocating
 // page-tables upon init and de-allocating them upon deletion. All address space
 // share the same kernel mapping, ie. the second half of their PML4 entries are
@@ -38,6 +41,8 @@ private:
     // @param pml4: Physical address of the top-level page table.
     AddrSpace(PhyAddr const pml4);
     friend Ptr<AddrSpace>;
+    // Needed to create the bootAddrSpace.
+    friend void InitAddrSpace();
 
     // AddrSpaces are not copyable. This is because they own the page-tables
     // under m_pml4Address.
@@ -49,4 +54,7 @@ private:
 
     PhyAddr m_pml4Address;
 };
+
+// Get a pointer to the AddrSpace used by cores during boot.
+Ptr<AddrSpace> bootAddrSpace();
 }
