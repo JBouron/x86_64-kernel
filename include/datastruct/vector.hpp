@@ -1,11 +1,13 @@
 // Definition of the Vector<T> type representing a dynamic size array.
 #pragma once
 #include <memory/malloc.hpp>
+#include <util/subrange.hpp>
 
 // Placement new operator. For some reason, g++ cannot find this operator if it
 // is defined in malloc.cpp with other operators, hence putting it here. Note
 // that using this operator is pretty dangerous as it does not care where the
-// caller is trying to allocate.
+// caller is trying to allocate. It is only meant to be used by the Vector
+// implementation, no-one else should use this.
 inline void *operator new(u64, void * placement) {
     return placement;
 }
@@ -121,6 +123,16 @@ public:
     T& operator[](u64 const index) {
         ASSERT(index < m_size);
         return m_array[index];
+    }
+
+    // operator[] overloads using a SubRange as an index.
+    template<typename Impl, u64 _Min, u64 _Max, u64 _Default>
+    T const& operator[](SubRange<Impl,_Min,_Max,_Default> const& index) const {
+        return operator[](index.raw());
+    }
+    template<typename Impl, u64 _Min, u64 _Max, u64 _Default>
+    T& operator[](SubRange<Impl,_Min,_Max,_Default> const& index) {
+        return operator[](index.raw());
     }
 
     // Return the size of the vector.

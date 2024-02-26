@@ -520,7 +520,7 @@ void InitLapic() {
 Lapic& lapic() {
     ASSERT(IsInitialized);
     Smp::Id const id(Smp::id());
-	if (!LocalApics[id.raw()]) {
+	if (!LocalApics[id]) {
         Log::info("Initializing local APIC on cpu {}", id);
         // Get the local APIC's base.
         u64 const apicBaseMsr(Cpu::rdmsr(Cpu::Msr::IA32_APIC_BASE));
@@ -529,9 +529,9 @@ Lapic& lapic() {
         Log::info("Local APIC base = {}", localApicBase);
         ASSERT(localApicBase.isPageAligned());
 
-        LocalApics[id.raw()] = Ptr<Lapic>::New(localApicBase);
+        LocalApics[id] = Ptr<Lapic>::New(localApicBase);
         Log::info("Local APIC initialization on cpu {} done", id);
     }
-    return *LocalApics[id.raw()];
+    return *LocalApics[id];
 }
 }

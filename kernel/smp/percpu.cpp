@@ -30,13 +30,13 @@ Data& data() {
     ASSERT(IsInitialized);
     // FIXME: Smp::id() relies on executing the CPUID instruction to get this
     // cpu id which is extremely slow.
-    return perCpuDataVec[Smp::id().raw()];
+    return perCpuDataVec[Smp::id()];
 }
 
 // Get a reference to the per-cpu data of the cpu with the given Id.
 // @return: A non-const reference to cpu `cpuId`'s Data instance.
 Data& data(Id const& cpuId) {
     ASSERT(IsInitialized);
-    return perCpuDataVec[cpuId.raw()];
+    return perCpuDataVec[cpuId];
 }
 }
