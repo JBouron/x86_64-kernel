@@ -78,6 +78,20 @@ public:
         return *this;
     }
 
+    // Compare two smart pointers for equality. Two smart pointers are equal if
+    // they refer to the same object T.
+    // @param other: The smart pointer to compare against.
+    // @return: true if both pointers are referring to the same object, false
+    // otherwise.
+    bool operator==(Ptr const& other) const {
+        // We should never have a situation where two smart pointer have the
+        // same m_ptr but different m_refCount, because the constructor taking a
+        // raw pointer is private. In other words:
+        //      m_ptr == other.m_ptr => m_refCount == other.m_refCount.
+        ASSERT((m_ptr != other.m_ptr) || (m_refCount == other.m_refCount));
+        return m_ptr == other.m_ptr;
+    }
+
     // Get the number of references to the pointer-to object.
     // @return: The current ref-count.
     u64 refCount() const {
