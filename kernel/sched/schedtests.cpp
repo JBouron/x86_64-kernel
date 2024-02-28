@@ -197,6 +197,9 @@ SelfTests::TestResult procContextSwitchTest() {
     //  completely different and at different addresses.
     auto const proc1Code([]() {
         for (u64 i(0); i < numItePerProc; ++i) {
+            ASSERT(Proc1->state() == Proc::State::Running);
+            ASSERT(Proc2->state() == Proc::State::Ready);
+            ASSERT(Proc3->state() == Proc::State::Ready);
             IdVec.pushBack(1);
             // Cannot write true in the flag after the loop as we might not
             // return from the contextSwitch during the last iteration depending
@@ -208,6 +211,9 @@ SelfTests::TestResult procContextSwitchTest() {
     });
     auto const proc2Code([]() {
         for (u64 i(0); i < numItePerProc; ++i) {
+            ASSERT(Proc1->state() == Proc::State::Ready);
+            ASSERT(Proc2->state() == Proc::State::Running);
+            ASSERT(Proc3->state() == Proc::State::Ready);
             IdVec.pushBack(2);
             // Cannot write true in the flag after the loop as we might not
             // return from the contextSwitch during the last iteration depending
@@ -219,6 +225,9 @@ SelfTests::TestResult procContextSwitchTest() {
     });
     auto const proc3Code([]() {
         for (u64 i(0); i < numItePerProc; ++i) {
+            ASSERT(Proc1->state() == Proc::State::Ready);
+            ASSERT(Proc2->state() == Proc::State::Ready);
+            ASSERT(Proc3->state() == Proc::State::Running);
             IdVec.pushBack(3);
             // Cannot write true in the flag after the loop as we might not
             // return from the contextSwitch during the last iteration depending
@@ -233,6 +242,9 @@ SelfTests::TestResult procContextSwitchTest() {
     Proc1 = Proc::New(1, proc1Code).value();
     Proc2 = Proc::New(2, proc2Code).value();
     Proc3 = Proc::New(3, proc3Code).value();
+    TEST_ASSERT(Proc1->state() == Proc::State::Ready);
+    TEST_ASSERT(Proc2->state() == Proc::State::Ready);
+    TEST_ASSERT(Proc3->state() == Proc::State::Ready);
     Proc1Done = false;
     Proc2Done = false;
     Proc3Done = false;

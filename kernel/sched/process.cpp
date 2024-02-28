@@ -71,6 +71,8 @@ Res<Ptr<Proc>> Proc::New(Id const id, void (*func)(void)) {
     }
 
     proc->m_savedKernelStackPointer = reinterpret_cast<u64>(stackPtr);
+    // Processes executing a function are always ready for execution.
+    proc->m_state = State::Ready;
     return proc;
 }
 
@@ -79,7 +81,38 @@ Proc::Id Proc::id() const {
     return m_id;
 }
 
-// Create a process.
+// Get the current state of the process.
+Proc::State Proc::state() const {
+    return m_state;
+}
+
+// Set the current state of the process. Only the following transitions are
+// allowed:
+//   - Blocked -> Ready: The operation that was blocking this process has
+//   completed. The process is now ready to be scheduled.
+//   - Ready -> Running: The process has been scheduled on a cpu. It is now
+//   executing instructions.
+//   - Running -> Ready: The process has been de-scheduled from the cpu it was
+//   running on, ie. it has been preempted. The process is still ready to run,
+//   ie not blocked.
+//   - Running -> Blocked: The process was running but is now waiting on some
+//   operation to complete.
+// Any other transition is disallowed and raises a PANIC as it is most likely
+// due to a bug.
+// @param newState: The state to put the process in.
+void Proc::setState(Proc::State const& newState) {
+    bool const isValidTransition(
+        (m_state == State::Blocked && newState == State::Ready)
+        || (m_state == State::Ready && newState == State::Running)
+        || (m_state == State::Running && newState == State::Ready)
+        || (m_state == State::Running && newState == State::Blocked));
+    if (!isValidTransition) {
+        PANIC("Invalid state transition for proc {}", m_id);
+    }
+    m_state = newState;
+}
+
+// Create a process. The process starts in the blocked state.
 // @param id: The unique identifier of the process.
 // @param kernelStack: The kernel stack to be used by this process.
 Proc::Proc(Id const id,
@@ -88,17 +121,21 @@ Proc::Proc(Id const id,
     m_id(id),
     m_addrSpace(addrSpace),
     m_kernelStack(kernelStack),
-    m_savedKernelStackPointer(kernelStack->highAddress()) {}
+    m_savedKernelStackPointer(kernelStack->highAddress()),
+    m_state(State::Blocked) {}
 
 // Jump to the context of the given process. This function does not save the
 // current context and does not return! This is only meant to be used when
 // switching from the boot satck/context to the very first process running on a
 // cpu since at that point there is no Proc associated with the current context.
-// @param to: The process to switch to.
+// @param to: The process to switch to. This function asserts that this process
+// is in the Ready state and updates its state to Running.
 void Proc::jumpToContext(Ptr<Proc> const& to) {
     // Save the current stack pointer on a dummy variable, we will _NOT_ return
     // to this stack ever.
+    ASSERT(to->state() == State::Ready);
     u64 dummy;
+    to->setState(State::Running);
     Paging::AddrSpace::switchAddrSpace(to->m_addrSpace);
     Sched::contextSwitch(to->m_savedKernelStackPointer, &dummy);
 }
@@ -106,9 +143,18 @@ void Proc::jumpToContext(Ptr<Proc> const& to) {
 // Switch from the current context to another process' context and address
 // space.
 // @param curr: The Proc associated with the current context. This function
-// saves the current context in this Proc.
-// @param to: The process to switch execution to.
+// saves the current context in this Proc. This function asserts that this
+// process is in either the Running or Blocked state. If it is in the Running
+// state, the state is updated to Ready, otherwise the state is untouched and
+// remains in Blocked.
+// @param to: The process to switch execution to. This function asserts that
+// this process is in the Ready state and updates its state to Running.
 void Proc::contextSwitch(Ptr<Proc> const& curr, Ptr<Proc> const& to) {
+    State const currState(curr->state());
+    ASSERT(currState == State::Running || currState == State::Blocked);
+    ASSERT(to->state() == State::Ready);
+    curr->setState(currState == State::Running ? State::Ready : State::Blocked);
+    to->setState(State::Running);
     Paging::AddrSpace::switchAddrSpace(to->m_addrSpace);
     Sched::contextSwitch(to->m_savedKernelStackPointer,
                          &curr->m_savedKernelStackPointer);
