@@ -3,6 +3,7 @@
 #include <datastruct/freelist.hpp>
 #include <selftests/macros.hpp>
 #include "./vectortests.hpp"
+#include "./listtests.hpp"
 
 namespace DataStruct {
 
@@ -252,6 +253,7 @@ SelfTests::TestResult embeddedFreeListAllocMinSizeTest() {
 }
 
 void Test(SelfTests::TestRunner& runner) {
+    // Vector<T> tests.
     RUN_TEST(runner, embeddedFreeListNodeTest);
     RUN_TEST(runner, embeddedFreeListNodeOverlapTest);
     RUN_TEST(runner, embeddedFreeListNodeAdjacentWithTest);
@@ -273,5 +275,17 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, vectorCopyTest);
     RUN_TEST(runner, vectorAssignTest);
     RUN_TEST(runner, vectorComparisonTest);
+
+    // List<T> tests.
+    RUN_TEST(runner, listConstructionTest);
+    RUN_TEST(runner, listPushAndIterationTest);
+    RUN_TEST(runner, listInplaceModificationTest);
+    RUN_TEST(runner, listEraseTest);
+    RUN_TEST(runner, listPopTest);
+    RUN_TEST(runner, listDestructorTest);
+    RUN_TEST(runner, listClearTest);
+    RUN_TEST(runner, listCopyConstructorTest);
+    RUN_TEST(runner, listComparisonTest);
+    RUN_TEST(runner, listAssignmentTest);
 }
 }
