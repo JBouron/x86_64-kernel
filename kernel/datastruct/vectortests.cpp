@@ -1,74 +1,21 @@
 #include "./vectortests.hpp"
 #include <datastruct/vector.hpp>
 #include <selftests/macros.hpp>
-
-struct Counter {
-    u64 defaultConstructor;
-    u64 userConstructor;
-    u64 copyConstructor;
-    u64 moveConstructor;
-
-    u64 assignment;
-
-    u64 destructor;
-
-    void reset() {
-        defaultConstructor = 0;
-        userConstructor = 0;
-        copyConstructor = 0;
-        moveConstructor = 0;
-        assignment = 0;
-        destructor = 0;
-    }
-};
-
-static Counter counter;
-
-class Obj {
-public:
-    Obj() : value(0) {
-        counter.defaultConstructor++;
-    }
-
-    Obj(u64 const val) : value(val) {
-        counter.userConstructor++;
-    }
-
-    Obj(Obj const& other) : value(other.value) {
-        counter.copyConstructor++;
-    }
-
-    Obj(Obj && other) : value(other.value) {
-        counter.moveConstructor++;
-    }
-
-    void operator=(Obj const& other) {
-        value = other.value;
-        counter.assignment++;
-    }
-
-    ~Obj() {
-        counter.destructor++;
-    }
-
-    bool operator==(Obj const& other) const = default;
-
-    u64 value;
-};
+#include "./counterobj.hpp"
 
 namespace DataStruct {
-// Check that a default Vector<Obj> does not allocate any array and does not
-// call any contructor. Its size / capacity is expected to be zero at this
+// Check that a default Vector<CounterObj> does not allocate any array and does
+// not call any contructor. Its size / capacity is expected to be zero at this
 // point.
 SelfTests::TestResult vectorDefaultConstructionTest() {
-    counter.reset();
-    Vector<Obj> vec;
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    CounterObj::counter.reset();
+    Vector<CounterObj> vec;
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     TEST_ASSERT(vec.size() == 0);
     TEST_ASSERT(vec.empty());
@@ -77,143 +24,143 @@ SelfTests::TestResult vectorDefaultConstructionTest() {
 }
 
 SelfTests::TestResult vectorConstructorSizeDefaultValueTest() {
-    counter.reset();
-    Vector<Obj> vec(16);
+    CounterObj::counter.reset();
+    Vector<CounterObj> vec(16);
     TEST_ASSERT(vec.size() == 16);
     TEST_ASSERT(!vec.empty());
     TEST_ASSERT(vec.capacity() == 16);
 
-    TEST_ASSERT(counter.defaultConstructor == 16);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 16);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
     return SelfTests::TestResult::Success;
 }
 
 SelfTests::TestResult vectorConstructorSizeWithValueTest() {
-    Obj const obj;
-    counter.reset();
-    Vector<Obj> vec(32, obj);
+    CounterObj const obj;
+    CounterObj::counter.reset();
+    Vector<CounterObj> vec(32, obj);
     TEST_ASSERT(vec.size() == 32);
     TEST_ASSERT(!vec.empty());
     TEST_ASSERT(vec.capacity() == 32);
 
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 32);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 32);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
     return SelfTests::TestResult::Success;
 }
 
 SelfTests::TestResult vectorDestructorTest() {
     {
-        Vector<Obj> vec(16);
-        counter.reset();
+        Vector<CounterObj> vec(16);
+        CounterObj::counter.reset();
     }
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 16);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 16);
     return SelfTests::TestResult::Success;
 }
 
 SelfTests::TestResult vectorAccessorTest() {
     u64 const vecSize(16);
-    Obj objs[vecSize];
+    CounterObj objs[vecSize];
 
     for (u64 i(0); i < vecSize; ++i) {
-        objs[i] = Obj(i);
+        objs[i] = CounterObj(i);
     }
 
-    Vector<Obj> vec(vecSize);
+    Vector<CounterObj> vec(vecSize);
     // Check that all values are default.
     for (u64 i(0); i < vec.size(); ++i) {
         TEST_ASSERT(!vec[i].value);
     }
 
     // Set all values of the vector to their counter part in objs[].
-    counter.reset();
+    CounterObj::counter.reset();
     for (u64 i(0); i < vec.size(); ++i) {
         vec[i] = objs[i];
     }
     // Check that each assigment lead to calling the assignment operator.
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == vec.size());
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == vec.size());
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     // Now read each element of the vector through a const-ref to the vector.
     // Check that their value member corresponds to their objs[] counter part.
-    Vector<Obj> const& constRef(vec);
+    Vector<CounterObj> const& constRef(vec);
     for (u64 i(0); i < constRef.size(); ++i) {
         TEST_ASSERT(constRef[i].value == objs[i].value);
     }
     // Reading through the const-ref should not have called any constructor,
     // assigment operator or destructor.
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == vec.size());
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == vec.size());
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
     return SelfTests::TestResult::Success;
 }
 
 SelfTests::TestResult vectorClearTest() {
     u64 const vecSize(32);
     {
-        Vector<Obj> vec(vecSize);
-        counter.reset();
+        Vector<CounterObj> vec(vecSize);
+        CounterObj::counter.reset();
         vec.clear();
-        TEST_ASSERT(counter.defaultConstructor == 0);
-        TEST_ASSERT(counter.userConstructor == 0);
-        TEST_ASSERT(counter.copyConstructor == 0);
-        TEST_ASSERT(counter.moveConstructor == 0);
-        TEST_ASSERT(counter.assignment == 0);
-        TEST_ASSERT(counter.destructor == vecSize);
+        TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.assignment == 0);
+        TEST_ASSERT(CounterObj::counter.destructor == vecSize);
         TEST_ASSERT(!vec.size());
         TEST_ASSERT(vec.empty());
     }
     // Double check that destructors are not called twice.
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == vecSize);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == vecSize);
     return SelfTests::TestResult::Success;
 }
 
 SelfTests::TestResult vectorPushBackTest() {
-    Vector<Obj> vec;
-    vec.pushBack(Obj(0));
+    Vector<CounterObj> vec;
+    vec.pushBack(CounterObj(0));
 
     u64 const numElems(1 + vec.capacity() - vec.size());
-    Obj objs[numElems];
+    CounterObj objs[numElems];
     for (u64 i(0); i < numElems; ++i) {
-        objs[i] = Obj(i);
+        objs[i] = CounterObj(i);
     }
 
-    counter.reset();
+    CounterObj::counter.reset();
     for (u64 i(1); vec.size() < vec.capacity(); ++i) {
         ASSERT(i < numElems);
         vec.pushBack(objs[i]);
         TEST_ASSERT(vec[i].value == objs[i].value);
     }
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == vec.capacity() - 1);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == vec.capacity() - 1);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     // Next pushBack increases the capacity. This copies all existing elements
     // to the new array, using copy constructor, then destruct all those
@@ -221,62 +168,62 @@ SelfTests::TestResult vectorPushBackTest() {
     // copy constructor.
     u64 const prevSize(vec.size());
     ASSERT(prevSize == vec.capacity());
-    counter.reset();
+    CounterObj::counter.reset();
     vec.pushBack(objs[numElems - 1]);
     TEST_ASSERT(vec.size() == prevSize + 1);
     TEST_ASSERT(vec.capacity() == prevSize * 2);
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == prevSize + 1);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == prevSize);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == prevSize + 1);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == prevSize);
     return SelfTests::TestResult::Success;
 }
 
 SelfTests::TestResult vectorPopBackTest() {
     u64 const numElems(1300);
-    Vector<Obj> vec;
+    Vector<CounterObj> vec;
     for (u64 i(0); i < numElems; ++i) {
-        vec.pushBack(Obj(i));
+        vec.pushBack(CounterObj(i));
     }
     TEST_ASSERT(vec.size() == numElems);
-    counter.reset();
+    CounterObj::counter.reset();
     for (u64 i(0); i < numElems; ++i) {
         vec.popBack();
         TEST_ASSERT(vec.size() == numElems - 1 - i);
-        TEST_ASSERT(counter.defaultConstructor == 0);
-        TEST_ASSERT(counter.userConstructor == 0);
-        TEST_ASSERT(counter.copyConstructor == 0);
-        TEST_ASSERT(counter.moveConstructor == 0);
-        TEST_ASSERT(counter.assignment == 0);
-        TEST_ASSERT(counter.destructor == i + 1);
+        TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.assignment == 0);
+        TEST_ASSERT(CounterObj::counter.destructor == i + 1);
     }
     return SelfTests::TestResult::Success;
 }
 
 SelfTests::TestResult vectorInsertFrontTest() {
-    Vector<Obj> vec;
-    Obj const firstElem(0);
+    Vector<CounterObj> vec;
+    CounterObj const firstElem(0);
     // When inserting into an empty vector, the object is constructed in-place
     // an no element needs to be shifted, hence a single call to the copy
     // constructor.
-    counter.reset();
+    CounterObj::counter.reset();
     vec.insert(0, firstElem);
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 1);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 1);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     u64 const numElems(vec.capacity() - vec.size());
 
     // Insert the rest of the elements at index 0.
     for (u64 i(1); i <= numElems; ++i) {
-        Obj const obj(i);
+        CounterObj const obj(i);
         u64 const prevSize(vec.size());
-        counter.reset();
+        CounterObj::counter.reset();
         vec.insert(0, obj);
         // Now each insertion needs to:
         //  1. Shift all existing elements to the right.
@@ -288,31 +235,31 @@ SelfTests::TestResult vectorInsertFrontTest() {
         //  - copy constructor x1
         //  - assignment operator xVec.size() (size before the insert).
         TEST_ASSERT(vec.size() == prevSize + 1);
-        TEST_ASSERT(counter.defaultConstructor == 0);
-        TEST_ASSERT(counter.userConstructor == 0);
-        TEST_ASSERT(counter.copyConstructor == 1);
-        TEST_ASSERT(counter.moveConstructor == 0);
-        TEST_ASSERT(counter.assignment == prevSize);
-        TEST_ASSERT(counter.destructor == 0);
+        TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.copyConstructor == 1);
+        TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.assignment == prevSize);
+        TEST_ASSERT(CounterObj::counter.destructor == 0);
     }
 
     // Inserting one more element leads to a capacity increase.
-    Obj const last(numElems+1);
+    CounterObj const last(numElems+1);
     u64 const prevSize(vec.size());
     u64 const prevCap(vec.capacity());
-    counter.reset();
+    CounterObj::counter.reset();
     vec.insert(0, last);
     TEST_ASSERT(vec.size() == prevSize + 1);
     TEST_ASSERT(vec.capacity() == prevCap * 2);
     // The capacity increase led to prevSize calls to the copy constructor +
     // prevSize call to the destructor. Then the insert, as above, called the
     // copy constructor once and prevSize calls to the assignment operator.
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == prevSize + 1);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == prevSize);
-    TEST_ASSERT(counter.destructor == prevSize);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == prevSize + 1);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == prevSize);
+    TEST_ASSERT(CounterObj::counter.destructor == prevSize);
 
     // Sanity check: the values are in decreasing order.
     for (u64 i(0); i < vec.size(); ++i) {
@@ -324,17 +271,17 @@ SelfTests::TestResult vectorInsertFrontTest() {
 SelfTests::TestResult vectorInsertMiddleTest() {
     // We are not necessarily testing inserting in the middle here, just testing
     // inserting at an index that is not an extremity of the vector.
-    Vector<Obj> vec;
+    Vector<CounterObj> vec;
 
     // Fill the vector until we have one spot available before a resize.
     for (u64 i(0); !vec.size() || vec.size() < vec.capacity() - 1; ++i) {
-        vec.pushBack(Obj(i));
+        vec.pushBack(CounterObj(i));
     }
 
     // At this point the vector contains: 0, 1, 2, 3, 4, ... Insert 100 at index
     // 4.
-    Obj const newElem(100);
-    counter.reset();
+    CounterObj const newElem(100);
+    CounterObj::counter.reset();
     u64 prevSize(vec.size());
     u64 prevCap(vec.capacity());
     vec.insert(4, newElem);
@@ -344,27 +291,27 @@ SelfTests::TestResult vectorInsertMiddleTest() {
     // operator.
     TEST_ASSERT(vec.size() == prevSize + 1);
     TEST_ASSERT(vec.capacity() == prevCap);
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 1);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == (prevSize - 4) - 1 + 1);
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 1);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == (prevSize - 4) - 1 + 1);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     // The next insert is going to trigger a re-allocation.
-    Obj const newElem2(200);
-    counter.reset();
+    CounterObj const newElem2(200);
+    CounterObj::counter.reset();
     prevSize = vec.size();
     prevCap = vec.capacity();
     vec.insert(5, newElem2);
     TEST_ASSERT(vec.size() == prevSize + 1);
     TEST_ASSERT(vec.capacity() == prevCap * 2);
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == prevSize + 1);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == (prevSize - 5) - 1 + 1);
-    TEST_ASSERT(counter.destructor == prevSize);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == prevSize + 1);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == (prevSize - 5) - 1 + 1);
+    TEST_ASSERT(CounterObj::counter.destructor == prevSize);
 
     // Check the content of the vector:
     for (u64 i(0); i < vec.size(); ++i) {
@@ -379,14 +326,14 @@ SelfTests::TestResult vectorInsertMiddleTest() {
 
 SelfTests::TestResult vectorEraseTest() {
     u64 const numElems(128);
-    Vector<Obj> vec;
+    Vector<CounterObj> vec;
     for (u64 i(0); i < numElems; ++i) {
-        vec.pushBack(Obj(i));
+        vec.pushBack(CounterObj(i));
     }
     u64 const cap(vec.capacity());
 
     // Case #1: Erase the first element.
-    counter.reset();
+    CounterObj::counter.reset();
     u64 prevSize(vec.size());
     vec.erase(0);
     TEST_ASSERT(vec.size() == prevSize - 1);
@@ -394,12 +341,12 @@ SelfTests::TestResult vectorEraseTest() {
     TEST_ASSERT(vec.capacity() == cap);
     // Erasing means shifting all elements, starting at `index + 1`, to the left
     // using the assigment operator. The last element is then destroyed.
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == prevSize - 1);
-    TEST_ASSERT(counter.destructor == 1);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == prevSize - 1);
+    TEST_ASSERT(CounterObj::counter.destructor == 1);
     for (u64 i(0); i < vec.size(); ++i) {
         // Expected sequence:
         //  Index |  0 1 2 3 4 5 6 ...
@@ -409,17 +356,17 @@ SelfTests::TestResult vectorEraseTest() {
     }
 
     // Case #2: Erase in the "middle" of the vector.
-    counter.reset();
+    CounterObj::counter.reset();
     prevSize = vec.size();
     vec.erase(4);
     TEST_ASSERT(vec.size() == prevSize - 1);
     TEST_ASSERT(vec.capacity() == cap);
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == prevSize - 4 - 1);
-    TEST_ASSERT(counter.destructor == 1);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == prevSize - 4 - 1);
+    TEST_ASSERT(CounterObj::counter.destructor == 1);
     for (u64 i(0); i < vec.size(); ++i) {
         // Expected sequence:
         //  Index |  0 1 2 3 4 5 6 ...
@@ -429,18 +376,18 @@ SelfTests::TestResult vectorEraseTest() {
     }
 
     // Case #3: Erase at the end of the vector.
-    counter.reset();
+    CounterObj::counter.reset();
     prevSize = vec.size();
     vec.erase(prevSize - 1);
     TEST_ASSERT(vec.size() == prevSize - 1);
     TEST_ASSERT(vec.capacity() == cap);
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
     // Only the last element was destroyed, no shifting occured.
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 1);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 1);
 
     for (u64 i(0); i < vec.size(); ++i) {
         // Expected sequence:
@@ -452,35 +399,35 @@ SelfTests::TestResult vectorEraseTest() {
 
     // Case #4: Erase the only element from the vector.
     vec.clear();
-    vec.pushBack(Obj(1000));
-    counter.reset();
+    vec.pushBack(CounterObj(1000));
+    CounterObj::counter.reset();
     vec.erase(0);
     TEST_ASSERT(vec.empty());
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 1);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 1);
     return SelfTests::TestResult::Success;
 }
 
 SelfTests::TestResult vectorIteratorTest() {
     u64 const numElems(128);
-    Vector<Obj> vec;
+    Vector<CounterObj> vec;
     for (u64 i(0); i < numElems; ++i) {
-        vec.pushBack(Obj(i));
+        vec.pushBack(CounterObj(i));
     }
 
     // Case #1: Iterate with a for each loop.
     u64 idx(0);
-    for (Obj const& elem : vec) {
+    for (CounterObj const& elem : vec) {
         TEST_ASSERT(elem == vec[idx]);
         idx++;
     }
 
     // Case #2: Modify elements with a for each loop.
-    for (Obj& elem : vec) {
+    for (CounterObj& elem : vec) {
         elem.value *= 2;
     }
     for (u64 i(0); i < vec.size(); ++i) {
@@ -488,9 +435,9 @@ SelfTests::TestResult vectorIteratorTest() {
     }
 
     // Case #3: Iterator for a const-ref of a vector.
-    Vector<Obj> const& constRef(vec);
+    Vector<CounterObj> const& constRef(vec);
     idx = 0;
-    for (Obj const& elem : constRef) {
+    for (CounterObj const& elem : constRef) {
         TEST_ASSERT(elem == vec[idx]);
         idx++;
     }
@@ -500,22 +447,22 @@ SelfTests::TestResult vectorIteratorTest() {
 
 SelfTests::TestResult vectorCopyTest() {
     u64 const numElems(128);
-    Vector<Obj> vec1;
+    Vector<CounterObj> vec1;
     for (u64 i(0); i < numElems; ++i) {
-        vec1.pushBack(Obj(i));
+        vec1.pushBack(CounterObj(i));
     }
 
-    counter.reset();
-    Vector<Obj> vec2(vec1);
+    CounterObj::counter.reset();
+    Vector<CounterObj> vec2(vec1);
     TEST_ASSERT(vec2.size() == vec1.size());
 
     // "No destructor in sight, only values enjoying the copy-constructor".
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == numElems);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == numElems);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     for (u64 i(0); i < numElems; ++i) {
         TEST_ASSERT(vec1[i] == vec2[i]);
@@ -526,14 +473,14 @@ SelfTests::TestResult vectorCopyTest() {
 
 SelfTests::TestResult vectorAssignTest() {
     u64 const numElems(128);
-    Vector<Obj> vec1;
-    Vector<Obj> vec2;
+    Vector<CounterObj> vec1;
+    Vector<CounterObj> vec2;
     for (u64 i(0); i < numElems; ++i) {
-        vec1.pushBack(Obj(i));
-        vec2.pushBack(Obj(numElems - i));
+        vec1.pushBack(CounterObj(i));
+        vec2.pushBack(CounterObj(numElems - i));
     }
 
-    Vector<Obj> vec3;
+    Vector<CounterObj> vec3;
     TEST_ASSERT(vec3.size() == 0);
 
     vec3 = vec1;
@@ -553,16 +500,16 @@ SelfTests::TestResult vectorComparisonTest() {
     u64 const numElems(128);
 
     // Case #1: Copy construction.
-    Vector<Obj> vec1;
+    Vector<CounterObj> vec1;
     for (u64 i(0); i < numElems; ++i) {
-        vec1.pushBack(Obj(i));
+        vec1.pushBack(CounterObj(i));
     }
-    Vector<Obj> vec2(vec1);
+    Vector<CounterObj> vec2(vec1);
     TEST_ASSERT(vec1 == vec2);
     TEST_ASSERT(vec2 == vec1);
 
     // Case #2: Assignment.
-    Vector<Obj> vec3;
+    Vector<CounterObj> vec3;
     TEST_ASSERT(vec1 != vec3);
     TEST_ASSERT(vec3 != vec1);
     vec3 = vec1;

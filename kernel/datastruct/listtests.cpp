@@ -1,76 +1,21 @@
 #include <datastruct/list.hpp>
 #include <selftests/macros.hpp>
+#include "./counterobj.hpp"
 
 namespace DataStruct {
 
-// FIXME: Counter and Obj should be declared in a header that can be included
-// in the various tests that needs them.
-struct Counter {
-    u64 defaultConstructor;
-    u64 userConstructor;
-    u64 copyConstructor;
-    u64 moveConstructor;
-
-    u64 assignment;
-
-    u64 destructor;
-
-    void reset() {
-        defaultConstructor = 0;
-        userConstructor = 0;
-        copyConstructor = 0;
-        moveConstructor = 0;
-        assignment = 0;
-        destructor = 0;
-    }
-};
-
-static Counter counter;
-
-class Obj {
-public:
-    Obj() : value(0) {
-        counter.defaultConstructor++;
-    }
-
-    Obj(u64 const val) : value(val) {
-        counter.userConstructor++;
-    }
-
-    Obj(Obj const& other) : value(other.value) {
-        counter.copyConstructor++;
-    }
-
-    Obj(Obj && other) : value(other.value) {
-        counter.moveConstructor++;
-    }
-
-    void operator=(Obj const& other) {
-        value = other.value;
-        counter.assignment++;
-    }
-
-    ~Obj() {
-        counter.destructor++;
-    }
-
-    bool operator==(Obj const& other) const = default;
-
-    u64 value;
-};
-
 // Check that the default constructor of List<T> creates an empty list.
 SelfTests::TestResult listConstructionTest() {
-    counter.reset();
+    CounterObj::counter.reset();
 
-    List<Obj> list;
+    List<CounterObj> list;
 
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     TEST_ASSERT(list.size() == 0);
     TEST_ASSERT(list.empty());
@@ -80,25 +25,29 @@ SelfTests::TestResult listConstructionTest() {
 
 // Check the pushBack(), pushFront(), back(), front() and iterator of List<T>.
 SelfTests::TestResult listPushAndIterationTest() {
-    List<Obj> list;
+    List<CounterObj> list;
 
-    counter.reset();
+    CounterObj::counter.reset();
 
     u64 expectedNumUserCtorCalls(0);
     u64 expectedNumCopyCtorCalls(0);
     u64 numPushes(0);
 
     for (i64 i(127); i >= 0; --i) {
-        Obj const value(i);
+        CounterObj const value(i);
         expectedNumUserCtorCalls++;
-        TEST_ASSERT(counter.userConstructor == expectedNumUserCtorCalls);
-        TEST_ASSERT(counter.copyConstructor == expectedNumCopyCtorCalls);
+        TEST_ASSERT(CounterObj::counter.userConstructor
+                    == expectedNumUserCtorCalls);
+        TEST_ASSERT(CounterObj::counter.copyConstructor
+                    == expectedNumCopyCtorCalls);
 
         list.pushFront(value);
 
         expectedNumCopyCtorCalls++;
-        TEST_ASSERT(counter.userConstructor == expectedNumUserCtorCalls);
-        TEST_ASSERT(counter.copyConstructor == expectedNumCopyCtorCalls);
+        TEST_ASSERT(CounterObj::counter.userConstructor
+                    == expectedNumUserCtorCalls);
+        TEST_ASSERT(CounterObj::counter.copyConstructor
+                    == expectedNumCopyCtorCalls);
 
         // Sanity check: front() should return the value we just pushed.
         TEST_ASSERT(list.front() == value);
@@ -109,16 +58,20 @@ SelfTests::TestResult listPushAndIterationTest() {
     }
 
     for (u64 i(128); i < 256; ++i) {
-        Obj const value(i);
+        CounterObj const value(i);
         expectedNumUserCtorCalls++;
-        TEST_ASSERT(counter.userConstructor == expectedNumUserCtorCalls);
-        TEST_ASSERT(counter.copyConstructor == expectedNumCopyCtorCalls);
+        TEST_ASSERT(CounterObj::counter.userConstructor
+                    == expectedNumUserCtorCalls);
+        TEST_ASSERT(CounterObj::counter.copyConstructor
+                    == expectedNumCopyCtorCalls);
 
         list.pushBack(value);
 
         expectedNumCopyCtorCalls++;
-        TEST_ASSERT(counter.userConstructor == expectedNumUserCtorCalls);
-        TEST_ASSERT(counter.copyConstructor == expectedNumCopyCtorCalls);
+        TEST_ASSERT(CounterObj::counter.userConstructor
+                    == expectedNumUserCtorCalls);
+        TEST_ASSERT(CounterObj::counter.copyConstructor
+                    == expectedNumCopyCtorCalls);
 
         // Sanity check: back() should return the value we just pushed.
         TEST_ASSERT(list.back() == value);
@@ -127,14 +80,14 @@ SelfTests::TestResult listPushAndIterationTest() {
         TEST_ASSERT(list.size() == numPushes);
         TEST_ASSERT(!list.empty());
     }
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
     // Due to the temporaries.
-    TEST_ASSERT(counter.destructor == 256);
+    TEST_ASSERT(CounterObj::counter.destructor == 256);
 
     u64 nextExpectedValue(0);
-    for (Obj const& obj: list) {
+    for (CounterObj const& obj: list) {
         TEST_ASSERT(obj.value == nextExpectedValue);
         nextExpectedValue++;
     }
@@ -147,11 +100,11 @@ SelfTests::TestResult listPushAndIterationTest() {
 // Check modifying elements of a List<T> either through front()/back(), or
 // through an iterator.
 SelfTests::TestResult listInplaceModificationTest() {
-    List<Obj> list;
+    List<CounterObj> list;
 
     u64 const numElems(1024);
     for (u64 i(0); i < numElems; ++i) {
-        list.pushBack(Obj(i));
+        list.pushBack(CounterObj(i));
     }
     TEST_ASSERT(list.size() == numElems);
     TEST_ASSERT(!list.empty());
@@ -169,28 +122,28 @@ SelfTests::TestResult listInplaceModificationTest() {
     list.back().value = numElems - 1;
 
     // Modify through an iterator.
-    for (Obj& obj : list) {
+    for (CounterObj& obj : list) {
         obj.value *= 2;
     }
 
     // Iterate through the list, counting the number of elements and checking
     // that their value was doubled.
     u64 index(0);
-    for (Obj const& obj : list) {
+    for (CounterObj const& obj : list) {
         TEST_ASSERT(obj.value == index * 2);
         index ++;
     }
     TEST_ASSERT(index == numElems);
 
     // Double each element again, this time assigning the elements.
-    counter.reset();
-    for (Obj& obj : list) {
-        obj = Obj(obj.value * 2);
+    CounterObj::counter.reset();
+    for (CounterObj& obj : list) {
+        obj = CounterObj(obj.value * 2);
     }
-    TEST_ASSERT(counter.userConstructor == numElems);
-    TEST_ASSERT(counter.assignment == numElems);
+    TEST_ASSERT(CounterObj::counter.userConstructor == numElems);
+    TEST_ASSERT(CounterObj::counter.assignment == numElems);
     index = 0;
-    for (Obj const& obj : list) {
+    for (CounterObj const& obj : list) {
         TEST_ASSERT(obj.value == index * 4);
         index ++;
     }
@@ -201,23 +154,23 @@ SelfTests::TestResult listInplaceModificationTest() {
 
 // Check removing elements from a List<T> using the iterator erase() method.
 SelfTests::TestResult listEraseTest() {
-    List<Obj> list;
+    List<CounterObj> list;
 
     u64 const numElems(1024);
     // Required by this test.
     ASSERT(numElems % 2 == 0);
     for (u64 i(0); i < numElems; ++i) {
-        list.pushBack(Obj(i));
+        list.pushBack(CounterObj(i));
     }
 
-    counter.reset();
+    CounterObj::counter.reset();
 
     // Iterate through the whole list and remove all even elements.
     {
-        List<Obj>::Iter ite(list.begin());
+        List<CounterObj>::Iter ite(list.begin());
         for (u64 i(0); i < numElems; ++i) {
             TEST_ASSERT(ite != list.end());
-            Obj const& elem(*ite);
+            CounterObj const& elem(*ite);
             TEST_ASSERT(elem.value == i);
             if (elem.value % 2 == 0) {
                 ite.erase();
@@ -227,18 +180,18 @@ SelfTests::TestResult listEraseTest() {
         }
         TEST_ASSERT(ite == list.end());
     }
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == numElems / 2);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == numElems / 2);
 
     // At this point only half of the elements are left. Check that they're all
     // odd.
     TEST_ASSERT(list.size() == numElems / 2);
     {
-        List<Obj>::Iter ite(list.begin());
+        List<CounterObj>::Iter ite(list.begin());
         for (u64 i(0); i < numElems / 2; ++i) {
             TEST_ASSERT(ite != list.end());
             TEST_ASSERT((*ite).value == i * 2 + 1);
@@ -249,7 +202,7 @@ SelfTests::TestResult listEraseTest() {
 
     // Iterate through the rest of the list and remove the remaining elements.
     {
-        List<Obj>::Iter ite(list.begin());
+        List<CounterObj>::Iter ite(list.begin());
         for (u64 i(0); i < numElems / 2; ++i) {
             TEST_ASSERT(ite != list.end());
             ite.erase();
@@ -258,56 +211,56 @@ SelfTests::TestResult listEraseTest() {
     }
     TEST_ASSERT(!list.size());
     TEST_ASSERT(list.empty());
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == numElems);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == numElems);
 
     return SelfTests::TestResult::Success;
 }
 
 // Check popping elements out of a list using popFront() and popBack().
 SelfTests::TestResult listPopTest() {
-    List<Obj> list;
+    List<CounterObj> list;
 
     // Case 1: Empty the list using popFront().
     u64 const numElems(1024);
     for (u64 i(0); i < numElems; ++i) {
-        list.pushBack(Obj(i));
+        list.pushBack(CounterObj(i));
     }
 
-    counter.reset();
+    CounterObj::counter.reset();
     for (u64 i(0); i < numElems; ++i) {
         TEST_ASSERT(list.size() == numElems - i);
         TEST_ASSERT(list.popFront().value == i);
-        TEST_ASSERT(counter.defaultConstructor == 0);
-        TEST_ASSERT(counter.userConstructor == 0);
-        TEST_ASSERT(counter.copyConstructor == i+1);
-        TEST_ASSERT(counter.moveConstructor == 0);
-        TEST_ASSERT(counter.assignment == 0);
+        TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.copyConstructor == i+1);
+        TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.assignment == 0);
         // Twice the destruction because of the copy returned by popFront().
-        TEST_ASSERT(counter.destructor == 2 * (i+1));
+        TEST_ASSERT(CounterObj::counter.destructor == 2 * (i+1));
     }
     TEST_ASSERT(list.empty());
 
     // Case 2: Empty the list using popBack().
     for (u64 i(0); i < numElems; ++i) {
-        list.pushBack(Obj(i));
+        list.pushBack(CounterObj(i));
     }
 
-    counter.reset();
+    CounterObj::counter.reset();
     for (u64 i(0); i < numElems; ++i) {
         TEST_ASSERT(list.size() == numElems - i);
         TEST_ASSERT(list.popBack().value == numElems - 1 - i);
-        TEST_ASSERT(counter.defaultConstructor == 0);
-        TEST_ASSERT(counter.userConstructor == 0);
-        TEST_ASSERT(counter.copyConstructor == i+1);
-        TEST_ASSERT(counter.moveConstructor == 0);
-        TEST_ASSERT(counter.assignment == 0);
+        TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.copyConstructor == i+1);
+        TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+        TEST_ASSERT(CounterObj::counter.assignment == 0);
         // Twice the destruction because of the copy returned by popFront().
-        TEST_ASSERT(counter.destructor == 2 * (i+1));
+        TEST_ASSERT(CounterObj::counter.destructor == 2 * (i+1));
     }
     TEST_ASSERT(list.empty());
 
@@ -318,61 +271,61 @@ SelfTests::TestResult listPopTest() {
 SelfTests::TestResult listDestructorTest() {
     u64 const numElems(1024);
     {
-        List<Obj> list;
+        List<CounterObj> list;
         for (u64 i(0); i < numElems; ++i) {
-            list.pushBack(Obj(i));
+            list.pushBack(CounterObj(i));
         }
-        counter.reset();
+        CounterObj::counter.reset();
     }
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == numElems);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == numElems);
     return SelfTests::TestResult::Success;
 }
 
 // Check the clear() method.
 SelfTests::TestResult listClearTest() {
-    List<Obj> list;
+    List<CounterObj> list;
     u64 const numElems(1024);
     for (u64 i(0); i < numElems; ++i) {
-        list.pushBack(Obj(i));
+        list.pushBack(CounterObj(i));
     }
-    counter.reset();
+    CounterObj::counter.reset();
     list.clear();
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == numElems);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == numElems);
     return SelfTests::TestResult::Success;
 }
 
 // Test the copy constructor.
 SelfTests::TestResult listCopyConstructorTest() {
     u64 const numElems(1024);
-    List<Obj> list1;
+    List<CounterObj> list1;
     for (u64 i(0); i < numElems; ++i) {
-        list1.pushBack(Obj(i));
+        list1.pushBack(CounterObj(i));
     }
 
-    counter.reset();
-    List<Obj> list2(list1);
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == numElems);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    CounterObj::counter.reset();
+    List<CounterObj> list2(list1);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == numElems);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     TEST_ASSERT(list1.size() == list2.size());
 
     // Check that all elements were copied.
     {
-        List<Obj>::Iter iter2(list2.begin());
+        List<CounterObj>::Iter iter2(list2.begin());
         for (u64 i(0); i < numElems; ++i) {
             TEST_ASSERT(iter2 != list2.end());
             TEST_ASSERT((*iter2).value == i);
@@ -382,13 +335,13 @@ SelfTests::TestResult listCopyConstructorTest() {
     }
 
     // Check that a deep copy was performed by modifying the elements of list2.
-    for (Obj& elem : list2) {
+    for (CounterObj& elem : list2) {
         elem.value *= 2;
     }
 
     {
-        List<Obj>::Iter iter1(list1.begin());
-        List<Obj>::Iter iter2(list2.begin());
+        List<CounterObj>::Iter iter1(list1.begin());
+        List<CounterObj>::Iter iter2(list2.begin());
         for (u64 i(0); i < numElems; ++i) {
             TEST_ASSERT(iter1 != list1.end());
             TEST_ASSERT(iter2 != list2.end());
@@ -410,14 +363,14 @@ SelfTests::TestResult listCopyConstructorTest() {
 // Test List<T>::operator==().
 SelfTests::TestResult listComparisonTest() {
     u64 const numElems(1024);
-    List<Obj> list1;
-    List<Obj> list2;
+    List<CounterObj> list1;
+    List<CounterObj> list2;
     for (u64 i(0); i < numElems; ++i) {
-        list1.pushBack(Obj(i));
-        list2.pushBack(Obj(i));
+        list1.pushBack(CounterObj(i));
+        list2.pushBack(CounterObj(i));
     }
 
-    counter.reset();
+    CounterObj::counter.reset();
 
     TEST_ASSERT(list1 == list1);
     TEST_ASSERT(list1 == list2);
@@ -425,12 +378,12 @@ SelfTests::TestResult listComparisonTest() {
     TEST_ASSERT(list2 == list2);
 
     // Sanity check: comparison should not create useless copies.
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == 0);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == 0);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == 0);
 
     // Change one element at the front.
     list1.front().value = 1337;
@@ -494,35 +447,35 @@ SelfTests::TestResult listComparisonTest() {
 // Test List<T>::operator=(List<T> const&).
 SelfTests::TestResult listAssignmentTest() {
     u64 const numElems(1024);
-    List<Obj> list1;
-    List<Obj> list2;
+    List<CounterObj> list1;
+    List<CounterObj> list2;
     // Construct two lists, one is smaller than the other.
     for (u64 i(0); i < numElems; ++i) {
-        list1.pushBack(Obj(i));
+        list1.pushBack(CounterObj(i));
         if (i < numElems / 2) {
-            list2.pushBack(Obj(2 * i));
+            list2.pushBack(CounterObj(2 * i));
         }
     }
 
     TEST_ASSERT(list1 != list2);
 
-    counter.reset();
+    CounterObj::counter.reset();
 
     // The assignment should empty the destination list before copying the
     // elements one by one using the copy-constructor. See comment in
     // operator=().
     list2 = list1;
-    TEST_ASSERT(counter.defaultConstructor == 0);
-    TEST_ASSERT(counter.userConstructor == 0);
-    TEST_ASSERT(counter.copyConstructor == numElems);
-    TEST_ASSERT(counter.moveConstructor == 0);
-    TEST_ASSERT(counter.assignment == 0);
-    TEST_ASSERT(counter.destructor == numElems/2);
+    TEST_ASSERT(CounterObj::counter.defaultConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.userConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.copyConstructor == numElems);
+    TEST_ASSERT(CounterObj::counter.moveConstructor == 0);
+    TEST_ASSERT(CounterObj::counter.assignment == 0);
+    TEST_ASSERT(CounterObj::counter.destructor == numElems/2);
 
     TEST_ASSERT(list1 == list2);
 
     // Check that the assigment performed a deep copy of the elements.
-    for (Obj& elem : list2) {
+    for (CounterObj& elem : list2) {
         elem.value *= 3;
     }
     TEST_ASSERT(list1 != list2);

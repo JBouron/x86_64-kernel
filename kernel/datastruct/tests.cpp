@@ -4,8 +4,11 @@
 #include <selftests/macros.hpp>
 #include "./vectortests.hpp"
 #include "./listtests.hpp"
+#include "./counterobj.hpp"
 
 namespace DataStruct {
+
+CounterObj::Counter CounterObj::counter;
 
 // Test constructing an EmbeddedFreeList::Node from a virtual address and a
 // size.
@@ -253,13 +256,15 @@ SelfTests::TestResult embeddedFreeListAllocMinSizeTest() {
 }
 
 void Test(SelfTests::TestRunner& runner) {
-    // Vector<T> tests.
+    // EmbeddedFreeList tests.
     RUN_TEST(runner, embeddedFreeListNodeTest);
     RUN_TEST(runner, embeddedFreeListNodeOverlapTest);
     RUN_TEST(runner, embeddedFreeListNodeAdjacentWithTest);
     RUN_TEST(runner, embeddedFreeListInsertTest);
     RUN_TEST(runner, embeddedFreeListAllocFreeTest);
     RUN_TEST(runner, embeddedFreeListAllocMinSizeTest);
+
+    // Vector<T> tests.
     RUN_TEST(runner, vectorDefaultConstructionTest);
     RUN_TEST(runner, vectorConstructorSizeDefaultValueTest);
     RUN_TEST(runner, vectorConstructorSizeWithValueTest);
