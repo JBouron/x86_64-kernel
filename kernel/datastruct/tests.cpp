@@ -255,6 +255,14 @@ SelfTests::TestResult embeddedFreeListAllocMinSizeTest() {
     return SelfTests::TestResult::Success;
 }
 
+SelfTests::TestResult mapDefaultConstructionTest();
+SelfTests::TestResult mapInsertionLookupAndDestructorTestNoRehash();
+SelfTests::TestResult mapRehashTest();
+SelfTests::TestResult mapEraseTest();
+SelfTests::TestResult mapClearTest();
+SelfTests::TestResult mapOpOnDefaultMap();
+SelfTests::TestResult mapHighHashCollisionTest();
+
 void Test(SelfTests::TestRunner& runner) {
     // EmbeddedFreeList tests.
     RUN_TEST(runner, embeddedFreeListNodeTest);
@@ -292,5 +300,14 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, listCopyConstructorTest);
     RUN_TEST(runner, listComparisonTest);
     RUN_TEST(runner, listAssignmentTest);
+
+    // Map<K, V> tests.
+    RUN_TEST(runner, mapDefaultConstructionTest);
+    RUN_TEST(runner, mapInsertionLookupAndDestructorTestNoRehash);
+    RUN_TEST(runner, mapRehashTest);
+    RUN_TEST(runner, mapEraseTest);
+    RUN_TEST(runner, mapClearTest);
+    RUN_TEST(runner, mapOpOnDefaultMap);
+    RUN_TEST(runner, mapHighHashCollisionTest);
 }
 }
