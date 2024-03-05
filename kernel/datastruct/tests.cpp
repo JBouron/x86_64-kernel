@@ -263,6 +263,11 @@ SelfTests::TestResult mapClearTest();
 SelfTests::TestResult mapOpOnDefaultMap();
 SelfTests::TestResult mapHighHashCollisionTest();
 
+SelfTests::TestResult queueConstructionTest();
+SelfTests::TestResult queueEnqueueDequeueTest();
+SelfTests::TestResult queueFrontBackTest();
+SelfTests::TestResult queueClearAndDestructorTest();
+
 void Test(SelfTests::TestRunner& runner) {
     // EmbeddedFreeList tests.
     RUN_TEST(runner, embeddedFreeListNodeTest);
@@ -309,5 +314,11 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, mapClearTest);
     RUN_TEST(runner, mapOpOnDefaultMap);
     RUN_TEST(runner, mapHighHashCollisionTest);
+
+    // Queue<T> tests.
+    RUN_TEST(runner, queueConstructionTest);
+    RUN_TEST(runner, queueEnqueueDequeueTest);
+    RUN_TEST(runner, queueFrontBackTest);
+    RUN_TEST(runner, queueClearAndDestructorTest);
 }
 }
