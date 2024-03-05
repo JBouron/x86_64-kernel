@@ -15,19 +15,14 @@ public:
     // Type for processes' unique identifiers.
     using Id = u64;
 
-    // Create a process.
-    // @param id: The unique identifier of the process.
-    // @return: A pointer to the Proc instance or an error, if any.
-    static Res<Ptr<Proc>> New(Id const id);
-
     // Create a process that executes a function or lambda.
-    // @param id: The unique identifier of the process.
     // @param func: The function to be executed. This must be a function taking
     // no argument. If this function ever returns, a PANIC is raised.
     // @return: A pointer to the Proc instance or an error, if any.
-    static Res<Ptr<Proc>> New(Id const id, void (*func)(void));
+    static Res<Ptr<Proc>> New(void (*func)(void));
 
-    // Get the unique identifier associated with this process.
+    // Get the unique identifier associated with this process. This ID is
+    // auto-generated in the constructor.
     Id id() const;
 
     // The state of a process.
@@ -80,12 +75,15 @@ public:
     static void contextSwitch(Ptr<Proc> const& curr, Ptr<Proc> const& to);
 
 protected:
+    // Create a default process. This merely allocate an AddrSpace and Stack for
+    // the process and allocate a Proc.
+    // @return: A pointer to the Proc instance or an error, if any.
+    static Res<Ptr<Proc>> New();
+
     // Create a process. The process starts in the blocked state.
-    // @param id: The unique identifier of the process.
     // @param addrSpace: The address space of the process.
     // @param kernelStack: The kernel stack to be used by this process.
-    Proc(Id const id,
-         Ptr<Paging::AddrSpace> const& addrSpace,
+    Proc(Ptr<Paging::AddrSpace> const& addrSpace,
          Ptr<Memory::Stack> const& kernelStack);
 
     // Needed to invoke the constructor.

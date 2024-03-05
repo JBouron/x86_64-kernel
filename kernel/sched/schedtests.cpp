@@ -121,8 +121,7 @@ SelfTests::TestResult procCreationAndJumpTest() {
 
     // Proc is static so that destCpu can access it further below.
     static Ptr<Proc> proc;
-    proc = Proc::New(123, procFunc).value();
-    TEST_ASSERT(proc->id() == 123);
+    proc = Proc::New(procFunc).value();
 
     // The CPU that will run the process.
     Smp::Id const destCpu((Smp::id().raw() + 1) % Smp::ncpus());
@@ -239,9 +238,9 @@ SelfTests::TestResult procContextSwitchTest() {
     });
 
     IdVec.clear();
-    Proc1 = Proc::New(1, proc1Code).value();
-    Proc2 = Proc::New(2, proc2Code).value();
-    Proc3 = Proc::New(3, proc3Code).value();
+    Proc1 = Proc::New(proc1Code).value();
+    Proc2 = Proc::New(proc2Code).value();
+    Proc3 = Proc::New(proc3Code).value();
     TEST_ASSERT(Proc1->state() == Proc::State::Ready);
     TEST_ASSERT(Proc2->state() == Proc::State::Ready);
     TEST_ASSERT(Proc3->state() == Proc::State::Ready);

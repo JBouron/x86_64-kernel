@@ -4,32 +4,10 @@
 #include <smp/smp.hpp>
 #include <util/panic.hpp>
 #include <cpu/cpu.hpp>
+#include <concurrency/atomic.hpp>
 #include "./schedimpl.hpp"
 
 namespace Sched {
-// Create a process.
-// @param id: The unique identifier of the process.
-// @return: A pointer to the Proc instance or an error, if any.
-Res<Ptr<Proc>> Proc::New(Id const id) {
-    Res<Ptr<Memory::Stack>> const stackAllocRes(Memory::Stack::New());
-    if (!stackAllocRes) {
-        return stackAllocRes.error();
-    }
-    Ptr<Memory::Stack> const kernelStack(stackAllocRes.value());
-
-    Res<Ptr<Paging::AddrSpace>> const addrSpaceAlloc(Paging::AddrSpace::New());
-    if (!addrSpaceAlloc) {
-        return addrSpaceAlloc.error();
-    }
-    Ptr<Paging::AddrSpace> const addrSpace(addrSpaceAlloc.value());
-
-    Ptr<Proc> const proc(Ptr<Proc>::New(id, addrSpace, kernelStack));
-    if (!proc) {
-        return Error::MaxHeapSizeReached;
-    } else {
-        return proc;
-    }
-}
 
 // Catch a process running a function that returned from that function. This
 // raises a PANIC.
@@ -40,12 +18,11 @@ static void handleRetFromProc() {
 }
 
 // Create a process that executes a function or lambda.
-// @param id: The unique identifier of the process.
 // @param func: The function to be executed. This must be a function taking no
 // argument. If this function ever returns, a PANIC is raised.
 // @return: A pointer to the Proc instance or an error, if any.
-Res<Ptr<Proc>> Proc::New(Id const id, void (*func)(void)) {
-    Res<Ptr<Proc>> const procAlloc(Proc::New(id));
+Res<Ptr<Proc>> Proc::New(void (*func)(void)) {
+    Res<Ptr<Proc>> const procAlloc(Proc::New());
     if (!procAlloc) {
         return procAlloc.error();
     }
@@ -112,13 +89,49 @@ void Proc::setState(Proc::State const& newState) {
     m_state = newState;
 }
 
+// Create a process.
+// @return: A pointer to the Proc instance or an error, if any.
+Res<Ptr<Proc>> Proc::New() {
+    Res<Ptr<Memory::Stack>> const stackAllocRes(Memory::Stack::New());
+    if (!stackAllocRes) {
+        return stackAllocRes.error();
+    }
+    Ptr<Memory::Stack> const kernelStack(stackAllocRes.value());
+
+    Res<Ptr<Paging::AddrSpace>> const addrSpaceAlloc(Paging::AddrSpace::New());
+    if (!addrSpaceAlloc) {
+        return addrSpaceAlloc.error();
+    }
+    Ptr<Paging::AddrSpace> const addrSpace(addrSpaceAlloc.value());
+
+    Ptr<Proc> const proc(Ptr<Proc>::New(addrSpace, kernelStack));
+    if (!proc) {
+        return Error::MaxHeapSizeReached;
+    } else {
+        return proc;
+    }
+}
+
+// Process ID allocation:
+// Proc::Id are always monitically increasing and generated during within the
+// Proc() constructor.
+
+// The smallest Proc::Id possible.
+static Proc::Id processIdLow(0);
+// The next available Proc:Id.
+static Atomic<Proc::Id> nextProcessId(processIdLow);
+// Create a new Proc::Id in a thread-safe manner. Process IDs are monitically
+// increasing.
+static Proc::Id allocateProcessId() {
+    return Proc::Id(nextProcessId++);
+}
+
 // Create a process. The process starts in the blocked state.
-// @param id: The unique identifier of the process.
+// @param addrSpace: The address space of the process.
 // @param kernelStack: The kernel stack to be used by this process.
-Proc::Proc(Id const id,
-           Ptr<Paging::AddrSpace> const& addrSpace,
+Proc::Proc(Ptr<Paging::AddrSpace> const& addrSpace,
            Ptr<Memory::Stack> const& kernelStack) :
-    m_id(id),
+    m_id(allocateProcessId()),
     m_addrSpace(addrSpace),
     m_kernelStack(kernelStack),
     m_savedKernelStackPointer(kernelStack->highAddress()),
