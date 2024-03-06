@@ -56,6 +56,19 @@ public:
         m_allowRehash = allowRehash;
     }
 
+    // Construct a copy of an existing Map<T>. The new Map contains the same set
+    // of keys associated to the same values. The values are copied by
+    // copy-construction.
+    // @param other: The map to copy.
+    Map(Map const& other) : Map(other.m_numBuckets, true) {
+        // The m_buckets is pre-allocated to have the same size as other's. We
+        // simply have to copy each bucket into the new Map.
+        for (u64 i(0); i < m_numBuckets; ++i) {
+            m_buckets[i] = other.m_buckets[i];
+        }
+        m_size = other.m_size;
+    }
+
     // Remove all elements from the map. This call the destructor on all keys
     // and values contained in the map.
     ~Map() {
@@ -66,11 +79,54 @@ public:
 
     // We don't have a usecase for these functions right now. Keep the
     // implementation and testing simple and mark them deleted.
-    Map(Map const& other) = delete;
     Map(Map && other) = delete;
-    Map& operator=(Map const& other) = delete;
     Map& operator=(Map && other) = delete;
-    bool operator==(Map const& other) const = delete;
+
+    // Copy the content of a map into this map. The map is emptied and all (key,
+    // value) pairs are copied.
+    // @param other: The Map to copy.
+    Map& operator=(Map const& other) {
+        if (!!m_buckets) {
+            delete[] m_buckets;
+        }
+        m_buckets = new Bucket[other.m_numBuckets];
+        if (!m_buckets) {
+            ASSERT(!"Cannot allocate buckets for map");
+        }
+        m_numBuckets = other.m_numBuckets;
+        for (u64 i(0); i < m_numBuckets; ++i) {
+            m_buckets[i] = other.m_buckets[i];
+        }
+        m_size = other.m_size;
+        return *this;
+    }
+
+    // Compare two Maps. Two maps are considered equal if they both contain the
+    // same set of keys, and for each key they associate the same value.
+    // @param other: The map to compare against.
+    // @return: true if this map is equal to other, false otherwise.
+    bool operator==(Map const& other) const {
+        if (m_size != other.m_size) {
+            return false;
+        }
+        // Because both maps may have different numbers of buckets and the state
+        // of each bucket depends on the insertion order, we cannot naively
+        // compare the buckets. Instead we need to manually check that each key
+        // of this map is contained in the other map and both are pointing to
+        // the same value. This is sufficient because at this point both maps
+        // have the same size / number of elements.
+        for (u64 i(0); i < m_numBuckets; ++i) {
+            Bucket const& bucket(m_buckets[i]);
+            for (Entry const& entry: bucket) {
+                if (!other.contains(entry.key)
+                    || entry.value != other[entry.key]) {
+                    return false;
+
+                }
+            }
+        }
+        return true;
+    }
 
     // Get the size of the map, ie the number of elements inserted.
     u64 size() const {

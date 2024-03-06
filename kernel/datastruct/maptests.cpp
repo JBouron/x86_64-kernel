@@ -339,6 +339,158 @@ SelfTests::TestResult mapHighHashCollisionTest() {
     }
     return SelfTests::TestResult::Success;
 }
+
+// Fill a map with numElems. Insert CounterObj(i) for key Key(i).
+static void fill(Map<Key, CounterObj>& map, u64 const numElems) {
+    for (u64 i(0); i < numElems; ++i) {
+        map[Key(i)] = CounterObj(i);
+    }
+}
+
+// Test Map<T>::operator==(Map<T> const&).
+SelfTests::TestResult mapComparisonTest() {
+    u64 const numElems(1024);
+
+    // Case #1: Comparison against self.
+    {
+        Map<Key, CounterObj> map;
+
+        // Empty case.
+        TEST_ASSERT(map == map);
+        fill(map, numElems);
+        TEST_ASSERT(map == map);
+    }
+
+    // Case #2: Comparison against empty map.
+    {
+        Map<Key, CounterObj> map;
+        Map<Key, CounterObj> empty;
+
+        fill(map, numElems);
+
+        TEST_ASSERT(map != empty);
+        TEST_ASSERT(empty != map);
+    }
+
+    // Case #3: Same content.
+    {
+        // Setup the maps with different number of buckets to make sure the
+        // comparison function handles this case.
+        Map<Key, CounterObj> map1(10);
+        Map<Key, CounterObj> map2(20);
+
+        TEST_ASSERT(map1 == map2);
+        TEST_ASSERT(map2 == map1);
+
+        fill(map1, numElems);
+        fill(map2, numElems);
+
+        TEST_ASSERT(map1 == map2);
+        TEST_ASSERT(map2 == map1);
+    }
+
+    // Case #4: Different content.
+    {
+        Map<Key, CounterObj> map1(10);
+        Map<Key, CounterObj> map2(20);
+
+        fill(map1, numElems);
+        fill(map2, numElems - 1);
+
+        TEST_ASSERT(map1 != map2);
+        TEST_ASSERT(map2 != map1);
+
+        map2[Key(numElems - 1)] = CounterObj(numElems - 1);
+        TEST_ASSERT(map1 == map2);
+        TEST_ASSERT(map2 == map1);
+
+        // Clear both maps, they should not be equal.
+        map1.clear();
+        map2.clear();
+        TEST_ASSERT(map1 == map2);
+        TEST_ASSERT(map2 == map1);
+
+        // Mismatching content.
+        fill(map1, numElems);
+        for (u64 i(0); i < numElems; ++i) {
+            map2[Key(i)] = CounterObj(i * 2);
+        }
+        TEST_ASSERT(map1 != map2);
+        TEST_ASSERT(map2 != map1);
+
+        // Change the values of map1 to be equal to those in map 2.
+        for (u64 i(0); i < numElems; ++i) {
+            map1[Key(i)].value = i * 2;
+        }
+        TEST_ASSERT(map1 == map2);
+        TEST_ASSERT(map2 == map1);
+    }
+    return SelfTests::TestResult::Success;
+}
+
+// Test Map(Map const&).
+SelfTests::TestResult mapCopyConstructionTest() {
+    u64 const numElems(1024);
+    Map<Key, CounterObj> map1;
+    fill(map1, numElems);
+
+    Map<Key, CounterObj> const map2(map1);
+    TEST_ASSERT(map1.size() == map2.size());
+    TEST_ASSERT(map1 == map2);
+    TEST_ASSERT(map2 == map1);
+
+    // Modify map1 to make sure we are not modifying values from map2 as well.
+    for (u64 i(0); i < numElems; ++i) {
+        map1[Key(i)].value = i * 2;
+    }
+    TEST_ASSERT(map1 != map2);
+    TEST_ASSERT(map2 != map1);
+
+    for (u64 i(0); i < numElems; ++i) {
+        TEST_ASSERT(map1[Key(i)].value == i * 2);
+        TEST_ASSERT(map2[Key(i)].value == i);
+    }
+    return SelfTests::TestResult::Success;
+}
+
+// Test assignment operator of Map<T>.
+SelfTests::TestResult mapAssignmentTest() {
+    u64 const numElems(1024);
+    Map<Key, CounterObj> map1;
+    fill(map1, numElems);
+
+    // Assign to non-empty map.
+    Map<Key, CounterObj> map2;
+    map2[Key(0xdeadbeef)] = 0xbaadcafe;
+    map2 = map1;
+    TEST_ASSERT(map1.size() == map2.size());
+    TEST_ASSERT(map1 == map2);
+    TEST_ASSERT(map2 == map1);
+
+    // Assign to empty map.
+    Map<Key, CounterObj> map3;
+    map3 = map1;
+    TEST_ASSERT(map1.size() == map3.size());
+    TEST_ASSERT(map1 == map3);
+    TEST_ASSERT(map3 == map1);
+
+    // Modify map1 to make sure we are not modifying values from map2 and map3
+    // as well.
+    for (u64 i(0); i < numElems; ++i) {
+        map1[Key(i)].value = i * 2;
+    }
+    TEST_ASSERT(map1 != map2);
+    TEST_ASSERT(map2 != map1);
+    TEST_ASSERT(map1 != map3);
+    TEST_ASSERT(map3 != map1);
+
+    for (u64 i(0); i < numElems; ++i) {
+        TEST_ASSERT(map1[Key(i)].value == i * 2);
+        TEST_ASSERT(map2[Key(i)].value == i);
+        TEST_ASSERT(map3[Key(i)].value == i);
+    }
+    return SelfTests::TestResult::Success;
+}
 }
 
 // Specialization of the hash<T>() for the Key type used in the map tests.

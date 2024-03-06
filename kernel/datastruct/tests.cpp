@@ -262,6 +262,9 @@ SelfTests::TestResult mapEraseTest();
 SelfTests::TestResult mapClearTest();
 SelfTests::TestResult mapOpOnDefaultMap();
 SelfTests::TestResult mapHighHashCollisionTest();
+SelfTests::TestResult mapComparisonTest();
+SelfTests::TestResult mapCopyConstructionTest();
+SelfTests::TestResult mapAssignmentTest();
 
 SelfTests::TestResult queueConstructionTest();
 SelfTests::TestResult queueEnqueueDequeueTest();
@@ -314,6 +317,9 @@ void Test(SelfTests::TestRunner& runner) {
     RUN_TEST(runner, mapClearTest);
     RUN_TEST(runner, mapOpOnDefaultMap);
     RUN_TEST(runner, mapHighHashCollisionTest);
+    RUN_TEST(runner, mapComparisonTest);
+    RUN_TEST(runner, mapCopyConstructionTest);
+    RUN_TEST(runner, mapAssignmentTest);
 
     // Queue<T> tests.
     RUN_TEST(runner, queueConstructionTest);
