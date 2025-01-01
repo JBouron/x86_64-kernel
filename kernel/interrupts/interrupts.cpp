@@ -101,7 +101,10 @@ static u64 const IDT_SIZE = sizeof(IDT) / sizeof(*IDT);
 // The default interrupt handler, raises a PANIC for the unhandled interrupt.
 // This handler is set for all arch interrupt vectors upon Init.
 void defaultHandler(Vector const vector, Frame const& frame) {
-    PANIC("Got interrupt #{} from RIP = {x}", vector.raw(), frame.rip);
+    PANIC("Got interrupt #{} ({}) from RIP = {x}",
+          vector.raw(),
+          vector.toStr(),
+          frame.rip);
 }
 
 // Disable the legacy Programmable Interrupt Controller 8259.
@@ -158,6 +161,44 @@ bool Vector::isReserved() const {
 // @return: true if this vector is user-defined, false otherwise.
 bool Vector::isUserDefined() const {
     return m_value >= 32;
+}
+
+// Get a string representation of the vector (ie. "PF - Page Fault").
+// @return: For non-user defined interrupts, return the name of the interrupt
+// vector. Otherwise return the empty string.
+char const *Vector::toStr() const {
+    static char const* const vectorToStr[] = {
+        "DE - Divide Error",
+        "DB - Debug Exception",
+        "NMI",
+        "BP - Breakpoint",
+        "OF - Overflow",
+        "BR - BOUND Range Exceeded",
+        "UD - Invalid Opcode (Undefined Opcode)",
+        "NM - Device Not Available (No Math Coprocessor)",
+        "DF - Double Fault",
+        "Reserved",
+        "TS - Invalid TSS",
+        "NP - Segment Not Present",
+        "SS - Stack-Segment Fault",
+        "GP - General Protection",
+        "PF - Page Fault",
+        "Reserved",
+        "MF - x87 FPU Floating-Point Error (Math Fault)",
+        "AC - Alignment Check",
+        "MC - Machine Check",
+        "XM - SIMD Floating-Point Exception",
+        "VE - Virtualization Exception",
+        "CP - Control Protection Exception",
+    };
+    if (isUserDefined()) {
+        return "";
+    } else if (isReserved()) {
+        return "Reserved vector";
+    } else {
+        ASSERT(m_value < sizeof(vectorToStr) / sizeof(*vectorToStr));
+        return vectorToStr[m_value];
+    }
 }
 
 // Get the ACPI Global System Interrupt number associated with this IRQ #.

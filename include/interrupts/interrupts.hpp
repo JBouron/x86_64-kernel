@@ -57,6 +57,11 @@ public:
     // Check if this vector is user-defined, e.g. above 32.
     // @return: true if this vector is user-defined, false otherwise.
     bool isUserDefined() const;
+
+    // Get a string representation of the vector (ie. "PF - Page Fault").
+    // @return: For non-user defined interrupts, return the name of the
+    // interrupt vector. Otherwise return the empty string.
+    char const *toStr() const;
 };
 
 // Hardware interrupt number.
